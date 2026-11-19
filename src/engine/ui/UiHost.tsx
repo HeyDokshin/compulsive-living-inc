@@ -22,6 +22,10 @@ export interface WindowDef {
   component: ComponentType
   /** Pauses player control while open (default true). */
   modal?: boolean
+  /** 'dim' (default) blurs the game behind; 'clear' keeps it visible (e.g. a character preview). */
+  backdrop?: 'dim' | 'clear'
+  /** Where the window sits (default center). */
+  align?: 'center' | 'left' | 'right'
 }
 
 interface ToastEntry {
@@ -49,6 +53,8 @@ export class UiHost {
   onIdleEscape?: () => void
   /** UI sound hook: 'ui:click', 'ui:open', 'ui:close', 'ui:pop'. */
   onSound?: (id: string) => void
+  /** Window opened / closed (the engine turns these into events). */
+  onWindow?: (id: string, open: boolean) => void
 
   mount(parent: HTMLElement): void {
     if (!document.getElementById('cl-ui-style')) {
@@ -85,14 +91,19 @@ export class UiHost {
 
   open(id: string): void {
     if (!this.windows.value.has(id) || this.openId.value === id) return
+    const prev = this.openId.value
     this.openId.value = id
+    if (prev) this.onWindow?.(prev, false)
     this.onSound?.('ui:open')
+    this.onWindow?.(id, true)
   }
 
   close(): void {
-    if (!this.openId.value) return
+    const id = this.openId.value
+    if (!id) return
     this.openId.value = null
     this.onSound?.('ui:close')
+    this.onWindow?.(id, false)
   }
 
   toggle(id: string): void {
@@ -154,7 +165,10 @@ function Root({ host }: { host: UiHost }) {
         </div>
       ))}
       {win && (
-        <div class="cl-backdrop" onPointerDown={(e) => e.target === e.currentTarget && host.close()}>
+        <div
+          class={`cl-backdrop${win.backdrop === 'clear' ? ' clear' : ''}${win.align && win.align !== 'center' ? ' ' + win.align : ''}`}
+          onPointerDown={(e) => e.target === e.currentTarget && host.close()}
+        >
           <div class="cl-window" role="dialog" aria-label={win.title}>
             <div class="cl-window-title">
               <span>{win.title}</span>

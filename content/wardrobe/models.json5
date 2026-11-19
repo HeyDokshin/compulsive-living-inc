@@ -1,0 +1,51 @@
+// Extra heads (hairstyles) for the chibi rig — swapped in with model.parts: { head: '<id>' }.
+// Same palette characters as core:chibi_head, so colors from the wardrobe apply to every style.
+[
+  // Bob
+  {
+    id: 'core:chibi_head_bob',
+    palette: {"s": "#ffdcc4", "h": "#8a5a48", "e": "#3d2b3a", "b": "#ffadbb", "m": "#e8899a"},
+    layers: [
+      ['........', '.hhhhhh.', '.ssssss.', '.ssssss.', '.ssssss.', '.ssssss.', '........'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hssssssh', 'hssssssh', 'hssssssh', 'hssssssh', '.ssmmss.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hssssssh', 'hssssssh', 'hssssssh', 'hssssssh', '.bssssb.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hssssssh', 'hssssssh', 'hssssssh', 'hssssssh', '.sesses.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hssssssh', 'hssssssh', 'hssssssh', 'hssssssh', '.hhsshh.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hhhhhhhh', 'hhhhhhhh', 'hhhhhhhh', 'hhhhhhhh', '.hhhhhh.'],
+      ['........', '.hhhhhh.', '.hhhhhh.', '.hhhhhh.', '.hhhhhh.', '.hhhhhh.', '........'],
+      ['........', '..hhhh..', '.hhhhhh.', '.hhhhhh.', '..hhhh..', '........', '........'],
+    ],
+  },
+  // Buns
+  {
+    id: 'core:chibi_head_buns',
+    palette: {"s": "#ffdcc4", "h": "#8a5a48", "e": "#3d2b3a", "b": "#ffadbb", "m": "#e8899a"},
+    layers: [
+      ['........', '.hhhhhh.', '.ssssss.', '.ssssss.', '.ssssss.', '.ssssss.', '........'],
+      ['.hhhhhh.', 'hhhhhhhh', 'ssssssss', 'ssssssss', 'ssssssss', 'ssssssss', '.ssmmss.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hssssssh', 'hssssssh', 'hssssssh', 'hssssssh', '.bssssb.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hssssssh', 'hssssssh', 'hssssssh', 'hssssssh', '.sesses.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hssssssh', 'hssssssh', 'hssssssh', 'hssssssh', '.hhsssh.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hhhhhhhh', 'hhhhhhhh', 'hhhhhhhh', 'hhhhhhhh', '.hhhhhh.'],
+      ['........', '.hhhhhh.', '.hhhhhh.', '.hhhhhh.', '.hhhhhh.', '.hhhhhh.', '........'],
+      ['........', '.hh..hh.', '.hh..hh.', '........', '........', '........', '........'],
+      ['........', '.hh..hh.', '.hh..hh.', '........', '........', '........', '........'],
+    ],
+  },
+  // Spiky
+  {
+    id: 'core:chibi_head_spiky',
+    palette: {"s": "#ffdcc4", "h": "#8a5a48", "e": "#3d2b3a", "b": "#ffadbb", "m": "#e8899a"},
+    layers: [
+      ['........', '.hhhhhh.', '.ssssss.', '.ssssss.', '.ssssss.', '.ssssss.', '........'],
+      ['.hhhhhh.', 'hhhhhhhh', 'ssssssss', 'ssssssss', 'ssssssss', 'ssssssss', '.ssmmss.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hssssssh', 'hssssssh', 'hssssssh', 'hssssssh', '.bssssb.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hssssssh', 'hssssssh', 'hssssssh', 'hssssssh', '.sesses.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hssssssh', 'hssssssh', 'hssssssh', 'hssssssh', '.hshssh.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hhhhhhhh', 'hhhhhhhh', 'hhhhhhhh', 'hhhhhhhh', '.hhhhhh.'],
+      ['........', '.hhhhhh.', '.hhhhhh.', '.hhhhhh.', '.hhhhhh.', '.hhhhhh.', '........'],
+      ['........', '..h..h..', '.hhhhhh.', '..hh.h..', '.h..h...', '........', '........'],
+      ['........', '..h.....', '.h...h..', '....h...', '........', '........', '........'],
+    ],
+  },
+]

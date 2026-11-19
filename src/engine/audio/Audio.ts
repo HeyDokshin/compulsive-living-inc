@@ -1,8 +1,10 @@
 import type { Registry } from '../registry/Registry'
-import type { SoundDef, SynthLayer } from './defs'
+import { SynthLayerSchema, type SoundDef, type SynthLayer } from './defs'
 import { createLogger } from '../util/log'
 
 const log = createLogger('audio')
+
+export type Bus = 'sfx' | 'ui' | 'ambient' | 'music'
 
 export interface AudioSettings {
   muted: boolean
@@ -10,8 +12,30 @@ export interface AudioSettings {
   sfx: number
   ui: number
   ambient: number
+  music: number
   /** World sounds fade out over this many blocks from the camera focus. */
   hearingRange: number
+}
+
+/** One scheduled note (generative music, chimes…). */
+export interface NoteOptions extends Partial<SynthLayer> {
+  /** Seconds from now. */
+  at?: number
+  bus?: Bus
+}
+
+/** A continuous sound (e.g. surf) whose loudness and brightness can be steered. */
+export interface LoopHandle {
+  setGain(gain: number, seconds?: number): void
+  setFilter(freq: number, seconds?: number): void
+  stop(): void
+}
+
+export interface LoopOptions {
+  wave?: 'noise' | 'sine' | 'triangle'
+  freq?: number
+  filter?: { type: BiquadFilterType; freq: number; q?: number }
+  bus?: Bus
 }
 
 export interface PlayOptions {
@@ -28,7 +52,7 @@ export interface PlayOptions {
  */
 export class Audio {
   private ctx?: AudioContext
-  private buses?: Record<'sfx' | 'ui' | 'ambient', GainNode>
+  private buses?: Record<Bus, GainNode>
   private master?: GainNode
   private noise?: AudioBuffer
   private files = new Map<string, Promise<AudioBuffer | null>>()
@@ -59,6 +83,7 @@ export class Audio {
     this.buses.sfx.gain.setTargetAtTime(s.sfx, t, 0.02)
     this.buses.ui.gain.setTargetAtTime(s.ui, t, 0.02)
     this.buses.ambient.gain.setTargetAtTime(s.ambient, t, 0.02)
+    this.buses.music.gain.setTargetAtTime(s.music, t, 0.05)
   }
 
   play(id: string, opts: PlayOptions = {}): void {
@@ -98,6 +123,62 @@ export class Audio {
     for (const layer of def.layers) this.playLayer(layer, out, now, pitch)
     const total = Math.max(0.05, ...def.layers.map((l) => l.delay + l.attack + l.duration))
     setTimeout(() => out.disconnect(), (total + 0.2) * 1000)
+  }
+
+  /** Audio clock (seconds) — schedule notes against it. */
+  get time(): number {
+    return this.ctx?.currentTime ?? 0
+  }
+
+  /** Play one synthesized note. No-op until audio is unlocked. */
+  note(n: NoteOptions): void {
+    if (!this.ready) return
+    const layer = SynthLayerSchema.parse(n)
+    const out = this.ctx!.createGain()
+    out.connect(this.buses![n.bus ?? 'music'])
+    this.playLayer(layer, out, this.ctx!.currentTime + (n.at ?? 0), 1)
+    setTimeout(() => out.disconnect(), ((n.at ?? 0) + layer.delay + layer.attack + layer.duration + 0.3) * 1000)
+  }
+
+  /** Start a continuous sound (silent at first — fade it in with setGain). Null until audio is unlocked. */
+  loop(o: LoopOptions = {}): LoopHandle | null {
+    if (!this.ready) return null
+    const ctx = this.ctx!
+    let src: AudioScheduledSourceNode
+    if (!o.wave || o.wave === 'noise') {
+      const n = ctx.createBufferSource()
+      n.buffer = this.noise!
+      n.loop = true
+      src = n
+    } else {
+      const osc = ctx.createOscillator()
+      osc.type = o.wave
+      osc.frequency.value = o.freq ?? 220
+      src = osc
+    }
+    const gain = ctx.createGain()
+    gain.gain.value = 0
+    let filter: BiquadFilterNode | undefined
+    if (o.filter) {
+      filter = ctx.createBiquadFilter()
+      filter.type = o.filter.type
+      filter.frequency.value = o.filter.freq
+      filter.Q.value = o.filter.q ?? 0.7
+      src.connect(filter).connect(gain)
+    } else src.connect(gain)
+    gain.connect(this.buses![o.bus ?? 'ambient'])
+    src.start()
+    return {
+      setGain: (v, sec = 0.5) => gain.gain.setTargetAtTime(Math.max(0, v), ctx.currentTime, sec / 3),
+      setFilter: (f, sec = 0.5) => filter?.frequency.setTargetAtTime(f, ctx.currentTime, sec / 3),
+      stop: () => {
+        gain.gain.setTargetAtTime(0, ctx.currentTime, 0.1)
+        setTimeout(() => {
+          src.stop()
+          gain.disconnect()
+        }, 500)
+      },
+    }
   }
 
   private playLayer(l: SynthLayer, out: AudioNode, now: number, pitch: number): void {
@@ -151,7 +232,7 @@ export class Audio {
         g.connect(this.master!)
         return g
       }
-      this.buses = { sfx: bus(), ui: bus(), ambient: bus() }
+      this.buses = { sfx: bus(), ui: bus(), ambient: bus(), music: bus() }
       // 1 s of white noise, reused by all noise layers
       const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate)
       const data = buf.getChannelData(0)

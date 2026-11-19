@@ -137,6 +137,7 @@ export class Game {
 
     this.ui.mount(document.body)
     this.ui.onSound = (id) => this.sounds.has(id) && this.audio.play(id)
+    this.ui.onWindow = (id, open) => this.events.emit(open ? 'ui:opened' : 'ui:closed', { id })
     this.camera.onZoom = () => this.panel.refresh()
     for (const c of builtinCommands(this)) this.commands.register({ ...c, id: `debug:${c.name}` }, 'engine')
     this.wireEvents()

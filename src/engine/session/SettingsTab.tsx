@@ -22,7 +22,7 @@ function Row({ label, children }: { label: string; children: ComponentChildren }
 export function SettingsTab({ game }: { game: Game }) {
   const [s, setS] = useState<UserSettings>(loadUserSettings)
   const set = (patch: Partial<UserSettings>) => setS(updateUserSettings(game, patch))
-  const slider = (key: 'master' | 'sfx' | 'ui') => (
+  const slider = (key: 'master' | 'sfx' | 'ui' | 'ambient' | 'music') => (
     <input
       type="range"
       min={0}
@@ -56,6 +56,8 @@ export function SettingsTab({ game }: { game: Game }) {
       <div style={{ color: 'var(--ui-text-soft)', fontSize: '13px', textAlign: 'right', marginTop: '-4px' }}>{current?.hint}</div>
       <Row label="Общая громкость">{slider('master')}</Row>
       <Row label="Звуки мира">{slider('sfx')}</Row>
+      <Row label="Музыка">{slider('music')}</Row>
+      <Row label="Природа (прибой, птицы)">{slider('ambient')}</Row>
       <Row label="Звуки интерфейса">{slider('ui')}</Row>
       <Row label="Без звука">{check('muted')}</Row>
       <Row label="Показывать FPS">{check('showFps')}</Row>

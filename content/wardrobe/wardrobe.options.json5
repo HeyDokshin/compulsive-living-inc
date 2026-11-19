@@ -1,0 +1,47 @@
+// Wardrobe choices. kind 'style': a model for a rig part (part = rig part name).
+// kind 'color': a swatch for a palette channel (h hair, s skin, e eyes, t shirt, p pants, o shoes).
+// Add your own entries from any pack — they show up in the editor (C).
+[
+  { id: 'wardrobe:hair_short', kind: 'style', part: 'head', model: 'core:chibi_head', name: 'Короткая' },
+  { id: 'wardrobe:hair_bob', kind: 'style', part: 'head', model: 'core:chibi_head_bob', name: 'Каре' },
+  { id: 'wardrobe:hair_buns', kind: 'style', part: 'head', model: 'core:chibi_head_buns', name: 'Пучки' },
+  { id: 'wardrobe:hair_spiky', kind: 'style', part: 'head', model: 'core:chibi_head_spiky', name: 'Вихры' },
+
+  { id: 'wardrobe:hair_brown', kind: 'color', channel: 'h', color: '#8a5a48' },
+  { id: 'wardrobe:hair_dark', kind: 'color', channel: 'h', color: '#4a3638' },
+  { id: 'wardrobe:hair_blonde', kind: 'color', channel: 'h', color: '#f2cf7e' },
+  { id: 'wardrobe:hair_ginger', kind: 'color', channel: 'h', color: '#d9824f' },
+  { id: 'wardrobe:hair_pink', kind: 'color', channel: 'h', color: '#f4a5c0' },
+  { id: 'wardrobe:hair_mint', kind: 'color', channel: 'h', color: '#8fd3c0' },
+  { id: 'wardrobe:hair_lilac', kind: 'color', channel: 'h', color: '#b9a3e8' },
+
+  { id: 'wardrobe:skin_1', kind: 'color', channel: 's', color: '#ffe6d6' },
+  { id: 'wardrobe:skin_2', kind: 'color', channel: 's', color: '#ffdcc4' },
+  { id: 'wardrobe:skin_3', kind: 'color', channel: 's', color: '#e8b896' },
+  { id: 'wardrobe:skin_4', kind: 'color', channel: 's', color: '#c48c6a' },
+  { id: 'wardrobe:skin_5', kind: 'color', channel: 's', color: '#8d5a42' },
+
+  { id: 'wardrobe:eyes_dark', kind: 'color', channel: 'e', color: '#3d2b3a' },
+  { id: 'wardrobe:eyes_blue', kind: 'color', channel: 'e', color: '#3f6fa8' },
+  { id: 'wardrobe:eyes_green', kind: 'color', channel: 'e', color: '#3f8a5e' },
+  { id: 'wardrobe:eyes_brown', kind: 'color', channel: 'e', color: '#7a4a2e' },
+
+  { id: 'wardrobe:shirt_pink', kind: 'color', channel: 't', color: '#ffc4d6' },
+  { id: 'wardrobe:shirt_sky', kind: 'color', channel: 't', color: '#9fd0ff' },
+  { id: 'wardrobe:shirt_mint', kind: 'color', channel: 't', color: '#a8e6c8' },
+  { id: 'wardrobe:shirt_lemon', kind: 'color', channel: 't', color: '#fff0a0' },
+  { id: 'wardrobe:shirt_peach', kind: 'color', channel: 't', color: '#ffc8a8' },
+  { id: 'wardrobe:shirt_lilac', kind: 'color', channel: 't', color: '#d6c4ff' },
+  { id: 'wardrobe:shirt_white', kind: 'color', channel: 't', color: '#fbf7f0' },
+
+  { id: 'wardrobe:pants_denim', kind: 'color', channel: 'p', color: '#6f84c9' },
+  { id: 'wardrobe:pants_brown', kind: 'color', channel: 'p', color: '#a07a5c' },
+  { id: 'wardrobe:pants_olive', kind: 'color', channel: 'p', color: '#8fa36a' },
+  { id: 'wardrobe:pants_berry', kind: 'color', channel: 'p', color: '#c46a8a' },
+  { id: 'wardrobe:pants_grey', kind: 'color', channel: 'p', color: '#8c8f9e' },
+
+  { id: 'wardrobe:shoes_brown', kind: 'color', channel: 'o', color: '#a8705a' },
+  { id: 'wardrobe:shoes_red', kind: 'color', channel: 'o', color: '#e07a7a' },
+  { id: 'wardrobe:shoes_white', kind: 'color', channel: 'o', color: '#f4f0ea' },
+  { id: 'wardrobe:shoes_navy', kind: 'color', channel: 'o', color: '#4a5a8a' },
+]

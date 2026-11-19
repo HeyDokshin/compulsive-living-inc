@@ -43,7 +43,7 @@ export class ModelLibrary {
   }
 
   /** A rig: one pivot group per part (named after the part) holding that part's mesh. */
-  createRig(id: string, opts: { scale?: number; palette?: Record<string, string> } = {}): Object3D {
+  createRig(id: string, opts: { scale?: number; palette?: Record<string, string>; parts?: Record<string, string> } = {}): Object3D {
     const root = new Group()
     root.name = id
     const rig = this.rigs.get(id)
@@ -70,7 +70,8 @@ export class ModelLibrary {
         g.position.set(part.at[0] - p.at[0], part.at[1] - p.at[1], part.at[2] - p.at[2])
         parent.add(g)
       } else inner.add(g)
-      this.withModel(part.model, (model, def) => g.add(this.mesh(part.model, model, part.pivot, opts.palette, def)))
+      const modelId = opts.parts?.[part.name] ?? part.model
+      this.withModel(modelId, (model, def) => g.add(this.mesh(modelId, model, part.pivot, opts.palette, def)))
     }
     return root
   }

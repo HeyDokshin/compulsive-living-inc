@@ -78,6 +78,11 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       camera: game.renderer.iso,
       stylize: (material, opts) => game.renderer.stylize(material, opts),
       voxelModel: (id, opts) => game.modelLibrary.createVoxel(id, opts),
+      refreshView: (e) => game.renderer.entityRenderer.refresh(e),
+      setZoom: (zoom) => {
+        const c = game.engineConfig.camera
+        game.config.set('engine', 'camera.zoom', Math.min(c.maxZoom, Math.max(c.minZoom, zoom)))
+      },
       follow: (entity) => {
         game.camera.follow = entity
         if (entity) game.camera.placed = true
@@ -141,6 +146,18 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
     },
     audio: {
       play: (id, opts) => game.audio.play(id, opts),
+      note: (n) => game.audio.note(n),
+      loop: (o) => {
+        const h = game.audio.loop(o)
+        if (h) track(() => h.stop())
+        return h
+      },
+      get ready() {
+        return game.audio.ready
+      },
+      get time() {
+        return game.audio.time
+      },
     },
     fx: {
       burst: (id, at, opts) => game.particles.burst(id, at, opts),

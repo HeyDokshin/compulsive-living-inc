@@ -86,6 +86,13 @@ export class EntityRenderer {
     }
   }
 
+  /** Recreate one entity's view (its `model` changed, e.g. new clothes). */
+  refresh(e: Entity): void {
+    if (!e.view) return
+    e.view.removeFromParent()
+    this.entities.world.removeComponent(e, 'view')
+  }
+
   /** Recreate every view (models or rigs changed). */
   rebuildAll(): void {
     for (const e of [...this.entities.world.with('view')]) {

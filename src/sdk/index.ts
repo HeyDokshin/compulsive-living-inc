@@ -43,6 +43,7 @@ export type { UiSlot, WindowDef } from '../engine/ui/UiHost'
 export type { ModelDef, RigDef } from '../engine/models/defs'
 export type { SaverDef } from '../engine/save/SaveService'
 export type { SoundDef, SynthLayer } from '../engine/audio/defs'
+export type { LoopHandle, NoteOptions } from '../engine/audio/Audio'
 export type { ParticleDef } from '../engine/fx/defs'
 export type { VoxelHit } from '../engine/world/pick'
 

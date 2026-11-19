@@ -12,11 +12,13 @@ export interface UserSettings {
   master: number
   sfx: number
   ui: number
+  ambient: number
+  music: number
   muted: boolean
   showFps: boolean
 }
 
-export const DEFAULT_SETTINGS: UserSettings = { quality: 'high', master: 0.8, sfx: 0.9, ui: 0.7, muted: false, showFps: false }
+export const DEFAULT_SETTINGS: UserSettings = { quality: 'high', master: 0.8, sfx: 0.9, ui: 0.7, ambient: 0.6, music: 0.5, muted: false, showFps: false }
 
 /** Engine config values per quality level (paths in config · engine). */
 export const QUALITY_PRESETS: Record<Quality, Record<string, number | boolean>> = {
@@ -74,6 +76,8 @@ export function applyUserSettings(game: Game, s = loadUserSettings()): void {
     game.config.set('engine', 'audio.master', s.master)
     game.config.set('engine', 'audio.sfx', s.sfx)
     game.config.set('engine', 'audio.ui', s.ui)
+    game.config.set('engine', 'audio.ambient', s.ambient)
+    game.config.set('engine', 'audio.music', s.music)
     game.config.set('engine', 'audio.muted', s.muted)
     game.config.set('engine', 'debug.showFps', s.showFps)
   } catch (e) {

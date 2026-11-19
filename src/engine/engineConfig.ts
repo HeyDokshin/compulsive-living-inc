@@ -104,6 +104,7 @@ export const EngineConfigSchema = z.object({
       sfx: z.number().min(0).max(1).default(0.9).meta({ step: 0.01 }),
       ui: z.number().min(0).max(1).default(0.7).meta({ step: 0.01 }),
       ambient: z.number().min(0).max(1).default(0.6).meta({ step: 0.01 }),
+      music: z.number().min(0).max(1).default(0.5).meta({ step: 0.01 }),
       hearingRange: z.number().min(4).max(100).default(26).meta({ label: 'hearing range (blocks)', step: 1 }),
     })
     .prefault({}),

@@ -30,8 +30,8 @@ export type SynthLayer = z.infer<typeof SynthLayerSchema>
 export const SoundDefSchema = z.looseObject({
   id: z.string(),
   tags: z.array(z.string()).optional(),
-  /** Mixer channel: sfx (world), ui (interface), ambient. */
-  bus: z.enum(['sfx', 'ui', 'ambient']).default('sfx'),
+  /** Mixer channel: sfx (world), ui (interface), ambient (birds, surf), music. */
+  bus: z.enum(['sfx', 'ui', 'ambient', 'music']).default('sfx'),
   volume: z.number().min(0).max(2).default(1),
   /** Random pitch variation (0.1 = ±10%) so repeated sounds don't feel robotic. */
   pitchJitter: z.number().min(0).max(1).default(0.06),

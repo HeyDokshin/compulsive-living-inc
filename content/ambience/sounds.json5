@@ -1,0 +1,17 @@
+// Ambient sounds (bus: ambient — volume in Esc → Настройки → «Природа»).
+[
+  { id: 'ambience:bird', bus: 'ambient', pitchJitter: 0.15, cooldown: 0.5, layers: [
+    { wave: 'sine', freq: 2400, freqEnd: 3300, duration: 0.07, gain: 0.07 },
+    { wave: 'sine', freq: 2600, freqEnd: 3600, delay: 0.1, duration: 0.06, gain: 0.06 },
+    { wave: 'sine', freq: 3000, freqEnd: 2200, delay: 0.2, duration: 0.09, gain: 0.05 },
+  ] },
+  { id: 'ambience:bird_whistle', bus: 'ambient', pitchJitter: 0.12, cooldown: 0.5, layers: [
+    { wave: 'sine', freq: 1800, freqEnd: 2400, duration: 0.18, gain: 0.05 },
+    { wave: 'sine', freq: 2400, freqEnd: 1800, delay: 0.22, duration: 0.18, gain: 0.05 },
+  ] },
+  { id: 'ambience:cricket', bus: 'ambient', pitchJitter: 0.05, cooldown: 0.1, layers: [
+    { wave: 'noise', duration: 0.03, gain: 0.07, filter: { type: 'bandpass', freq: 4600, q: 9 } },
+    { wave: 'noise', delay: 0.06, duration: 0.03, gain: 0.07, filter: { type: 'bandpass', freq: 4600, q: 9 } },
+    { wave: 'noise', delay: 0.12, duration: 0.03, gain: 0.06, filter: { type: 'bandpass', freq: 4600, q: 9 } },
+  ] },
+]

@@ -56,7 +56,10 @@ export default definePlugin({
 | `api.interactions.at(actor, x, z)` → `find` / `perform` | что произойдёт / сделать действие в клетке |
 | `api.services.provide(name, impl)` / `get(name)` | API для других плагинов (тип — через `interface Services`) |
 | `api.audio.play(id, { at, volume, pitch })` | звук из реестра `sounds` (синтез или файл); `at` — тише вдали от камеры |
+| `api.audio.note({ wave, freq, duration, at, bus })` / `api.audio.loop({...})` | отдельные ноты (генеративная музыка) и непрерывные звуки (прибой); `api.audio.ready` / `time` |
 | `api.fx.burst(id, at, { color, amount, scale })` | частицы из реестра `particles` |
+| `api.render.refreshView(entity)` / `api.render.setZoom(z)` | пересобрать модель сущности после смены `model` / плавный зум |
+| события `ui:opened` / `ui:closed` | окно открыто или закрыто (по ним работает обучение) |
 | `api.world.pick(clientX, clientY)` / `api.input.pointer` | клетка под мышью (с учётом изгиба мира) |
 | `api.render.stylize(material, { sway, flowUv })` | дать своему материалу стиль игры: изгиб мира, покачивание, течение |
 | `api.render.blockSurface(blockId, rects, y)` | плоская поверхность с текстурой блока (так сделано море вокруг острова) |
@@ -159,6 +162,12 @@ api.save.register({
 
 Шаги берутся из блока под ногами (`sounds: { step }` в `blocks.json5`). Громкость каналов sfx, ui и ambient задаётся в `config · engine → audio`. Частицы (`particles.json5`) — это маленькие кубики: `count`, `colors`, `size`, `speed`, `spread`, `gravity` (отрицательная — всплывают), `life`, `glow`.
 
+## Внешность, обучение, звуковой фон
+
+- **Причёски и цвета** — записи реестра `wardrobe:options` (`content/wardrobe/wardrobe.options.json5`): `kind: 'style'` меняет модель части рига (`model.parts.head`), `kind: 'color'` — цвет канала палитры (`h s e t p o`). Новая причёска — это новая модель головы в данных.
+- **Шаги обучения** — реестр `tutorial:steps`: `{ id, order, text, keys, event, when }` или `check(api)`. Шаг засчитывается в любом порядке, прогресс сохраняется с островом. Команды: `tutorial reset`, `tutorial skip`.
+- **Музыка** — плагин `ambience`: аккорды, бас и мелодия по пентатонике, днём мажор, ночью тише и в миноре; после ~4 минут музыки пауза. Громкость: Esc → Настройки → «Музыка» и «Природа».
+
 ## Модели и персонажи
 
 Модель можно нарисовать прямо в данных (`content/<pack>/models.json5`): `layers` снизу вверх, в слое — ряды от задней стороны (-z) к передней (+z), в ряду — символы слева направо, `.` — пусто. `palette` сопоставляет символы цветам. 12 вокселей = 1 блок, перед модели смотрит в +z.
@@ -183,6 +192,7 @@ blobShadow: { radius: 0.36 }                     // мягкая круглая 
 | `I` / `Tab` / `Pad3` | карманы |
 | `R` / `Pad5` (`Pad4` — назад) | сменить инструмент в руках |
 | `G` | выбросить предмет из рук |
+| `C` | внешность персонажа |
 | `Esc` / `Pad9` | закрыть окно, а если окон нет — меню (сохранения, новый остров) |
 | `Q` / `E` | повернуть камеру на 90° |
 | колесо мыши | зум |

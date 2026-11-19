@@ -9,7 +9,7 @@ import type { ReadonlySignal } from '@preact/signals'
 import type { UiSlot, WindowDef } from '../ui/UiHost'
 import type { InteractionContext, InteractionDef } from '../interact/Interactions'
 import type { SaverDef } from '../save/SaveService'
-import type { PlayOptions } from '../audio/Audio'
+import type { LoopHandle, LoopOptions, NoteOptions, PlayOptions } from '../audio/Audio'
 import type { BurstOptions } from '../fx/Particles'
 import type { VoxelHit } from '../world/pick'
 import type { Dispose } from '../util/disposables'
@@ -102,6 +102,10 @@ export interface PluginApi {
     stylize<T extends THREE.Material>(material: T, opts?: StyleOptions): T
     /** A voxel model from the `models` registry as a three.js object (appears when loaded). Not added to the scene. */
     voxelModel(id: string, opts?: { scale?: number; palette?: Record<string, string> }): THREE.Object3D
+    /** Smoothly zoom the camera (clamped to the configured range). */
+    setZoom(zoom: number): void
+    /** Rebuild an entity's 3D view after changing its `model` (e.g. recolored clothes, another rig). */
+    refreshView(entity: Entity): void
     /** Camera smoothly follows this entity (null = free camera). */
     follow(entity: Entity | null): void
     /**
@@ -144,6 +148,14 @@ export interface PluginApi {
   /** Sounds from the `sounds` registry (synthesized or files). `at` makes it quieter far from the camera. */
   audio: {
     play(id: string, opts?: PlayOptions): void
+    /** One synthesized note (default bus: music). Generative music schedules these ahead with `at`. */
+    note(n: NoteOptions): void
+    /** A continuous sound (surf, wind…), silent until `setGain`. Null until the player first clicks/presses a key. */
+    loop(o?: LoopOptions): LoopHandle | null
+    /** Audio is unlocked (browsers require a first user gesture). */
+    readonly ready: boolean
+    /** Audio clock in seconds. */
+    readonly time: number
   }
 
   /** Particle bursts from the `particles` registry. */

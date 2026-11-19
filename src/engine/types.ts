@@ -41,6 +41,8 @@ export const ModelSchema = z.object({
   scale: z.number().positive().optional(),
   /** Recolor palette characters of layer-drawn models, e.g. `{ t: '#ffb3c7' }` for a pink shirt. */
   palette: z.record(z.string(), z.string()).optional(),
+  /** Rig only: swap the model of named parts, e.g. `{ head: 'core:chibi_head_bob' }` (hairstyles, hats…). */
+  parts: z.record(z.string(), z.string()).optional(),
 })
 export type ModelSpec = z.infer<typeof ModelSchema>
 
@@ -149,6 +151,8 @@ export interface GameEvents {
   /** A new game or a loaded save is fully set up (plugins started). */
   'session:started': { loaded: boolean; slot: string }
   'save:saved': { slot: string }
+  'ui:opened': { id: string }
+  'ui:closed': { id: string }
   'save:loaded': { slot: string }
 }
 

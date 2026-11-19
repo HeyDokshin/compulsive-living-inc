@@ -32,6 +32,9 @@ export const UI_CSS = /* css */ `
 
 .cl-backdrop { position: absolute; inset: 0; background: rgba(90, 70, 80, .18); backdrop-filter: blur(2px);
   display: flex; align-items: center; justify-content: center; pointer-events: auto; animation: cl-fade .18s ease-out; }
+.cl-backdrop.clear { background: transparent; backdrop-filter: none; }
+.cl-backdrop.left { justify-content: flex-start; padding-left: 4vw; }
+.cl-backdrop.right { justify-content: flex-end; padding-right: 4vw; }
 .cl-window { background: var(--ui-bg); border-radius: 26px; box-shadow: 0 14px 40px rgba(110, 80, 70, .28);
   border: 3px solid #fff; min-width: 300px; max-width: min(92vw, 720px); max-height: 86vh; overflow: auto;
   animation: cl-pop .22s cubic-bezier(.3, 1.4, .5, 1); }
