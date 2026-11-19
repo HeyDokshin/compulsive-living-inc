@@ -1,0 +1,4 @@
+// Engine settings. Every key is optional — missing ones use defaults from src/engine/engineConfig.ts.
+{
+  camera: { zoom: 1 },
+}

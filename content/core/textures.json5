@@ -1,0 +1,12 @@
+// Procedural 16×16 textures. Patterns: flat, noise, speckle, stone, planks, water, grass_side
+// (+ any added by plugins via api.textures.pattern). Drop a PNG at content/core/textures/<name>.png
+// to replace the texture `core:<name>` with an image.
+[
+  { id: 'core:grass_top', pattern: 'speckle', colors: ['#78c25a', '#8fd16a', '#65ad4c'], params: { density: 0.18, amount: 0.08 }, seed: 11 },
+  { id: 'core:grass_side', pattern: 'grass_side', colors: ['#8a6446', '#78c25a'], params: { depth: 4 }, seed: 12 },
+  { id: 'core:dirt', pattern: 'speckle', colors: ['#8a6446', '#73523a', '#9c7556'], params: { density: 0.14 }, seed: 13 },
+  { id: 'core:sand', pattern: 'speckle', colors: ['#ecd9a0', '#e0c98a', '#f5e7bb'], params: { density: 0.2, amount: 0.05 }, seed: 14 },
+  { id: 'core:cliff', pattern: 'stone', colors: ['#9a8470'], params: { cracks: 6, amount: 0.08 }, seed: 15 },
+  { id: 'core:stone', pattern: 'stone', colors: ['#9aa0a6'], params: { cracks: 5 }, seed: 16 },
+  { id: 'core:water', pattern: 'water', colors: ['#4fb3d9', '#8fd6ef'], seed: 17 },
+]

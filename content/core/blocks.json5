@@ -1,0 +1,20 @@
+// Core blocks. `textures` point to entries in textures.json5 (or PNGs in content/core/textures/).
+// Without `textures`, a block gets an automatic noise texture from `color`.
+// Tags let mechanics refer to groups ("#core:ground") instead of concrete ids.
+{
+  entries: [
+    {
+      id: 'core:grass', name: 'Трава', color: '#78c25a',
+      textures: { top: 'core:grass_top', side: 'core:grass_side', bottom: 'core:dirt' },
+      tags: ['core:ground', 'core:diggable'],
+    },
+    { id: 'core:dirt', name: 'Земля', color: '#8a6446', textures: { all: 'core:dirt' }, tags: ['core:ground', 'core:diggable'] },
+    { id: 'core:sand', name: 'Песок', color: '#ecd9a0', textures: { all: 'core:sand' }, tags: ['core:ground', 'core:diggable'] },
+    { id: 'core:cliff', name: 'Скала', color: '#9a8470', textures: { all: 'core:cliff' }, tags: ['core:ground'] },
+    { id: 'core:stone', name: 'Камень', color: '#9aa0a6', textures: { all: 'core:stone' }, tags: ['core:ground'] },
+    {
+      id: 'core:water', name: 'Вода', color: '#4fb3d9', textures: { all: 'core:water' },
+      solid: false, transparent: true, tags: ['core:liquid'],
+    },
+  ],
+}

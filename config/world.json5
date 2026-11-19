@@ -1,0 +1,7 @@
+// World shape. Changing a value regenerates the island (also live from the debug panel, F2).
+{
+  seed: 12345,
+  chunksX: 8,
+  chunksZ: 8,
+  height: 32,
+}
