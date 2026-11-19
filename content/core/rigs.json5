@@ -1,0 +1,16 @@
+// Rigs: animatable characters made of voxel models. Units: voxels (scale 1/12 → 12 per block).
+// pivot = rotation point inside the part's model; at = where that point sits in the rig (feet at y=0, front = +z).
+// Animations find parts by name: legL, legR, armL, armR, body, head.
+[
+  {
+    id: 'core:chibi',
+    parts: [
+      { name: 'legL', model: 'core:chibi_leg', pivot: [1, 4, 1], at: [-1, 4, 0] },
+      { name: 'legR', model: 'core:chibi_leg', pivot: [1, 4, 1], at: [1, 4, 0] },
+      { name: 'body', model: 'core:chibi_body', pivot: [3, 0, 2], at: [0, 4, 0] },
+      { name: 'armL', model: 'core:chibi_arm', pivot: [1, 4, 1], at: [-4, 8, 0], parent: 'body' },
+      { name: 'armR', model: 'core:chibi_arm', pivot: [1, 4, 1], at: [4, 8, 0], parent: 'body' },
+      { name: 'head', model: 'core:chibi_head', pivot: [4, 0, 3.5], at: [0, 8, 0], parent: 'body' },
+    ],
+  },
+]

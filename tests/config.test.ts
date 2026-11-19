@@ -55,6 +55,6 @@ describe('describeSchema', () => {
   })
 
   it('engine config parses from an empty object', () => {
-    expect(EngineConfigSchema.parse({}).camera.zoom).toBe(1)
+    expect(EngineConfigSchema.parse({}).camera.zoom).toBe(2.6)
   })
 })

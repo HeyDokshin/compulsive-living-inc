@@ -1,0 +1,13 @@
+// An item lying on the ground. The items plugin sets `item` and the model when spawning.
+[
+  {
+    id: 'items:drop',
+    components: {
+      name: 'Предмет',
+      transform: { x: 0, y: 0, z: 0 },
+      item: { id: 'core:apple', count: 1 },
+      model: { shape: 'voxel', ref: 'core:apple' },
+      blobShadow: { radius: 0.24, opacity: 0.25 },
+    },
+  },
+]

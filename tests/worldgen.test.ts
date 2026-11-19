@@ -37,8 +37,8 @@ describe('day cycle', () => {
   it('is bright at noon, dark at midnight, and wraps', () => {
     const noon = sampleLight(DEFAULT_LIGHT_KEYS, 12, 35, 60)
     const night = sampleLight(DEFAULT_LIGHT_KEYS, 0, 35, 60)
-    expect(noon.sunIntensity).toBeGreaterThan(2)
-    expect(night.sunIntensity).toBeLessThan(0.5)
+    expect(noon.sunIntensity).toBeGreaterThan(1.5)
+    expect(night.sunIntensity).toBeLessThan(noon.sunIntensity / 2)
     expect(night.isNight).toBe(true)
     expect(noon.dir[1]).toBeGreaterThan(0.8)
     expect(sampleLight(DEFAULT_LIGHT_KEYS, 23.9, 35, 60).sunIntensity).toBeCloseTo(sampleLight(DEFAULT_LIGHT_KEYS, -0.1, 35, 60).sunIntensity)

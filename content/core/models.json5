@@ -1,0 +1,53 @@
+// Voxel models drawn as text. layers: bottom → top; rows: back (-z) → front (+z); chars: left → right.
+// '.' = empty. palette maps characters to colors; prefabs can recolor them (model.palette).
+// Scale: 12 voxels = 1 block. Front of a model is +z.
+[
+  // Head 8×8×7: hair (h), skin (s), eyes (e), blush (b), mouth (m)
+  {
+    id: 'core:chibi_head',
+    palette: {"s": "#ffdcc4", "h": "#8a5a48", "e": "#3d2b3a", "b": "#ffadbb", "m": "#e8899a"},
+    layers: [
+      ['........', '.hhhhhh.', '.ssssss.', '.ssssss.', '.ssssss.', '.ssssss.', '........'],
+      ['.hhhhhh.', 'hhhhhhhh', 'ssssssss', 'ssssssss', 'ssssssss', 'ssssssss', '.ssmmss.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hssssssh', 'hssssssh', 'hssssssh', 'hssssssh', '.bssssb.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hssssssh', 'hssssssh', 'hssssssh', 'hssssssh', '.sesses.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hssssssh', 'hssssssh', 'hssssssh', 'hssssssh', '.hhsssh.'],
+      ['.hhhhhh.', 'hhhhhhhh', 'hhhhhhhh', 'hhhhhhhh', 'hhhhhhhh', 'hhhhhhhh', '.hhhhhh.'],
+      ['........', '.hhhhhh.', '.hhhhhh.', '.hhhhhh.', '.hhhhhh.', '.hhhhhh.', '........'],
+      ['........', '........', '...h....', '...hh...', '........', '........', '........'],
+    ],
+  },
+  // Body 6×4×4: shirt (t), pants (p), collar (c)
+  {
+    id: 'core:chibi_body',
+    palette: {"t": "#9fd0ff", "p": "#6f84c9", "c": "#ffffff"},
+    layers: [
+      ['pppppp', 'pppppp', 'pppppp', 'pppppp'],
+      ['tttttt', 'tttttt', 'tttttt', 'tttttt'],
+      ['tttttt', 'tttttt', 'tttttt', 'tttttt'],
+      ['tttttt', 'tttttt', 'tttttt', 'ttcctt'],
+    ],
+  },
+  // Arm 2×4×2: hand (s), sleeve (t)
+  {
+    id: 'core:chibi_arm',
+    palette: {"s": "#ffdcc4", "t": "#9fd0ff"},
+    layers: [
+      ['ss', 'ss'],
+      ['ss', 'ss'],
+      ['tt', 'tt'],
+      ['tt', 'tt'],
+    ],
+  },
+  // Leg 2×4×2: shoe (o), pants (p)
+  {
+    id: 'core:chibi_leg',
+    palette: {"o": "#a8705a", "p": "#6f84c9"},
+    layers: [
+      ['oo', 'oo'],
+      ['pp', 'pp'],
+      ['pp', 'pp'],
+      ['pp', 'pp'],
+    ],
+  },
+]

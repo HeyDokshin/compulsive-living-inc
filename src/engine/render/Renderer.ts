@@ -1,27 +1,32 @@
 import {
   AxesHelper,
-  BoxGeometry,
   Color,
   DirectionalLight,
   GridHelper,
   HemisphereLight,
   MathUtils,
   Mesh,
-  MeshLambertMaterial,
   PCFShadowMap,
   Scene,
   WebGLRenderer,
-  type Object3D,
 } from 'three'
 import type { EngineConfig } from '../engineConfig'
-import type { Entity, ModelSpec, TickContext, Transform } from '../types'
+import type { TickContext } from '../types'
 import type { Entities } from '../ecs/Entities'
+import type { ModelLibrary } from '../models/ModelLibrary'
+import { EntityRenderer } from './EntityRenderer'
 import { IsoCamera } from './IsoCamera'
 import { BlockAtlas } from './BlockAtlas'
 import { ChunkRenderer } from './ChunkRenderer'
 import { sampleLight } from './dayCycle'
 import type { VoxelWorld } from '../world/VoxelWorld'
 import { MesherPool } from '../world/mesher/MesherPool'
+import { PostFX } from './PostFX'
+import { stylize, styleUniforms, type StyleOptions } from './style'
+import { ACESFilmicToneMapping, AgXToneMapping, BufferAttribute, BufferGeometry, NeutralToneMapping, NoToneMapping } from 'three'
+
+/** [x0, z0, x1, z1] or [x0, z0, x1, z1, cellSize] in world units. */
+export type SurfaceRect = [number, number, number, number] | [number, number, number, number, number]
 
 /** three.js scene, lights + day cycle, iso camera, voxel chunks, and the `model` → `view` sync for entities. */
 export class Renderer {
@@ -32,21 +37,25 @@ export class Renderer {
   readonly ambient = new HemisphereLight()
   private grid?: GridHelper
   private axes?: AxesHelper
-  private prev = new WeakMap<Entity, Transform>()
-  private geometries = new Map<string, BoxGeometry>()
-  private materials = new Map<string, MeshLambertMaterial>()
   private resizeObserver: ResizeObserver
   readonly atlas: BlockAtlas
   readonly chunks: ChunkRenderer
   readonly mesher = new MesherPool()
+  readonly postfx: PostFX
+  private surfaces = new Set<{ mesh: Mesh; blockId: string }>()
+  private palette: VoxelWorld['palette']
+  readonly entityRenderer: EntityRenderer
+  /** Seed for lawn color patches (set from the world seed). */
+  tintSeed = 1
 
   constructor(
     private container: HTMLElement,
     private cfg: EngineConfig,
-    private entities: Entities,
+    entities: Entities,
     world: VoxelWorld,
+    library: ModelLibrary,
   ) {
-    this.renderer = new WebGLRenderer({ antialias: true })
+    this.renderer = new WebGLRenderer({ antialias: true, stencil: true })
     this.renderer.shadowMap.type = PCFShadowMap
     container.appendChild(this.renderer.domElement)
     this.iso = new IsoCamera(cfg.camera)
@@ -63,10 +72,10 @@ export class Renderer {
     this.atlas = new BlockAtlas()
     this.chunks = new ChunkRenderer(world, this.atlas, this.mesher)
     this.scene.add(this.chunks.group)
+    this.palette = world.palette
+    this.postfx = new PostFX(this.renderer, this.scene, this.iso.camera)
 
-    entities.world.onEntityRemoved.subscribe((e) => {
-      if (e.view) e.view.removeFromParent()
-    })
+    this.entityRenderer = new EntityRenderer(this.scene, entities, library, world)
 
     this.resizeObserver = new ResizeObserver(() => this.resize())
     this.resizeObserver.observe(container)
@@ -99,7 +108,30 @@ export class Renderer {
       this.chunks.remeshAll()
     }
     this.chunks.waterOpacity = render.waterOpacity
+    const t = render.tint
+    const toMul = (hex: string): [number, number, number] => {
+      const c = new Color(hex).convertLinearToSRGB()
+      return [c.r, c.g, c.b]
+    }
+    const tint = { seed: this.tintSeed, scale: t.scale, strength: t.strength, a: toMul(t.sunny), b: toMul(t.shady) }
+    if (JSON.stringify(tint) !== JSON.stringify(this.chunks.tint)) {
+      this.chunks.tint = tint
+      this.chunks.remeshAll()
+    }
     this.chunks.setBorders(debug.showChunks)
+
+    const style = this.cfg.style
+    this.renderer.toneMapping = { neutral: NeutralToneMapping, agx: AgXToneMapping, aces: ACESFilmicToneMapping, none: NoToneMapping }[style.toneMapping]
+    this.renderer.toneMappingExposure = style.exposure
+    this.sun.shadow.radius = style.shadowSoftness
+    this.sun.shadow.intensity = style.shadowStrength
+    styleUniforms.uWaterSpeed.value = style.waterSpeed
+    const maxMerge = style.curvature > 0 ? 1 : Infinity
+    if (maxMerge !== this.chunks.maxMerge) {
+      this.chunks.maxMerge = maxMerge
+      this.chunks.remeshAll()
+    }
+    this.postfx.apply(style)
 
     if (debug.showGrid && !this.grid) this.scene.add((this.grid = new GridHelper(256, 256, 0x335566, 0x557788)))
     if (!debug.showGrid && this.grid) (this.grid.removeFromParent(), (this.grid = undefined))
@@ -110,54 +142,90 @@ export class Renderer {
 
   /** Engine system, start of each tick: remember transforms so rendering can interpolate. */
   snapshot(): void {
-    for (const e of this.entities.world.with('transform')) {
-      const p = this.prev.get(e)
-      if (p) Object.assign(p, e.transform)
-      else this.prev.set(e, { ...e.transform })
-    }
+    this.entityRenderer.snapshot()
   }
 
   render(ctx: TickContext): void {
-    for (const e of this.entities.world.with('model')) {
-      if (!e.view) {
-        const view = this.createModel(e.model)
-        this.scene.add(view)
-        this.entities.world.addComponent(e, 'view', view)
-      }
-      const view = e.view!
-      const t = e.transform
-      if (!t) continue
-      const p = this.prev.get(e) ?? t
-      const a = ctx.alpha
-      view.position.set(lerp(p.x, t.x, a), lerp(p.y, t.y, a), lerp(p.z, t.z, a))
-      view.rotation.y = lerpAngle(p.rotY, t.rotY, a)
-    }
+    this.entityRenderer.render(ctx)
 
     this.iso.update(ctx.dt)
     this.chunks.update(this.iso.target.x, this.iso.target.z)
     this.updateLight(ctx.dt)
     if (this.grid) this.grid.position.set(Math.round(this.iso.target.x), Math.round(this.iso.target.y) + 0.01, Math.round(this.iso.target.z))
-    this.renderer.render(this.scene, this.iso.camera)
+
+    styleUniforms.uTime.value += ctx.dt
+    styleUniforms.uCurve.value = this.cfg.style.curvature
+    styleUniforms.uCurveCenter.value.copy(this.iso.target)
+    const f = this.iso.forwardXZ()
+    styleUniforms.uCurveDir.value.set(f.x, f.z)
+    if (this.cfg.style.postfx) this.postfx.render(ctx.dt)
+    else this.renderer.render(this.scene, this.iso.camera)
   }
 
-  /** Box models for now; `.vox` loading arrives with stage 2. */
-  createModel(spec: ModelSpec): Object3D {
-    const [w, h, d] = spec.size
-    const gKey = `${w}x${h}x${d}:${spec.anchor}`
-    let geo = this.geometries.get(gKey)
-    if (!geo) {
-      geo = new BoxGeometry(w, h, d)
-      if (spec.anchor === 'bottom') geo.translate(0, h / 2, 0)
-      this.geometries.set(gKey, geo)
+  /** Apply the game's look (curvature, sway…) to a custom material. */
+  stylize<T extends Parameters<typeof stylize>[0]>(material: T, opts?: StyleOptions): T {
+    return stylize(material, opts)
+  }
+
+  /**
+   * Flat surfaces textured like a block's top face (e.g. the endless sea around the island).
+   * Rects are [x0, z0, x1, z1] in world units. Kept in sync with atlas rebuilds.
+   */
+  createBlockSurface(blockId: string, rects: SurfaceRect[], y: number, transparent: boolean): Mesh {
+    const pos: number[] = []
+    const uv: number[] = []
+    const idx: number[] = []
+    // Each rect is split into cells (5th value, default: one quad) so vertex effects such as
+    // world curvature can bend it smoothly.
+    for (const [x0, z0, x1, z1, cell] of rects) {
+      const step = cell && cell > 0 ? cell : Math.max(x1 - x0, z1 - z0)
+      for (let cz = z0; cz < z1; cz += step) {
+        for (let cx = x0; cx < x1; cx += step) {
+          const ax = cx
+          const az = cz
+          const bx = Math.min(x1, cx + step)
+          const bz = Math.min(z1, cz + step)
+          const s = pos.length / 3
+          pos.push(ax, y, az, bx, y, az, bx, y, bz, ax, y, bz)
+          uv.push(ax, az, bx, az, bx, bz, ax, bz)
+          idx.push(s, s + 2, s + 1, s, s + 3, s + 2)
+        }
+      }
     }
-    let mat = this.materials.get(spec.color)
-    if (!mat) this.materials.set(spec.color, (mat = new MeshLambertMaterial({ color: spec.color })))
-    const mesh = new Mesh(geo, mat)
-    mesh.castShadow = mesh.receiveShadow = true
+    const n = pos.length / 3
+    const geo = new BufferGeometry()
+    geo.setAttribute('position', new BufferAttribute(new Float32Array(pos), 3))
+    geo.setAttribute('normal', new BufferAttribute(new Float32Array(n * 3).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3))
+    geo.setAttribute('uv', new BufferAttribute(new Float32Array(uv), 2))
+    geo.setAttribute('color', new BufferAttribute(new Float32Array(n * 3).fill(1), 3))
+    geo.setAttribute('tile', new BufferAttribute(new Float32Array(n * 4), 4))
+    geo.setIndex(idx)
+    const mesh = new Mesh(geo, transparent ? this.chunks.transparentMaterial : this.chunks.opaqueMaterial)
+    mesh.receiveShadow = true
+    mesh.frustumCulled = false
+    const entry = { mesh, blockId }
+    this.surfaces.add(entry)
+    this.updateSurfaceTiles(entry)
+    mesh.addEventListener('removed', () => this.surfaces.delete(entry))
     return mesh
   }
 
+  /** Call after the atlas changed. */
+  refreshSurfaces(): void {
+    for (const s of this.surfaces) this.updateSurfaceTiles(s)
+  }
+
+  private updateSurfaceTiles(s: { mesh: Mesh; blockId: string }): void {
+    const t = this.atlas.table.tiles
+    const num = this.palette.peek(s.blockId)
+    const base = num !== undefined && (num * 6 + 2) * 4 + 3 < t.length ? (num * 6 + 2) * 4 : 8
+    const attr = s.mesh.geometry.getAttribute('tile') as BufferAttribute
+    for (let i = 0; i < attr.count; i++) attr.setXYZW(i, t[base]!, t[base + 1]!, t[base + 2]!, t[base + 3]!)
+    attr.needsUpdate = true
+  }
+
   dispose(): void {
+    this.postfx.dispose()
     this.chunks.dispose()
     this.mesher.dispose()
     this.resizeObserver.disconnect()
@@ -194,12 +262,8 @@ export class Renderer {
     const w = this.container.clientWidth
     const h = this.container.clientHeight
     this.renderer.setSize(w, h, false)
+    this.postfx?.setSize(w, h, this.renderer.getPixelRatio())
+    this.postfx?.apply(this.cfg.style)
     this.iso.resize(w, h)
   }
-}
-
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t
-const lerpAngle = (a: number, b: number, t: number) => {
-  const d = ((((b - a) % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2)) - Math.PI
-  return a + d * t
 }

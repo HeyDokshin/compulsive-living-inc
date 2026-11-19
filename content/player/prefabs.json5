@@ -1,0 +1,16 @@
+// The player character: a chibi rig with walk animation (biped), a soft silhouette when hidden
+// behind terrain, and a round shadow. Recolor clothes with model.palette (keys = model palette chars).
+[
+  {
+    id: 'player:player',
+    components: {
+      name: 'Игрок',
+      transform: { x: 0, y: 0, z: 0 },
+      model: { shape: 'rig', ref: 'core:chibi', palette: { t: '#ffc4d6' } },
+      silhouette: { color: '#fff6fb', opacity: 0.5 },
+      blobShadow: { radius: 0.36, opacity: 0.32 },
+      biped: { speed: 0 },
+      player: {},
+    },
+  },
+]

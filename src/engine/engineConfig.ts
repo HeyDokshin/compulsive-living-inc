@@ -11,14 +11,20 @@ export const EngineConfigSchema = z.object({
     .prefault({}),
   camera: z
     .object({
-      pitch: z.number().min(10).max(89).default(35.264).meta({ label: 'pitch°', step: 0.5 }),
+      pitch: z.number().min(10).max(89).default(44).meta({ label: 'pitch°', step: 0.5 }),
       viewSize: z.number().min(4).max(200).default(24).meta({ label: 'view size (blocks)', step: 1 }),
-      zoom: z.number().min(0.25).max(6).default(1).meta({ step: 0.05 }),
-      minZoom: z.number().min(0.1).max(10).default(0.4).meta({ step: 0.05 }),
+      zoom: z.number().min(0.1).max(6).default(2.6).meta({ step: 0.05 }),
+      minZoom: z.number().min(0.05).max(10).default(0.2).meta({ step: 0.05 }),
       maxZoom: z.number().min(0.1).max(10).default(4).meta({ step: 0.05 }),
       zoomSpeed: z.number().min(0).max(0.01).default(0.0015).meta({ step: 0.0001 }),
+      zoomSmoothing: z.number().min(1).max(40).default(10).meta({ label: 'zoom smoothing', step: 0.5 }),
       rotateSmoothing: z.number().min(1).max(40).default(12).meta({ step: 0.5 }),
       panSpeed: z.number().min(0).max(80).default(12).meta({ step: 0.5 }),
+      followSmoothing: z.number().min(0.5).max(30).default(5).meta({ label: 'follow smoothing', step: 0.5 }),
+      /** Seconds of movement the camera looks ahead of a followed entity. */
+      lookAhead: z.number().min(0).max(2).default(0.35).meta({ label: 'look ahead (s)', step: 0.05 }),
+      /** Lift the focus point (blocks) so the followed character sits slightly below screen center. */
+      focusHeight: z.number().min(-3).max(5).default(0.6).meta({ label: 'focus height', step: 0.1 }),
     })
     .prefault({}),
   render: z
@@ -27,8 +33,17 @@ export const EngineConfigSchema = z.object({
       shadows: z.boolean().default(true),
       maxPixelRatio: z.number().min(0.5).max(3).default(2).meta({ step: 0.25 }),
       shadowRange: z.number().min(10).max(200).default(60).meta({ label: 'shadow range', step: 1 }),
-      ao: z.number().min(0).max(1).default(0.55).meta({ label: 'ambient occlusion', step: 0.05 }),
-      waterOpacity: z.number().min(0).max(1).default(0.78).meta({ step: 0.01 }),
+      ao: z.number().min(0).max(1).default(0.4).meta({ label: 'ambient occlusion', step: 0.05 }),
+      waterOpacity: z.number().min(0).max(1).default(0.72).meta({ step: 0.01 }),
+      /** Soft color patches on blocks with `tint: true` (lawns). */
+      tint: z
+        .object({
+          strength: z.number().min(0).max(1).default(1).meta({ step: 0.01 }),
+          scale: z.number().min(0.005).max(0.5).default(0.09).meta({ label: 'patch scale', step: 0.005 }),
+          sunny: z.string().default('#fff1a0').meta({ color: true }),
+          shady: z.string().default('#8fd2bf').meta({ color: true }),
+        })
+        .prefault({}),
     })
     .prefault({}),
   light: z
@@ -60,9 +75,38 @@ export const EngineConfigSchema = z.object({
       ambientIntensity: z.number().min(0).max(4).default(1.1).meta({ step: 0.05 }),
     })
     .prefault({}),
+  /** The look: soft light, pastel grading, tilt-shift, rolling-world curvature. */
+  style: z
+    .object({
+      postfx: z.boolean().default(true).meta({ label: 'post effects' }),
+      toneMapping: z.enum(['neutral', 'agx', 'aces', 'none']).default('neutral').meta({ label: 'tone mapping' }),
+      exposure: z.number().min(0.2).max(3).default(1.08).meta({ step: 0.01 }),
+      saturation: z.number().min(0).max(2).default(1.12).meta({ step: 0.01 }),
+      contrast: z.number().min(0.5).max(1.5).default(0.94).meta({ step: 0.01 }),
+      warmth: z.number().min(-1).max(1).default(0.35).meta({ step: 0.01 }),
+      lift: z.number().min(0).max(0.2).default(0.035).meta({ label: 'lift (pastel)', step: 0.005 }),
+      vignette: z.number().min(0).max(1).default(0.3).meta({ step: 0.01 }),
+      tiltShift: z.number().min(0).max(20).default(3).meta({ label: 'tilt-shift blur', step: 0.1 }),
+      tiltFocus: z.number().min(0).max(1).default(0.5).meta({ label: 'tilt-shift focus', step: 0.01 }),
+      curvature: z.number().min(0).max(0.02).default(0.0025).meta({ label: 'world curvature', step: 0.0005 }),
+      shadowSoftness: z.number().min(0).max(10).default(4).meta({ label: 'shadow softness', step: 0.25 }),
+      shadowStrength: z.number().min(0).max(1).default(0.55).meta({ label: 'shadow strength', step: 0.01 }),
+      waterSpeed: z.number().min(0).max(5).default(1).meta({ label: 'water speed', step: 0.05 }),
+    })
+    .prefault({}),
+  save: z
+    .object({
+      /** Minutes between autosaves into the current slot (0 = off). Also saves when the tab is hidden. */
+      autosaveMinutes: z.number().min(0).max(60).default(2).meta({ label: 'autosave (min)', step: 0.5 }),
+      /** Continue the most recent save on start. */
+      autoLoad: z.boolean().default(true).meta({ label: 'continue last save' }),
+      slots: z.number().int().min(1).max(10).default(3).meta({ step: 1 }),
+    })
+    .prefault({}),
   debug: z
     .object({
-      showPanel: z.boolean().default(true),
+      /** Debug panel (toggle with F2). */
+      showPanel: z.boolean().default(false),
       showGrid: z.boolean().default(false),
       showAxes: z.boolean().default(false),
       showChunks: z.boolean().default(false),

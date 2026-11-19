@@ -69,6 +69,8 @@ export function buildBlockTable(plan: AtlasPlan, blocks: BlockDef[], palette: Bl
   for (const b of blocks) palette.num(b.id) // every registered block gets a number
   const n = palette.size
   const kind = new Uint8Array(n)
+  const liquid = new Uint8Array(n)
+  const tint = new Uint8Array(n)
   const tiles = new Float32Array(n * 24)
   const index = new Map(plan.tiles.map((id, i) => [id, i]))
   const missing = tileRect(plan, 0)
@@ -77,13 +79,15 @@ export function buildBlockTable(plan: AtlasPlan, blocks: BlockDef[], palette: Bl
   for (let num = 1; num < n; num++) {
     const b = byId.get(palette.id(num))
     kind[num] = b?.transparent ? KIND_TRANSPARENT : KIND_OPAQUE
+    liquid[num] = b?.liquid && b.transparent ? 1 : 0
+    tint[num] = b?.tint ? 1 : 0
     const faces = b ? faceTextures(b) : []
     for (let f = 0; f < 6; f++) {
       const ti = b ? (index.get(faces[f]!) ?? 0) : 0
       tiles.set(ti ? tileRect(plan, ti) : missing, (num * 6 + f) * 4)
     }
   }
-  return { kind, tiles }
+  return { kind, tiles, liquid, tint }
 }
 
 /**

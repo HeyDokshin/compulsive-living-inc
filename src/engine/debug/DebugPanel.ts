@@ -30,15 +30,18 @@ export class DebugPanel {
     s.addBinding(this.stats, 'entities', { readonly: true, format: (v: number) => v.toFixed(0) })
     s.addBinding(this.stats, 'systems', { readonly: true, format: (v: number) => v.toFixed(0) })
 
-    config.onAnyChange(() => {
-      if (this.refreshing) return
-      this.refreshing = true
-      try {
-        this.pane.refresh()
-      } finally {
-        this.refreshing = false
-      }
-    })
+    config.onAnyChange(() => this.refresh())
+  }
+
+  /** Re-read all bound values (without echoing them back as edits). */
+  refresh(): void {
+    if (this.refreshing) return
+    this.refreshing = true
+    try {
+      this.pane.refresh()
+    } finally {
+      this.refreshing = false
+    }
   }
 
   set visible(v: boolean) {

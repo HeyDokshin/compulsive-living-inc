@@ -41,7 +41,7 @@ function devConfigWriter(): Plugin {
 }
 
 /**
- * Makes every plugin entry (src/plugins/<id>/index.ts) hot-swappable without boilerplate:
+ * Makes every plugin entry (src/plugins/<id>/index.ts or .tsx) hot-swappable without boilerplate:
  * on change, the new definition is handed to the running game, which unloads and reloads
  * that plugin and its dependents. The world keeps running.
  */
@@ -50,7 +50,7 @@ function pluginHotReload(): Plugin {
     name: 'cl-plugin-hot-reload',
     apply: 'serve',
     transform(code, id) {
-      if (!/\/src\/plugins\/[^/]+\/index\.ts$/.test(id)) return
+      if (!/\/src\/plugins\/[^/]+\/index\.tsx?$/.test(id)) return
       return (
         code +
         `\nif (import.meta.hot) { import.meta.hot.accept((m) => { if (m?.default) globalThis.__CL_HMR__?.plugin(m.default) }) }\n`
@@ -61,6 +61,8 @@ function pluginHotReload(): Plugin {
 
 export default defineConfig({
   plugins: [devConfigWriter(), pluginHotReload()],
+  // UI is written in TSX with Preact.
+  oxc: { jsx: { runtime: 'automatic', importSource: 'preact' } },
   resolve: {
     alias: {
       '@sdk': resolve(root, 'src/sdk/index.ts'),

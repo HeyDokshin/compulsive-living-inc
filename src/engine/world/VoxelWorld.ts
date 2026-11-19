@@ -123,8 +123,10 @@ export class VoxelWorld {
   }
 
   /**
-   * Copy a chunk plus a 1-block border (neighbour chunks, air outside) into a padded volume
-   * for the mesher. Layout: (x+1) + (z+1)*18 + (y+1)*18*18, size 18 × (height+2) × 18.
+   * Copy a chunk plus a 1-block border from neighbour chunks into a padded volume for the mesher.
+   * Beyond the world's X/Z edges the edge column is repeated, so the island has no visible
+   * outer walls and blends into the endless sea around it. Above/below the world is air.
+   * Layout: (x+1) + (z+1)*18 + (y+1)*18*18, size 18 × (height+2) × 18.
    */
   paddedVolume(ci: number, out?: Uint16Array): Uint16Array {
     const P = CHUNK_SIZE + 2
@@ -137,7 +139,9 @@ export class VoxelWorld {
       for (let z = -1; z <= 16; z++) {
         for (let x = -1; x <= 16; x++) {
           const inside = x >= 0 && x < 16 && z >= 0 && z < 16
-          const v = inside ? c.data[x + z * 16 + y * 256]! : this.get(ox + x, y, oz + z)
+          const v = inside
+            ? c.data[x + z * 16 + y * 256]!
+            : this.get(clamp(ox + x, 0, this.sizeX - 1), y, clamp(oz + z, 0, this.sizeZ - 1))
           if (v) vol[x + 1 + (z + 1) * P + (y + 1) * P * P] = v
         }
       }
@@ -145,3 +149,5 @@ export class VoxelWorld {
     return vol
   }
 }
+
+const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v)

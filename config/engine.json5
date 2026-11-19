@@ -1,4 +1,3 @@
 // Engine settings. Every key is optional — missing ones use defaults from src/engine/engineConfig.ts.
-{
-  camera: { zoom: 1 },
-}
+// Tune live in the debug panel (F2) and press "save" to write the values here.
+{}

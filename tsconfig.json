@@ -11,6 +11,8 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
     "paths": { "@sdk": ["./src/sdk/index.ts"], "@engine/*": ["./src/engine/*"] }
   },
   "include": ["src", "tests", "vite.config.ts"]

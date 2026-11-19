@@ -36,6 +36,11 @@ export class Input {
   private listeners = new Map<string, Set<() => void>>()
   private wheel = 0
   private detach: Dispose = () => {}
+  private pressFn?: (code: string) => void
+  private padDown = new Set<string>()
+  /** Left stick of the first gamepad, deadzone applied (x right, y down). */
+  readonly stick = { x: 0, y: 0 }
+  deadzone = 0.22
 
   define(id: string, keys: string[], owner: string): Dispose {
     this.actions.set(id, { id, owner, keys })
@@ -85,23 +90,48 @@ export class Input {
     this.pressed.clear()
   }
 
+  /**
+   * Read the first connected gamepad (call once per tick). Buttons become codes `Pad0`, `Pad1`…
+   * (standard mapping: Pad0 = A/Cross, Pad1 = B/Circle, Pad12–15 = d-pad), usable in bindings.
+   */
+  pollGamepad(): void {
+    const pads = typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : []
+    const pad = [...pads].find((p) => p?.connected)
+    this.stick.x = this.stick.y = 0
+    const now = new Set<string>()
+    if (pad) {
+      const [ax = 0, ay = 0] = pad.axes
+      const mag = Math.hypot(ax, ay)
+      if (mag > this.deadzone) {
+        const k = Math.min(1, (mag - this.deadzone) / (1 - this.deadzone)) / mag
+        this.stick.x = ax * k
+        this.stick.y = ay * k
+      }
+      pad.buttons.forEach((b, i) => b.pressed && now.add(`Pad${i}`))
+    }
+    for (const code of now) if (!this.padDown.has(code)) this.pressFn?.(code)
+    for (const code of this.padDown) if (!now.has(code)) this.down.delete(code)
+    this.padDown = now
+  }
+
   attach(target: HTMLElement): void {
     const isTyping = (e: Event) => {
       const t = e.target as HTMLElement | null
       return !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
     }
-    const press = (code: string, e: Event) => {
+    const press = (code: string, e?: Event) => {
       if (!this.down.has(code)) {
         this.pressed.add(code)
         for (const [action, fns] of this.listeners) {
           if (this.keysOf(action).includes(code)) {
             for (const fn of [...fns]) fn()
-            e.preventDefault()
+            e?.preventDefault()
           }
         }
       }
       this.down.add(code)
     }
+    this.pressFn = press
     const kd = (e: KeyboardEvent) => {
       const code = keyCodeOf(e)
       if (isTyping(e) && code !== 'Backquote') return

@@ -12,11 +12,19 @@ export class IsoCamera {
   quarter = 0
   private yaw = 45
   private aspect = 1
+  /** Displayed zoom, easing towards `cfg.zoom`. */
+  private zoomNow = 0
 
   constructor(private cfg: EngineConfig['camera']) {}
 
   get targetYaw(): number {
     return 45 + this.quarter * 90
+  }
+
+  /** Horizontal direction the camera looks along (unit XZ). */
+  forwardXZ(): { x: number; z: number } {
+    const yaw = MathUtils.degToRad(this.yaw)
+    return { x: -Math.sin(yaw), z: -Math.cos(yaw) }
   }
 
   rotate(steps: number): void {
@@ -47,7 +55,9 @@ export class IsoCamera {
     const k = 1 - Math.exp(-c.rotateSmoothing * dt)
     this.yaw += (this.targetYaw - this.yaw) * k
 
-    const half = c.viewSize / 2 / c.zoom
+    if (!this.zoomNow) this.zoomNow = c.zoom
+    this.zoomNow *= Math.pow(c.zoom / this.zoomNow, 1 - Math.exp(-c.zoomSmoothing * dt))
+    const half = c.viewSize / 2 / this.zoomNow
     this.camera.left = -half * this.aspect
     this.camera.right = half * this.aspect
     this.camera.top = half

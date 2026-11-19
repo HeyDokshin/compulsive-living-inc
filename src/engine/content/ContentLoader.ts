@@ -45,6 +45,7 @@ export class ContentLoader {
       }
     }
     this.loadTextureImages()
+    this.loadVoxModels()
     return [...this.loadedPacks]
   }
 
@@ -65,6 +66,25 @@ export class ContentLoader {
       try {
         if (textures.has(id)) textures.modify(id, (t) => ({ ...t, url }), owner)
         else textures.register({ id, url }, owner)
+      } catch (e) {
+        log.error(`${path}:`, e)
+      }
+    }
+  }
+
+  /** `content/<pack>/models/<name>.vox` becomes model `<pack>:<name>` (unless defined in JSON). */
+  private loadVoxModels(): void {
+    if (!this.registries.has('models')) return
+    const models = this.registries.get<RegistryEntry & { url?: string }>('models')
+    for (const [path, url] of Object.entries(this.assets)) {
+      const m = /content\/([a-z0-9_-]+)\/models\/([a-z0-9_/-]+)\.vox$/.exec(path)
+      if (!m) continue
+      const [, pack, name] = m
+      const id = `${pack}:${name}`
+      this.loadedPacks.add(pack!)
+      try {
+        if (models.has(id)) models.modify(id, (d) => ({ ...d, url }), ownerOf(pack!))
+        else models.register({ id, url }, ownerOf(pack!))
       } catch (e) {
         log.error(`${path}:`, e)
       }

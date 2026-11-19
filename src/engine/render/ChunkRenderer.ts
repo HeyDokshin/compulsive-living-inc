@@ -11,7 +11,7 @@ import {
 } from 'three'
 import type { VoxelWorld } from '../world/VoxelWorld'
 import type { MesherPool } from '../world/mesher/MesherPool'
-import type { MeshBuffers } from '../world/mesher/mesher'
+import type { MeshBuffers, TintParams } from '../world/mesher/mesher'
 import type { BlockAtlas } from './BlockAtlas'
 import { createVoxelMaterial } from './voxelMaterial'
 
@@ -26,6 +26,10 @@ export class ChunkRenderer {
   readonly opaqueMaterial: MeshLambertMaterial
   readonly transparentMaterial: MeshLambertMaterial
   aoCurve: [number, number, number, number] = [0.5, 0.68, 0.84, 1]
+  /** See MeshInput.maxMerge. Change → call remeshAll(). */
+  maxMerge = Infinity
+  /** Lawn color patches (origin is filled per chunk). Change → call remeshAll(). */
+  tint?: Omit<TintParams, 'origin'>
   private meshes = new Map<number, ChunkMeshes>()
   private inFlight = new Set<number>()
   private epoch = 0
@@ -84,8 +88,10 @@ export class ChunkRenderer {
           sx: 16,
           sy: world.height,
           sz: 16,
-          table: { kind: table.kind.slice(), tiles: table.tiles.slice() },
+          table: { kind: table.kind.slice(), tiles: table.tiles.slice(), liquid: table.liquid?.slice(), tint: table.tint?.slice() },
+          tint: this.tint ? { ...this.tint, origin: [world.chunks[ci]!.cx * 16, world.chunks[ci]!.cz * 16] } : undefined,
           aoCurve: this.aoCurve,
+          maxMerge: this.maxMerge,
         })
         .then((out) => {
           if (epoch !== this.epoch) return // reset() already forgot this job

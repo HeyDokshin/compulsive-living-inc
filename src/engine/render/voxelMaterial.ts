@@ -1,4 +1,5 @@
 import { MeshLambertMaterial, type Texture } from 'three'
+import { stylize } from './style'
 
 /**
  * Lambert material that samples a tile of the block atlas and repeats it across greedy-merged quads:
@@ -29,5 +30,5 @@ export function createVoxelMaterial(atlas: Texture, opts: { transparent?: boolea
       )
   }
   mat.customProgramCacheKey = () => 'voxel-atlas'
-  return mat
+  return stylize(mat, { flowUv: !!opts.transparent })
 }

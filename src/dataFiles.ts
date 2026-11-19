@@ -14,12 +14,11 @@ export const configFiles = import.meta.glob<string>('/config/*.json5', {
   eager: true,
 })
 
-/** Image assets (texture PNGs) as URLs. */
-export const assetFiles = import.meta.glob<string>('/content/**/textures/**/*.png', {
-  query: '?url',
-  import: 'default',
-  eager: true,
-})
+/** Binary assets as URLs: texture PNGs and MagicaVoxel models. */
+export const assetFiles = {
+  ...import.meta.glob<string>('/content/**/textures/**/*.png', { query: '?url', import: 'default', eager: true }),
+  ...import.meta.glob<string>('/content/**/models/**/*.vox', { query: '?url', import: 'default', eager: true }),
+}
 
 if (import.meta.hot) {
   import.meta.hot.accept((mod) => {

@@ -35,10 +35,24 @@ export type {
   Phase,
   TickPhase,
   TickContext,
+  Services,
 } from '../engine/types'
+export type { ItemDef } from '../engine/items/defs'
+export type { InteractionDef, InteractionContext } from '../engine/interact/Interactions'
+export type { UiSlot, WindowDef } from '../engine/ui/UiHost'
+export type { ModelDef, RigDef } from '../engine/models/defs'
+export type { SaverDef } from '../engine/save/SaveService'
+
+// UI toolkit for plugins: Preact + signals + the game's components.
+export { h, Fragment, type ComponentChildren, type ComponentType } from 'preact'
+export { useState, useEffect, useMemo, useRef, useCallback } from 'preact/hooks'
+export { signal, computed, effect, batch, useSignal, useComputed, type Signal, type ReadonlySignal } from '@preact/signals'
+export * as ui from '../engine/ui/components'
 export type { EngineConfig, WorldConfig } from '../engine/engineConfig'
 export type { WorldGenStep, WorldGenContext } from '../engine/world/WorldGen'
 export type { TextureDef, PatternFn, PatternContext } from '../engine/render/textures'
+export type { StyleOptions } from '../engine/render/style'
+export type { SurfaceRect } from '../engine/render/Renderer'
 
 export type Plugin = PluginDefinition<PluginApi>
 

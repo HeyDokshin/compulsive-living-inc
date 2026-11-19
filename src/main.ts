@@ -2,8 +2,8 @@ import './engine/hmr'
 import { Game, type GamePlugin } from './engine/Game'
 import { assetFiles, contentFiles, configFiles } from './dataFiles'
 
-// Every folder in src/plugins/ with an index.ts is a plugin. Add a folder — get a plugin.
-const pluginModules = import.meta.glob<{ default: GamePlugin }>('./plugins/*/index.ts', { eager: true })
+// Every folder in src/plugins/ with an index.ts (or index.tsx) is a plugin. Add a folder — get a plugin.
+const pluginModules = import.meta.glob<{ default: GamePlugin }>('./plugins/*/index.{ts,tsx}', { eager: true })
 
 const game = new Game(document.getElementById('app')!)
 

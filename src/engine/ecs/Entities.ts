@@ -1,6 +1,6 @@
 import { World } from 'miniplex'
 import type { ZodType } from 'zod'
-import { ModelSchema, TransformSchema, type Components, type Entity, type PrefabDef } from '../types'
+import { BlobShadowSchema, ModelSchema, SilhouetteSchema, TransformSchema, type Components, type Entity, type PrefabDef } from '../types'
 import type { Registry } from '../registry/Registry'
 import type { EventBus } from '../events/EventBus'
 import type { Hooks } from '../events/Hooks'
@@ -24,6 +24,8 @@ const ENGINE_COMPONENTS: Omit<ComponentDef, 'owner'>[] = [
   { name: 'transform', schema: TransformSchema, persistent: true },
   { name: 'model', schema: ModelSchema, persistent: true },
   { name: 'view', persistent: false },
+  { name: 'silhouette', schema: SilhouetteSchema, persistent: true },
+  { name: 'blobShadow', schema: BlobShadowSchema, persistent: true },
 ]
 
 /** ECS world (miniplex) + component schemas + prefab spawning. */
@@ -64,7 +66,7 @@ export class Entities {
     return deepMerge(parent, structuredClone(def.components)) as Components
   }
 
-  /** Spawn from a prefab id (`hello:crate`) or from raw components. */
+  /** Spawn from a prefab id (`player:player`) or from raw components. */
   spawn(source: string | Components, overrides: Components = {}): Entity {
     const prefab = typeof source === 'string' ? source : undefined
     let comps: Components = typeof source === 'string' ? this.prefabComponents(source) : structuredClone(source)
@@ -73,6 +75,7 @@ export class Entities {
     comps = this.hooks.run('entity:beforeSpawn', comps, { prefab })
     comps = this.validate(comps)
     comps.uid ??= this.nextUid++
+    if (comps.uid >= this.nextUid) this.nextUid = comps.uid + 1 // restored from a save
     const entity = this.world.add(comps)
     this.events.emit('entity:spawned', { entity })
     return entity

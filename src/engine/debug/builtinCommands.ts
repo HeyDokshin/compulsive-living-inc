@@ -76,14 +76,10 @@ export function builtinCommands(game: Game): Cmd[] {
       run: ([id, x, y, z]) => {
         if (!id) throw new Error('prefab id required')
         const t = game.renderer.iso.target
-        const e = game.entities.spawn(id, {
-          transform: {
-            x: x !== undefined ? num(x, 'x') : Math.round(t.x),
-            y: y !== undefined ? num(y, 'y') : 1,
-            z: z !== undefined ? num(z, 'z') : Math.round(t.z),
-            rotY: 0,
-          },
-        })
+        const px = x !== undefined ? num(x, 'x') : Math.floor(t.x) + 0.5
+        const pz = z !== undefined ? num(z, 'z') : Math.floor(t.z) + 0.5
+        const py = y !== undefined ? num(y, 'y') : game.world.surfaceY(px, pz)
+        const e = game.entities.spawn(id, { transform: { x: px, y: py, z: pz, rotY: 0 } })
         return `spawned ${id} uid=${e.uid}`
       },
     },
