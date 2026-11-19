@@ -14,6 +14,8 @@ import type { TextureDef } from './render/textures'
 import type { WorldGenStep } from './world/WorldGen'
 import type { ModelDef, RigDef } from './models/defs'
 import type { ItemDef } from './items/defs'
+import type { SoundDef } from './audio/defs'
+import type { ParticleDef } from './fx/defs'
 import type { InteractionContext, InteractionDef } from './interact/Interactions'
 
 // ---------- components ----------
@@ -79,6 +81,8 @@ export const BlockSchema = z.looseObject({
   liquid: z.boolean().default(false),
   /** Top face gets soft sunny/shady color patches (engine `render.tint`). */
   tint: z.boolean().default(false),
+  /** Sounds of this block (`sounds` registry ids): footsteps on it, digging it. */
+  sounds: z.object({ step: z.string().optional(), dig: z.string().optional() }).optional(),
   /** Texture ids per face; `all`, then `top` / `bottom` / `side`, then `east|west|south|north`. */
   textures: z
     .object({
@@ -116,6 +120,8 @@ export interface CommandDef extends RegistryEntry {
 }
 
 export interface Registries {
+  sounds: SoundDef
+  particles: ParticleDef
   items: ItemDef
   interactions: InteractionDef
   models: ModelDef

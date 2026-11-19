@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import JSON5 from 'json5'
+import { viteSingleFile } from 'vite-plugin-singlefile'
 
 const root = fileURLToPath(new URL('.', import.meta.url))
 
@@ -59,8 +60,11 @@ function pluginHotReload(): Plugin {
   }
 }
 
-export default defineConfig({
-  plugins: [devConfigWriter(), pluginHotReload()],
+export default defineConfig(({ command }) => ({
+  // Build = one self-contained dist/index.html (scripts, worker, content inlined):
+  // open it with a double click, no server needed.
+  base: './',
+  plugins: [devConfigWriter(), pluginHotReload(), ...(command === 'build' ? [viteSingleFile()] : [])],
   // UI is written in TSX with Preact.
   oxc: { jsx: { runtime: 'automatic', importSource: 'preact' } },
   resolve: {
@@ -69,8 +73,11 @@ export default defineConfig({
       '@engine': resolve(root, 'src/engine'),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 4000,
+  },
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
   },
-})
+}))

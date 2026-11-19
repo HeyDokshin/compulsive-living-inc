@@ -9,6 +9,9 @@ import type { ReadonlySignal } from '@preact/signals'
 import type { UiSlot, WindowDef } from '../ui/UiHost'
 import type { InteractionContext, InteractionDef } from '../interact/Interactions'
 import type { SaverDef } from '../save/SaveService'
+import type { PlayOptions } from '../audio/Audio'
+import type { BurstOptions } from '../fx/Particles'
+import type { VoxelHit } from '../world/pick'
 import type { Dispose } from '../util/disposables'
 import type { Logger } from '../util/log'
 import type { IsoCamera } from '../render/IsoCamera'
@@ -81,6 +84,8 @@ export interface PluginApi {
     consumeWheel(): number
     /** Left stick of the first gamepad (x right, y down), deadzone applied. Live object. */
     readonly stick: { readonly x: number; readonly y: number }
+    /** Mouse over the canvas: client pixels, `inside`, `movedAt` (performance.now()). Live object. */
+    readonly pointer: { readonly x: number; readonly y: number; readonly inside: boolean; readonly movedAt: number }
   }
 
   commands: {
@@ -116,6 +121,8 @@ export interface PluginApi {
     readonly AIR: string
     /** Seed of the current world (for deterministic placement). */
     readonly seed: number
+    /** The voxel under a screen point (client pixels), e.g. the mouse — curvature-corrected. */
+    pick(clientX: number, clientY: number): VoxelHit | null
     getBlock(x: number, y: number, z: number): string
     /** Edits go through the `world:beforeSetBlock` hook and emit `world:blockChanged`. */
     setBlock(x: number, y: number, z: number, id: string): boolean
@@ -132,6 +139,16 @@ export interface PluginApi {
   textures: {
     /** Add a procedural texture pattern usable from `textures.json5` (`pattern: 'name'`). */
     pattern(name: string, fn: PatternFn): void
+  }
+
+  /** Sounds from the `sounds` registry (synthesized or files). `at` makes it quieter far from the camera. */
+  audio: {
+    play(id: string, opts?: PlayOptions): void
+  }
+
+  /** Particle bursts from the `particles` registry. */
+  fx: {
+    burst(id: string, at: { x: number; y: number; z: number }, opts?: BurstOptions): void
   }
 
   /** Preact UI: HUD slots, windows, toasts, item icons. */

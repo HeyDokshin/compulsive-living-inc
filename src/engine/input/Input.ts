@@ -38,6 +38,8 @@ export class Input {
   private detach: Dispose = () => {}
   private pressFn?: (code: string) => void
   private padDown = new Set<string>()
+  /** Mouse over the game canvas (client pixels); `movedAt` = performance.now() of the last move. */
+  readonly pointer = { x: 0, y: 0, inside: false, movedAt: -Infinity }
   /** Left stick of the first gamepad, deadzone applied (x right, y down). */
   readonly stick = { x: 0, y: 0 }
   deadzone = 0.22
@@ -145,6 +147,15 @@ export class Input {
       e.preventDefault()
     }
     const blur = () => this.down.clear()
+    const mm = (e: MouseEvent) => {
+      this.pointer.x = e.clientX
+      this.pointer.y = e.clientY
+      this.pointer.inside = true
+      this.pointer.movedAt = performance.now()
+    }
+    const ml = () => (this.pointer.inside = false)
+    target.addEventListener('mousemove', mm)
+    target.addEventListener('mouseleave', ml)
     window.addEventListener('keydown', kd)
     window.addEventListener('keyup', ku)
     window.addEventListener('blur', blur)
@@ -158,6 +169,8 @@ export class Input {
       target.removeEventListener('mousedown', md)
       window.removeEventListener('mouseup', mu)
       target.removeEventListener('wheel', wh)
+      target.removeEventListener('mousemove', mm)
+      target.removeEventListener('mouseleave', ml)
     }
   }
 

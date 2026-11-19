@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks'
 import { Button } from '../ui/components'
 import type { Game } from '../Game'
-import type { SaveMeta } from './format'
+import type { SaveMeta } from '../save/format'
 
 const fmtTime = (s: number) => {
   const h = Math.floor(s / 3600)
@@ -10,14 +10,15 @@ const fmtTime = (s: number) => {
 }
 const fmtDate = (t: number) => new Date(t).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
-/** Esc menu: save, slots (load / save here / delete / export), new island, import. */
-export function SaveMenu({ game }: { game: Game }) {
+/** Menu tab «Острова»: save, slots (load / overwrite / delete / export / import), new island. */
+export function SavesTab({ game }: { game: Game }) {
+  const sm = game.sessions
   const [metas, setMetas] = useState<SaveMeta[]>([])
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState<string | null>(null)
   const [note, setNote] = useState('')
 
-  const refresh = () => void game.storage.list().then(setMetas)
+  const refresh = () => void sm.storage.list().then(setMetas)
   useEffect(refresh, [])
 
   const run = async (label: string, fn: () => Promise<unknown>) => {
@@ -36,7 +37,7 @@ export function SaveMenu({ game }: { game: Game }) {
 
   const exportSlot = (slot: string) =>
     run('Файл сохранения скачан', async () => {
-      const text = await game.exportSave(slot)
+      const text = await sm.exportSlot(slot)
       const a = document.createElement('a')
       a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
       a.download = `compulsive-living-${slot}.json`
@@ -50,12 +51,12 @@ export function SaveMenu({ game }: { game: Game }) {
     input.accept = '.json,application/json'
     input.onchange = () => {
       const file = input.files?.[0]
-      if (file) void run('Сохранение импортировано', async () => game.importSave(await file.text(), slot))
+      if (file) void run('Сохранение импортировано', async () => sm.importInto(await file.text(), slot))
     }
     input.click()
   }
 
-  const s = game.session
+  const s = sm.session
   const ask = (key: string, label: string, action: () => void) =>
     confirm === key ? (
       <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
@@ -72,7 +73,7 @@ export function SaveMenu({ game }: { game: Game }) {
     )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: 'min(600px, 84vw)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: '16px' }}>{s.name}</div>
@@ -80,13 +81,13 @@ export function SaveMenu({ game }: { game: Game }) {
             сид {game.worldConfig.seed} · в игре {fmtTime(s.playTime)} · слот {s.slot.replace('slot', '')}
           </div>
         </div>
-        <Button disabled={busy} onClick={() => run('Сохранено', () => game.saveGame())}>
+        <Button disabled={busy} onClick={() => run('Сохранено', () => sm.save())}>
           Сохранить
         </Button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {game.slotIds().map((slot, i) => {
+        {sm.slotIds().map((slot, i) => {
           const m = metas.find((x) => x.slot === slot)
           return (
             <div
@@ -113,12 +114,12 @@ export function SaveMenu({ game }: { game: Game }) {
               </div>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {m && (
-                  <Button disabled={busy} onClick={() => run('Загружено', () => game.loadGame(slot))}>
+                  <Button disabled={busy} onClick={() => run('Загружено', () => sm.load(slot))}>
                     Загрузить
                   </Button>
                 )}
-                {m ? ask(`save:${slot}`, 'Перезаписать', () => run('Сохранено', () => game.saveGame(slot))) : (
-                  <Button secondary disabled={busy} onClick={() => run('Сохранено', () => game.saveGame(slot))}>
+                {m ? ask(`save:${slot}`, 'Перезаписать', () => run('Сохранено', () => sm.save(slot))) : (
+                  <Button secondary disabled={busy} onClick={() => run('Сохранено', () => sm.save(slot))}>
                     Сохранить сюда
                   </Button>
                 )}
@@ -127,7 +128,7 @@ export function SaveMenu({ game }: { game: Game }) {
                     Экспорт
                   </Button>
                 )}
-                {m ? ask(`del:${slot}`, 'Удалить', () => run('Удалено', () => game.storage.remove(slot))) : (
+                {m ? ask(`del:${slot}`, 'Удалить', () => run('Удалено', () => sm.storage.remove(slot))) : (
                   <Button secondary disabled={busy} onClick={() => importInto(slot)}>
                     Импорт
                   </Button>
@@ -141,13 +142,13 @@ export function SaveMenu({ game }: { game: Game }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
         <span style={{ color: 'var(--ui-text-soft)', fontSize: '13px' }}>{note || 'Игра сохраняется сама каждые пару минут.'}</span>
         {ask('new', 'Новый остров', () => {
-          const free = game.slotIds().find((id) => !metas.some((m) => m.slot === id))
+          const free = sm.slotIds().find((id) => !metas.some((m) => m.slot === id))
           if (!free) {
             setConfirm(null)
             setNote('Нет свободного слота — удалите один, чтобы начать новый остров.')
             return
           }
-          void run('Новый остров готов', () => game.newGame({ slot: free }))
+          void run('Новый остров готов', () => sm.newGame({ slot: free }))
         })}
       </div>
     </div>

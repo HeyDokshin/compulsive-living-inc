@@ -42,6 +42,9 @@ export type { InteractionDef, InteractionContext } from '../engine/interact/Inte
 export type { UiSlot, WindowDef } from '../engine/ui/UiHost'
 export type { ModelDef, RigDef } from '../engine/models/defs'
 export type { SaverDef } from '../engine/save/SaveService'
+export type { SoundDef, SynthLayer } from '../engine/audio/defs'
+export type { ParticleDef } from '../engine/fx/defs'
+export type { VoxelHit } from '../engine/world/pick'
 
 // UI toolkit for plugins: Preact + signals + the game's components.
 export { h, Fragment, type ComponentChildren, type ComponentType } from 'preact'

@@ -57,6 +57,8 @@ export default definePlugin({
       tool: '#core:shovels',
       priority: 20,
       label: 'Закопать',
+      sound: 'core:dig',
+      particles: 'core:clods',
       when: (ctx) => {
         const h = holes.get(key(ctx.x, ctx.z))
         return !!h && ctx.y === h.y - 1 && ctx.entities.length === 0
@@ -73,6 +75,9 @@ export default definePlugin({
       block: '#core:diggable',
       priority: 10,
       label: 'Копать',
+      sound: 'core:dig',
+      particles: 'core:clods',
+      particleColor: 'block',
       when: (ctx) => {
         if (ctx.entities.length || holes.has(key(ctx.x, ctx.z)) || ctx.y < 1) return false
         // only where the actor stands about level with the ground
@@ -91,6 +96,8 @@ export default definePlugin({
       tool: '#core:rods',
       block: '#core:liquid',
       label: 'Забросить удочку',
+      sound: 'core:splash',
+      particles: 'core:splash',
       run: () => note('Поплавок качается… Рыбалка появится на этапе 6.'),
     })
     interactions.register({
@@ -98,6 +105,8 @@ export default definePlugin({
       tool: '#core:watering_cans',
       block: '#core:flora_soil',
       label: 'Полить',
+      sound: 'core:splash',
+      particles: 'core:splash',
       run: () => note('Трава благодарна. Цветы появятся на этапе 5.'),
     })
     interactions.register({
@@ -105,6 +114,7 @@ export default definePlugin({
       tool: '#core:nets',
       priority: -10,
       label: 'Взмахнуть сачком',
+      sound: 'core:swing',
       run: () => note('Никого не поймали. Насекомые прилетят на этапе 6.'),
     })
     interactions.register({
@@ -112,6 +122,7 @@ export default definePlugin({
       tool: '#core:axes',
       priority: -10,
       label: 'Взмахнуть топором',
+      sound: 'core:swing',
       run: () => note('Рубить пока нечего — деревья вырастут на этапе 5.'),
     })
     // Any tool, nothing to do: just a swing (keeps the controls feeling alive).
@@ -120,6 +131,7 @@ export default definePlugin({
       tool: '#core:tools',
       priority: -100,
       label: 'Взмахнуть',
+      sound: 'core:swing',
       run: () => undefined,
     })
 

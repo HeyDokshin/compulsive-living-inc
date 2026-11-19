@@ -1,0 +1,67 @@
+// Synthesized sounds — no audio files needed. Each sound = layers played together:
+//   wave: sine | triangle | square | sawtooth | noise, freq → freqEnd (glide), attack, duration, gain, delay,
+//   filter: { type: lowpass | highpass | bandpass, freq → freqEnd, q }
+// bus: sfx | ui | ambient (volumes in config · engine → audio). pitchJitter varies each play.
+// To use a file instead: { id: 'my:sound', url: '/content/my/sounds/x.ogg' }.
+[
+  // Footsteps (blocks pick them with sounds.step)
+  { id: 'core:step_grass', volume: 0.7, pitchJitter: 0.15, layers: [
+    { wave: 'noise', duration: 0.07, gain: 0.25, filter: { type: 'lowpass', freq: 900, freqEnd: 450 } },
+    { wave: 'sine', freq: 150, freqEnd: 90, duration: 0.05, gain: 0.08 },
+  ] },
+  { id: 'core:step_sand', volume: 0.7, pitchJitter: 0.15, layers: [
+    { wave: 'noise', duration: 0.09, gain: 0.16, filter: { type: 'bandpass', freq: 2600, q: 0.8 } },
+    { wave: 'noise', duration: 0.05, gain: 0.1, filter: { type: 'lowpass', freq: 600 } },
+  ] },
+  { id: 'core:step_wood', volume: 0.7, pitchJitter: 0.1, layers: [
+    { wave: 'triangle', freq: 230, freqEnd: 160, duration: 0.08, gain: 0.22 },
+    { wave: 'noise', duration: 0.02, gain: 0.08, filter: { type: 'bandpass', freq: 1800, q: 1 } },
+  ] },
+  { id: 'core:step_stone', volume: 0.6, pitchJitter: 0.12, layers: [
+    { wave: 'noise', duration: 0.035, gain: 0.14, filter: { type: 'bandpass', freq: 3000, q: 2 } },
+    { wave: 'sine', freq: 320, freqEnd: 210, duration: 0.04, gain: 0.07 },
+  ] },
+
+  // Actions
+  { id: 'core:dig', volume: 0.9, layers: [
+    { wave: 'noise', duration: 0.22, gain: 0.4, filter: { type: 'lowpass', freq: 1300, freqEnd: 300 } },
+    { wave: 'sine', freq: 115, freqEnd: 60, duration: 0.15, gain: 0.32 },
+    { wave: 'noise', delay: 0.09, duration: 0.14, gain: 0.16, filter: { type: 'lowpass', freq: 700 } },
+  ] },
+  { id: 'core:swing', volume: 0.6, layers: [
+    { wave: 'noise', duration: 0.18, gain: 0.22, filter: { type: 'bandpass', freq: 600, freqEnd: 2400, q: 1.5 } },
+  ] },
+  { id: 'core:pickup', volume: 0.8, pitchJitter: 0.04, layers: [
+    { wave: 'triangle', freq: 660, freqEnd: 880, duration: 0.08, gain: 0.22 },
+    { wave: 'sine', freq: 990, delay: 0.07, duration: 0.13, gain: 0.18 },
+  ] },
+  { id: 'core:drop', volume: 0.7, layers: [
+    { wave: 'sine', freq: 420, freqEnd: 250, duration: 0.08, gain: 0.2 },
+    { wave: 'noise', duration: 0.04, gain: 0.08, filter: { type: 'lowpass', freq: 1500 } },
+  ] },
+  { id: 'core:equip', volume: 0.6, pitchJitter: 0.02, layers: [
+    { wave: 'sine', freq: 700, duration: 0.05, gain: 0.15 },
+    { wave: 'sine', freq: 1050, delay: 0.045, duration: 0.07, gain: 0.13 },
+  ] },
+  { id: 'core:eat', volume: 0.7, layers: [
+    { wave: 'sine', freq: 500, duration: 0.05, gain: 0.18 },
+    { wave: 'sine', freq: 650, delay: 0.08, duration: 0.05, gain: 0.18 },
+    { wave: 'sine', freq: 820, delay: 0.16, duration: 0.07, gain: 0.18 },
+  ] },
+  { id: 'core:splash', volume: 0.8, layers: [
+    { wave: 'noise', duration: 0.32, gain: 0.32, filter: { type: 'lowpass', freq: 3200, freqEnd: 600 } },
+    { wave: 'sine', freq: 320, freqEnd: 120, duration: 0.12, gain: 0.12 },
+  ] },
+
+  // Interface
+  { id: 'ui:click', bus: 'ui', pitchJitter: 0.03, layers: [{ wave: 'sine', freq: 1300, freqEnd: 1100, duration: 0.03, gain: 0.12 }] },
+  { id: 'ui:open', bus: 'ui', pitchJitter: 0.02, layers: [
+    { wave: 'triangle', freq: 600, duration: 0.07, gain: 0.14 },
+    { wave: 'triangle', freq: 900, delay: 0.06, duration: 0.1, gain: 0.13 },
+  ] },
+  { id: 'ui:close', bus: 'ui', pitchJitter: 0.02, layers: [
+    { wave: 'triangle', freq: 800, duration: 0.06, gain: 0.12 },
+    { wave: 'triangle', freq: 520, delay: 0.05, duration: 0.09, gain: 0.12 },
+  ] },
+  { id: 'ui:pop', bus: 'ui', layers: [{ wave: 'sine', freq: 900, freqEnd: 1300, duration: 0.07, gain: 0.13 }] },
+]

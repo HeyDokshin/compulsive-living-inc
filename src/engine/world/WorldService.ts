@@ -15,6 +15,8 @@ export class WorldService {
   readonly voxels = new VoxelWorld()
   lastReport?: GenerateReport
   private running: Promise<void> = Promise.resolve()
+  /** solid flag per palette number (1 solid, 0 not, 255 unknown yet); reset when blocks change */
+  private solid = new Uint8Array(0)
   private signature = ''
   private regenTimer?: ReturnType<typeof setTimeout>
 
@@ -24,13 +26,17 @@ export class WorldService {
     private steps: Registry<WorldGenStep>,
     private events: EventBus<GameEvents>,
     private hooks: Hooks<GameHooks>,
-  ) {}
+  ) {
+    blocks.onChange(() => (this.solid = new Uint8Array(0)))
+  }
 
   /** Generate now (queued after any running generation). */
   regenerate(seed?: number): Promise<void> {
     if (seed !== undefined) this.cfg.seed = seed
-    this.running = this.running.then(() => this.run())
-    return this.running
+    const next = this.running.then(() => this.run())
+    // A failed generation must not block every later one.
+    this.running = next.catch((e) => log.error('generation failed:', e))
+    return next
   }
 
   /** Debounced regenerate — for sliders in the debug panel. */
@@ -65,7 +71,18 @@ export class WorldService {
   isSolid(x: number, y: number, z: number): boolean {
     const n = this.voxels.get(x, y, z)
     if (n === 0) return false
-    return this.blocks.get(this.voxels.palette.id(n))?.solid ?? true
+    // Hot path (physics, picking, path finding): cache the answer per palette number.
+    if (n >= this.solid.length) {
+      const grown = new Uint8Array(Math.max(this.voxels.palette.size, n + 1)).fill(255)
+      grown.set(this.solid)
+      this.solid = grown
+    }
+    let v = this.solid[n]!
+    if (v === 255) {
+      v = (this.blocks.get(this.voxels.palette.id(n))?.solid ?? true) ? 1 : 0
+      this.solid[n] = v
+    }
+    return v === 1
   }
 
   /** Y of the cell above the highest solid block (where something can stand). */

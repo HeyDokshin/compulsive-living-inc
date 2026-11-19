@@ -25,10 +25,20 @@ export interface LightState {
 
 const a = new Color()
 const b = new Color()
+let sortedFor: LightKey[] | null = null
+let sorted: LightKey[] = []
 
-/** Interpolate the keyframe curve at `hour` (wraps around midnight). */
-export function sampleLight(keys: LightKey[], hour: number, azimuthDeg: number, maxElevationDeg: number): LightState {
-  const sorted = [...keys].sort((x, y) => x.t - y.t)
+/** A reusable result object (sampleLight writes into it — no allocations per frame). */
+export function createLightState(): LightState {
+  return { sun: new Color(), sunIntensity: 0, sky: new Color(), ground: new Color(), ambient: 0, background: new Color(), dir: [0, 1, 0], isNight: false }
+}
+
+/** Interpolate the keyframe curve at `hour` (wraps around midnight) into `out`. */
+export function sampleLight(keys: LightKey[], hour: number, azimuthDeg: number, maxElevationDeg: number, out = createLightState()): LightState {
+  if (sortedFor !== keys) {
+    sortedFor = keys
+    sorted = [...keys].sort((x, y) => x.t - y.t)
+  }
   const h = ((hour % 24) + 24) % 24
   let i = sorted.findIndex((k) => k.t > h)
   if (i === -1) i = 0
@@ -37,27 +47,27 @@ export function sampleLight(keys: LightKey[], hour: number, azimuthDeg: number, 
   const span = (next.t - prev.t + 24) % 24 || 24
   const k = ((h - prev.t + 24) % 24) / span
 
-  const mix = (p: string, n: string) => new Color().copy(a.set(p)).lerp(b.set(n), k)
+  const mix = (target: Color, p: string, n: string) => target.copy(a.set(p)).lerp(b.set(n), k)
   const lerp = (p: number, n: number) => p + (n - p) * k
 
   // Sun rises at 6, peaks at 12, sets at 18. At night the moon takes the opposite arc.
   const dayPhase = (h - 6) / 12
   const isNight = dayPhase < 0 || dayPhase > 1
-  const phase = isNight ? (((h + 6) % 24) / 12) : dayPhase
-  const elevation = Math.max(0.12, Math.sin(phase * Math.PI)) * (maxElevationDeg * Math.PI) / 180
+  const phase = isNight ? ((h + 6) % 24) / 12 : dayPhase
+  const elevation = (Math.max(0.12, Math.sin(phase * Math.PI)) * (maxElevationDeg * Math.PI)) / 180
   const az = ((azimuthDeg + (phase - 0.5) * 140) * Math.PI) / 180
-  const dir: [number, number, number] = [Math.cos(elevation) * Math.sin(az), Math.sin(elevation), Math.cos(elevation) * Math.cos(az)]
 
-  return {
-    sun: mix(prev.sun, next.sun),
-    sunIntensity: lerp(prev.sunIntensity, next.sunIntensity),
-    sky: mix(prev.sky, next.sky),
-    ground: mix(prev.ground, next.ground),
-    ambient: lerp(prev.ambient, next.ambient),
-    background: mix(prev.background, next.background),
-    dir,
-    isNight,
-  }
+  mix(out.sun, prev.sun, next.sun)
+  mix(out.sky, prev.sky, next.sky)
+  mix(out.ground, prev.ground, next.ground)
+  mix(out.background, prev.background, next.background)
+  out.sunIntensity = lerp(prev.sunIntensity, next.sunIntensity)
+  out.ambient = lerp(prev.ambient, next.ambient)
+  out.dir[0] = Math.cos(elevation) * Math.sin(az)
+  out.dir[1] = Math.sin(elevation)
+  out.dir[2] = Math.cos(elevation) * Math.cos(az)
+  out.isNight = isNight
+  return out
 }
 
 /** Soft, pastel day: lavender nights, peach mornings, airy noon, candy-pink sunset. */

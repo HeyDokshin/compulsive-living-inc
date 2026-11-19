@@ -5,6 +5,7 @@
  */
 import { definePlugin, signal, ui, z, type Entity, type PluginApi } from '@sdk'
 import { moveBody, type Body, type MoveRules, type WorldQuery } from './physics'
+import { findPath, type Cell } from './path'
 
 declare module '@sdk' {
   interface Components {
@@ -13,7 +14,26 @@ declare module '@sdk' {
   interface GameEvents {
     /** The cell in front of the player changed. */
     'player:target': { x: number; y: number; z: number; block: string }
+    /** A click-to-walk reached the clicked cell (and should act on it). */
+    'player:arrived': { x: number; z: number }
   }
+}
+
+/** Click-to-walk in progress. */
+interface Walk {
+  path: Cell[]
+  /** Cell to face (and act on) when the path ends. */
+  target?: Cell
+  act: boolean
+  stuckFor: number
+}
+
+/** State shared by setup() and start() of one plugin instance. */
+const shared = new WeakMap<object, { walk: Walk | null }>()
+const stateOf = (api: PluginApi) => {
+  let st = shared.get(api)
+  if (!st) shared.set(api, (st = { walk: null }))
+  return st
 }
 
 const Config = z.object({
@@ -30,6 +50,11 @@ const Config = z.object({
   maxDrop: z.number().int().min(0).max(32).default(1).meta({ label: 'max drop', step: 1 }),
   gravity: z.number().min(1).max(80).default(32).meta({ step: 1 }),
   waterBlocks: z.boolean().default(true).meta({ label: 'water blocks walking' }),
+  /** Footstep spacing in blocks (walking / running). */
+  stride: z.number().min(0.3).max(3).default(0.9).meta({ step: 0.05 }),
+  runStride: z.number().min(0.3).max(3).default(1.15).meta({ label: 'run stride', step: 0.05 }),
+  /** Seconds the mouse cursor keeps showing the hovered cell after it stops moving. */
+  hoverTimeout: z.number().min(0).max(30).default(4).meta({ label: 'hover timeout (s)', step: 0.5 }),
   cursor: z.boolean().default(true),
   cursorColor: z.string().default('#ffffff').meta({ color: true }),
   hint: z.boolean().default(true),
@@ -72,6 +97,7 @@ export default definePlugin({
     const rules = (): MoveRules => ({ step: cfg.step, maxDrop: cfg.maxDrop, gravity: cfg.gravity, waterBlocks: cfg.waterBlocks })
 
     const dir = new api.render.three.Vector3()
+    let stepDist = 0
     api.systems.add({
       id: 'move',
       phase: 'update',
@@ -86,15 +112,36 @@ export default definePlugin({
           let u = locked ? 0 : Number(api.input.isDown(keys.up)) - Number(api.input.isDown(keys.down)) - api.input.stick.y
           const mag = Math.hypot(r, u)
           if (mag > 1) (r /= mag), (u /= mag)
-          const speed = api.input.isDown(keys.run) ? cfg.runSpeed : cfg.walkSpeed
+          let speed = api.input.isDown(keys.run) ? cfg.runSpeed : cfg.walkSpeed
           let tx = 0
           let tz = 0
+          const st = stateOf(api)
           if (mag > 0.01) {
+            st.walk = null // keys/stick take over from click-to-walk
             api.render.camera.screenToWorldDir(r, u, dir)
             const len = Math.hypot(dir.x, dir.z) || 1
             const k = Math.min(1, mag) * speed
             tx = (dir.x / len) * k
             tz = (dir.z / len) * k
+          } else if (st.walk && !locked) {
+            const w = st.walk
+            // drop reached waypoints
+            while (w.path.length && Math.hypot(w.path[0]!.x + 0.5 - t.x, w.path[0]!.z + 0.5 - t.z) < 0.2) w.path.shift()
+            const next = w.path[0]
+            if (next) {
+              if (w.path.length > 6) speed = cfg.runSpeed
+              const dx = next.x + 0.5 - t.x
+              const dz = next.z + 0.5 - t.z
+              const len = Math.hypot(dx, dz) || 1
+              tx = (dx / len) * speed
+              tz = (dz / len) * speed
+            } else {
+              st.walk = null
+              if (w.target) {
+                t.rotY = Math.atan2(w.target.x + 0.5 - t.x, w.target.z + 0.5 - t.z)
+                if (w.act) api.events.emit('player:arrived', { x: w.target.x, z: w.target.z })
+              }
+            }
           }
           const speeding = tx * p.vx + tz * p.vz > 0 && Math.hypot(tx, tz) >= Math.hypot(p.vx, p.vz)
           const a = Math.min(1, (speeding ? cfg.acceleration : cfg.deceleration) * dt)
@@ -114,6 +161,23 @@ export default definePlugin({
           p.grounded = body.grounded
 
           const hs = Math.hypot(realVx, realVz)
+          // Give up a click-walk that can't make progress (blocked by something new).
+          if (st.walk) {
+            st.walk.stuckFor = hs < 0.3 && Math.hypot(tx, tz) > 0.1 ? st.walk.stuckFor + dt : 0
+            if (st.walk.stuckFor > 0.8) st.walk = null
+          }
+          // Footsteps (and puffs of dust when running) by the block underfoot.
+          if (p.grounded && hs > 0.3) {
+            stepDist += hs * dt
+            const running = hs > cfg.walkSpeed * 1.2
+            if (stepDist >= (running ? cfg.runStride : cfg.stride)) {
+              stepDist = 0
+              const under = api.world.getBlock(Math.floor(t.x), Math.round(t.y) - 1, Math.floor(t.z))
+              const sound = blocks.get(under)?.sounds?.step
+              if (sound) api.audio.play(sound, { at: t, volume: running ? 1 : 0.8 })
+              if (running) api.fx.burst('core:dust', { x: t.x, y: t.y + 0.05, z: t.z })
+            }
+          } else stepDist = 0.6
           if (Math.hypot(tx, tz) > 0.1) {
             const want = Math.atan2(tx, tz)
             const diff = Math.atan2(Math.sin(want - t.rotY), Math.cos(want - t.rotY))
@@ -163,17 +227,71 @@ export default definePlugin({
     api.events.on('world:generated', () => placeAtSpawn(api, player, query))
 
     const cursor = new Cursor(api, cfg)
-    api.systems.add({ id: 'cursor', phase: 'render', priority: 800, run: ({ dt }) => cursor.update(player, dt) })
+    const st = stateOf(api)
+    // Mouse hover: show the hovered cell for a while after the mouse moves.
+    // Re-pick only when the mouse or the camera moved (the ray walk is cheap, but not free).
+    let hoverKey = ''
+    let hoverCell: Cell | null = null
+    const hovered = (): Cell | null => {
+      const ptr = api.input.pointer
+      if (!ptr.inside || api.ui.modalOpen.value || performance.now() - ptr.movedAt > cfg.hoverTimeout * 1000) return null
+      const c = api.render.camera.target
+      const f = api.render.camera.forwardXZ()
+      const key = `${ptr.x},${ptr.y},${c.x.toFixed(2)},${c.y.toFixed(2)},${c.z.toFixed(2)},${f.x.toFixed(3)},${api.engineConfig.camera.zoom}`
+      if (key !== hoverKey) {
+        hoverKey = key
+        const hit = api.world.pick(ptr.x, ptr.y)
+        hoverCell = hit ? { x: hit.x, z: hit.z } : null
+      }
+      return hoverCell
+    }
+    api.systems.add({
+      id: 'cursor',
+      phase: 'render',
+      priority: 800,
+      run: ({ dt }) => cursor.update(player, dt, st.walk?.target ?? hovered()),
+    })
     api.ui.slot('hud.bottom', () => <Hint cursor={cursor} cfg={cfg} api={api} />)
+
+    const act = (x: number, z: number) => {
+      if (api.ui.modalOpen.value || player.biped?.action) return
+      const ctx = api.interactions.at(player, x, z)
+      const def = api.interactions.perform(ctx)
+      if (def && player.biped && def.anim !== 'none') player.biped.action = { name: def.anim ?? 'swing', t: 0 }
+    }
 
     // Use: whatever the interaction matrix says for (held item × cell in front).
     const useKey = api.input.action('use', ['Space', 'Enter', 'Pad0'])
-    api.input.on(useKey, () => {
-      if (api.ui.modalOpen.value || player.biped?.action) return
-      const ctx = api.interactions.at(player, cursor.cell.x, cursor.cell.z)
-      const def = api.interactions.perform(ctx)
-      if (def && player.biped && def.anim !== 'none') player.biped.action = { name: def.anim ?? 'swing', t: 0 }
+    api.input.on(useKey, () => act(cursor.front.x, cursor.front.z))
+
+    // Click: walk next to the clicked cell and act on it (or just walk there).
+    const standY = (x: number, z: number): number | null => {
+      const y = api.world.surfaceY(x, z)
+      if (y <= 0 || query.liquid(x, y - 1, z) || query.liquid(x, y, z)) return null
+      if (query.solid(x, y, z) || query.solid(x, y + 1, z)) return null
+      return y
+    }
+    const canStep = (a: Cell, b: Cell) => {
+      const ha = standY(a.x, a.z) ?? Math.round(player.transform!.y)
+      const hb = standY(b.x, b.z)
+      return hb !== null && hb - ha <= cfg.step && ha - hb <= cfg.maxDrop
+    }
+    const clickKey = api.input.action('click', ['Mouse0'])
+    api.input.on(clickKey, () => {
+      if (api.ui.modalOpen.value) return
+      const hit = api.world.pick(api.input.pointer.x, api.input.pointer.y)
+      if (!hit) return
+      const target = { x: hit.x, z: hit.z }
+      const t = player.transform!
+      const start = { x: Math.floor(t.x), z: Math.floor(t.z) }
+      const actsThere = !!api.interactions.find(api.interactions.at(player, target.x, target.z))
+      const adjacent = (c: Cell) => Math.abs(c.x - target.x) + Math.abs(c.z - target.z) === 1
+      const isGoal = actsThere || standY(target.x, target.z) === null ? adjacent : (c: Cell) => c.x === target.x && c.z === target.z
+      const path = findPath(start, { canStep, isGoal, target, maxNodes: 5000 })
+      if (!path) return api.audio.play('ui:close')
+      st.walk = { path, target, act: actsThere, stuckFor: 0 }
     })
+    api.events.on('player:arrived', ({ x, z }) => act(x, z))
   },
 })
 
@@ -212,6 +330,8 @@ type Three = PluginApi['render']['three']
 interface HintState {
   action: string | null
   name: string | null
+  /** Key shown next to the action. */
+  key: string
 }
 
 /** Rounded-square marker on the cell in front of the player; resolves what "use" would do there. */
@@ -220,9 +340,11 @@ class Cursor {
   private last = ''
   private pos = { x: 0, y: 0, z: 0 }
   private time = 0
-  /** Target cell (column) in front of the player. */
+  /** Cell (column) in front of the player — what Space acts on. */
+  front = { x: 0, z: 0 }
+  /** Cell the marker shows (front, or the mouse-hovered / clicked one). */
   cell = { x: 0, z: 0 }
-  readonly hint = signal<HintState>({ action: null, name: null })
+  readonly hint = signal<HintState>({ action: null, name: null, key: 'Space' })
 
   constructor(
     private api: PluginApi,
@@ -236,7 +358,7 @@ class Cursor {
     this.mesh.renderOrder = 2
   }
 
-  update(e: Entity, dt: number): void {
+  update(e: Entity, dt: number, pointed: Cell | null = null): void {
     this.time += dt
     const t = e.transform
     const view = e.view
@@ -252,6 +374,12 @@ class Cursor {
     if (cx === Math.floor(view.position.x) && cz === Math.floor(view.position.z)) {
       cx = Math.floor(view.position.x + fx * 1.3)
       cz = Math.floor(view.position.z + fz * 1.3)
+    }
+    this.front.x = cx
+    this.front.z = cz
+    if (pointed) {
+      cx = pointed.x
+      cz = pointed.z
     }
     this.cell.x = cx
     this.cell.z = cz
@@ -272,8 +400,9 @@ class Cursor {
       this.last = key
       this.api.events.emit('player:target', { x: cx, y: ctx.y, z: cz, block: ctx.block })
     }
+    const keyName = pointed ? 'ЛКМ' : 'Space'
     const h = this.hint.value
-    if (h.action !== action || h.name !== name) this.hint.value = { action, name }
+    if (h.action !== action || h.name !== name || h.key !== keyName) this.hint.value = { action, name, key: keyName }
   }
 }
 
@@ -284,7 +413,7 @@ function Hint({ cursor, cfg, api }: { cursor: Cursor; cfg: Config; api: PluginAp
     <ui.Pill>
       {h.action ? (
         <>
-          <ui.Key>Space</ui.Key>
+          <ui.Key>{h.key}</ui.Key>
           <span>{h.action}</span>
         </>
       ) : (

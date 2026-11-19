@@ -18,12 +18,13 @@ import { EntityRenderer } from './EntityRenderer'
 import { IsoCamera } from './IsoCamera'
 import { BlockAtlas } from './BlockAtlas'
 import { ChunkRenderer } from './ChunkRenderer'
-import { sampleLight } from './dayCycle'
+import { createLightState, sampleLight } from './dayCycle'
 import type { VoxelWorld } from '../world/VoxelWorld'
 import { MesherPool } from '../world/mesher/MesherPool'
 import { PostFX } from './PostFX'
 import { stylize, styleUniforms, type StyleOptions } from './style'
-import { ACESFilmicToneMapping, AgXToneMapping, BufferAttribute, BufferGeometry, NeutralToneMapping, NoToneMapping } from 'three'
+import { ACESFilmicToneMapping, AgXToneMapping, BufferAttribute, BufferGeometry, NeutralToneMapping, NoToneMapping, Vector3 } from 'three'
+import { pickCurved, type VoxelHit } from '../world/pick'
 
 /** [x0, z0, x1, z1] or [x0, z0, x1, z1, cellSize] in world units. */
 export type SurfaceRect = [number, number, number, number] | [number, number, number, number, number]
@@ -52,7 +53,7 @@ export class Renderer {
     private container: HTMLElement,
     private cfg: EngineConfig,
     entities: Entities,
-    world: VoxelWorld,
+    private world: VoxelWorld,
     library: ModelLibrary,
   ) {
     this.renderer = new WebGLRenderer({ antialias: true, stencil: true })
@@ -88,11 +89,17 @@ export class Renderer {
     const { render, light, debug } = this.cfg
     this.renderer.shadowMap.enabled = render.shadows
     this.sun.castShadow = render.shadows
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, render.maxPixelRatio))
+    if (this.sun.shadow.mapSize.x !== render.shadowMapSize) {
+      this.sun.shadow.mapSize.set(render.shadowMapSize, render.shadowMapSize)
+      this.sun.shadow.map?.dispose() // re-created at the new size on the next frame
+      this.sun.shadow.map = null
+    }
     const sc = this.sun.shadow.camera
-    sc.left = sc.bottom = -render.shadowRange
-    sc.right = sc.top = render.shadowRange
-    sc.updateProjectionMatrix()
+    if (sc.right !== render.shadowRange) {
+      sc.left = sc.bottom = -render.shadowRange
+      sc.right = sc.top = render.shadowRange
+      sc.updateProjectionMatrix()
+    }
     if (!light.dayCycle) {
       this.scene.background = new Color(render.background)
       this.sun.color.set(light.sunColor)
@@ -101,44 +108,58 @@ export class Renderer {
       this.ambient.groundColor.set(light.groundColor)
       this.ambient.intensity = light.ambientIntensity
     }
+
+    // Mesh-affecting settings: remesh only when they actually change.
     const ao = render.ao
     const curve: [number, number, number, number] = [1 - ao * 0.75, 1 - ao * 0.5, 1 - ao * 0.25, 1]
-    if (curve.some((v, i) => v !== this.chunks.aoCurve[i])) {
-      this.chunks.aoCurve = curve
-      this.chunks.remeshAll()
-    }
-    this.chunks.waterOpacity = render.waterOpacity
+    const style = this.cfg.style
     const t = render.tint
     const toMul = (hex: string): [number, number, number] => {
-      const c = new Color(hex).convertLinearToSRGB()
+      const c = this.tmpColor.set(hex).convertLinearToSRGB()
       return [c.r, c.g, c.b]
     }
     const tint = { seed: this.tintSeed, scale: t.scale, strength: t.strength, a: toMul(t.sunny), b: toMul(t.shady) }
-    if (JSON.stringify(tint) !== JSON.stringify(this.chunks.tint)) {
+    const maxMerge = style.curvature > 0 ? 1 : Infinity
+    const meshKey = JSON.stringify([curve, tint, maxMerge])
+    if (meshKey !== this.last.mesh) {
+      this.last.mesh = meshKey
+      this.chunks.aoCurve = curve
       this.chunks.tint = tint
+      this.chunks.maxMerge = maxMerge
       this.chunks.remeshAll()
     }
-    this.chunks.setBorders(debug.showChunks)
+    this.chunks.waterOpacity = render.waterOpacity
+    if (debug.showChunks !== this.last.borders) {
+      this.last.borders = debug.showChunks
+      this.chunks.setBorders(debug.showChunks)
+    }
 
-    const style = this.cfg.style
     this.renderer.toneMapping = { neutral: NeutralToneMapping, agx: AgXToneMapping, aces: ACESFilmicToneMapping, none: NoToneMapping }[style.toneMapping]
     this.renderer.toneMappingExposure = style.exposure
     this.sun.shadow.radius = style.shadowSoftness
     this.sun.shadow.intensity = style.shadowStrength
     styleUniforms.uWaterSpeed.value = style.waterSpeed
-    const maxMerge = style.curvature > 0 ? 1 : Infinity
-    if (maxMerge !== this.chunks.maxMerge) {
-      this.chunks.maxMerge = maxMerge
-      this.chunks.remeshAll()
-    }
+    this.postfx.setSamples(render.msaa)
     this.postfx.apply(style)
 
     if (debug.showGrid && !this.grid) this.scene.add((this.grid = new GridHelper(256, 256, 0x335566, 0x557788)))
     if (!debug.showGrid && this.grid) (this.grid.removeFromParent(), (this.grid = undefined))
     if (debug.showAxes && !this.axes) this.scene.add((this.axes = new AxesHelper(4)))
     if (!debug.showAxes && this.axes) (this.axes.removeFromParent(), (this.axes = undefined))
-    this.resize()
+
+    // Resizing reallocates render targets: only when the pixel ratio really changed.
+    const ratio = Math.min(window.devicePixelRatio, render.maxPixelRatio)
+    if (ratio !== this.last.ratio) {
+      this.last.ratio = ratio
+      this.renderer.setPixelRatio(ratio)
+      this.resize()
+    }
   }
+
+  /** Values from the previous applyConfig, to skip expensive work when nothing changed. */
+  private last = { mesh: '', borders: false, ratio: 0 }
+  private tmpColor = new Color()
+  private lightState = createLightState()
 
   /** Engine system, start of each tick: remember transforms so rendering can interpolate. */
   snapshot(): void {
@@ -160,6 +181,25 @@ export class Renderer {
     styleUniforms.uCurveDir.value.set(f.x, f.z)
     if (this.cfg.style.postfx) this.postfx.render(ctx.dt)
     else this.renderer.render(this.scene, this.iso.camera)
+  }
+
+  private pickOrigin = new Vector3()
+  private pickDir = new Vector3()
+
+  /** The voxel under a screen point (client pixels), corrected for world curvature. */
+  pick(clientX: number, clientY: number): VoxelHit | null {
+    const r = this.renderer.domElement.getBoundingClientRect()
+    const nx = ((clientX - r.left) / r.width) * 2 - 1
+    const ny = -((clientY - r.top) / r.height) * 2 + 1
+    const cam = this.iso.camera
+    const o = this.pickOrigin.set(nx, ny, -1).unproject(cam)
+    cam.getWorldDirection(this.pickDir)
+    const v = this.world
+    return pickCurved(o, this.pickDir, (x, y, z) => v.get(x, y, z) !== 0, 1200, {
+      k: this.cfg.style.curvature,
+      center: this.iso.target,
+      forward: this.iso.forwardXZ(),
+    })
   }
 
   /** Apply the game's look (curvature, sway…) to a custom material. */
@@ -239,7 +279,7 @@ export class Renderer {
     let dir: [number, number, number]
     if (light.dayCycle) {
       if (light.timeSpeed > 0) light.time = (light.time + light.timeSpeed * dt) % 24
-      const st = sampleLight(light.keys, light.time, light.sunAzimuth, light.maxElevation)
+      const st = sampleLight(light.keys, light.time, light.sunAzimuth, light.maxElevation, this.lightState)
       this.sun.color.copy(st.sun)
       this.sun.intensity = st.sunIntensity
       this.ambient.color.copy(st.sky)

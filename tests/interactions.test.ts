@@ -68,4 +68,12 @@ describe('interaction matrix', () => {
     expect(inter.find(ctx({ held: 't:shovel', block: 't:stone' }))).toBe(null)
     expect(inter.find(ctx({ held: 't:shovel' }))?.id).toBe('t:dig')
   })
+
+  it('sees definitions registered after the first lookup (sorted cache is invalidated)', () => {
+    const { add, inter } = setup()
+    add({ id: 'low', priority: 1 })
+    expect(inter.find(ctx())?.id).toBe('t:low')
+    add({ id: 'high', priority: 5 })
+    expect(inter.find(ctx())?.id).toBe('t:high')
+  })
 })

@@ -106,7 +106,9 @@ export class ChunkRenderer {
           this.update()
         })
         .catch((e) => {
-          if (epoch === this.epoch) this.inFlight.delete(ci)
+          if (epoch !== this.epoch) return
+          this.inFlight.delete(ci)
+          world.dirty.add(ci) // retry on the next update
           console.error('[chunks] meshing failed', e)
         })
     }

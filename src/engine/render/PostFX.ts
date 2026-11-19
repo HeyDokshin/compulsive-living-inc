@@ -50,11 +50,7 @@ export class PostFX {
   private grade: ShaderPass
   private size = new Vector2()
 
-  constructor(
-    private renderer: WebGLRenderer,
-    scene: Scene,
-    camera: Camera,
-  ) {
+  constructor(renderer: WebGLRenderer, scene: Scene, camera: Camera) {
     const target = new WebGLRenderTarget(1, 1, { type: HalfFloatType, samples: 4, stencilBuffer: true })
     this.composer = new EffectComposer(renderer, target)
     this.composer.addPass(new RenderPass(scene, camera))
@@ -65,6 +61,15 @@ export class PostFX {
     this.composer.addPass(this.tiltV)
     this.composer.addPass(this.grade)
     this.composer.addPass(new OutputPass())
+  }
+
+  /** MSAA samples of the scene targets (changing them reallocates the targets). */
+  setSamples(samples: number): void {
+    for (const rt of [this.composer.renderTarget1, this.composer.renderTarget2]) {
+      if (rt.samples === samples) continue
+      rt.samples = samples
+      rt.dispose()
+    }
   }
 
   setSize(width: number, height: number, pixelRatio: number): void {

@@ -39,20 +39,30 @@ export interface InteractionDef extends RegistryEntry {
   run(ctx: InteractionContext): void | boolean
   /** Animation hint for the actor: 'swing' (tools), 'pickup', 'none'. Default 'swing'. */
   anim?: 'swing' | 'pickup' | 'none'
+  /** Sound played at the target when it happens (`sounds` registry). */
+  sound?: string
+  /** Particle burst at the target (`particles` registry); `particleColor: 'block'` tints it like the target block. */
+  particles?: string
+  particleColor?: 'block'
 }
 
 export class Interactions {
+  /** Definitions by priority (highest first), rebuilt when the registry changes. */
+  private sorted: InteractionDef[] | null = null
+
   constructor(
     private defs: Registry<InteractionDef>,
     private items: Registry<ItemDef>,
     private blocks: Registry<BlockDef>,
     private hooks: Hooks<GameHooks>,
     private events: EventBus<GameEvents>,
-  ) {}
+  ) {
+    defs.onChange(() => (this.sorted = null))
+  }
 
-  /** The interaction that would happen (for hints), or null. */
+  /** The interaction that would happen (for hints), or null. Runs every frame for the cursor. */
   find(ctx: InteractionContext): InteractionDef | null {
-    const candidates = this.defs.all().sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))
+    const candidates = (this.sorted ??= this.defs.all().sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0)))
     let found: InteractionDef | null = null
     for (const def of candidates) {
       if (!this.matchTool(def.tool, ctx.held)) continue

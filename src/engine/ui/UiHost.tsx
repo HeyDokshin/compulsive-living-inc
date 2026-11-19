@@ -47,6 +47,8 @@ export class UiHost {
   private counter = 0
   /** Called when Esc is pressed with no window open (the engine opens its menu). */
   onIdleEscape?: () => void
+  /** UI sound hook: 'ui:click', 'ui:open', 'ui:close', 'ui:pop'. */
+  onSound?: (id: string) => void
 
   mount(parent: HTMLElement): void {
     if (!document.getElementById('cl-ui-style')) {
@@ -82,11 +84,15 @@ export class UiHost {
   }
 
   open(id: string): void {
-    if (this.windows.value.has(id)) this.openId.value = id
+    if (!this.windows.value.has(id) || this.openId.value === id) return
+    this.openId.value = id
+    this.onSound?.('ui:open')
   }
 
   close(): void {
+    if (!this.openId.value) return
     this.openId.value = null
+    this.onSound?.('ui:close')
   }
 
   toggle(id: string): void {
@@ -96,6 +102,7 @@ export class UiHost {
 
   toast(text: string, opts: { icon?: string; ms?: number } = {}): void {
     const entry: ToastEntry = { key: ++this.counter, text, icon: opts.icon }
+    this.onSound?.('ui:pop')
     this.toasts.value = [...this.toasts.value, entry].slice(-4)
     setTimeout(() => {
       this.toasts.value = this.toasts.value.filter((t) => t !== entry)
@@ -125,8 +132,15 @@ function Root({ host }: { host: UiHost }) {
       else host.onIdleEscape?.()
       e.stopImmediatePropagation()
     }
+    const onClick = (e: PointerEvent) => {
+      if ((e.target as HTMLElement | null)?.closest?.('.cl-ui button, .cl-ui .cl-slotbox')) host.onSound?.('ui:click')
+    }
     window.addEventListener('keydown', onKey, true)
-    return () => window.removeEventListener('keydown', onKey, true)
+    window.addEventListener('pointerdown', onClick, true)
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      window.removeEventListener('pointerdown', onClick, true)
+    }
   }, [host])
   return (
     <>

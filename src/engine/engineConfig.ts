@@ -33,6 +33,9 @@ export const EngineConfigSchema = z.object({
       shadows: z.boolean().default(true),
       maxPixelRatio: z.number().min(0.5).max(3).default(2).meta({ step: 0.25 }),
       shadowRange: z.number().min(10).max(200).default(60).meta({ label: 'shadow range', step: 1 }),
+      shadowMapSize: z.number().int().min(256).max(4096).default(2048).meta({ label: 'shadow map size', step: 256 }),
+      /** Antialiasing samples of the post-processing target (0 = off). */
+      msaa: z.number().int().min(0).max(8).default(4).meta({ label: 'MSAA samples', step: 1 }),
       ao: z.number().min(0).max(1).default(0.4).meta({ label: 'ambient occlusion', step: 0.05 }),
       waterOpacity: z.number().min(0).max(1).default(0.72).meta({ step: 0.01 }),
       /** Soft color patches on blocks with `tint: true` (lawns). */
@@ -94,6 +97,16 @@ export const EngineConfigSchema = z.object({
       waterSpeed: z.number().min(0).max(5).default(1).meta({ label: 'water speed', step: 0.05 }),
     })
     .prefault({}),
+  audio: z
+    .object({
+      muted: z.boolean().default(false),
+      master: z.number().min(0).max(1).default(0.8).meta({ step: 0.01 }),
+      sfx: z.number().min(0).max(1).default(0.9).meta({ step: 0.01 }),
+      ui: z.number().min(0).max(1).default(0.7).meta({ step: 0.01 }),
+      ambient: z.number().min(0).max(1).default(0.6).meta({ step: 0.01 }),
+      hearingRange: z.number().min(4).max(100).default(26).meta({ label: 'hearing range (blocks)', step: 1 }),
+    })
+    .prefault({}),
   save: z
     .object({
       /** Minutes between autosaves into the current slot (0 = off). Also saves when the tab is hidden. */
@@ -107,6 +120,7 @@ export const EngineConfigSchema = z.object({
     .object({
       /** Debug panel (toggle with F2). */
       showPanel: z.boolean().default(false),
+      showFps: z.boolean().default(false).meta({ label: 'show FPS' }),
       showGrid: z.boolean().default(false),
       showAxes: z.boolean().default(false),
       showChunks: z.boolean().default(false),

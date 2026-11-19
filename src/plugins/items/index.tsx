@@ -59,6 +59,8 @@ const Config = z.object({
   shells: z.number().int().min(0).max(100).default(12).meta({ label: 'shells on beaches', step: 1 }),
   pickupToasts: z.boolean().default(true).meta({ label: 'pickup toasts' }),
   heldScale: z.number().min(0.2).max(3).default(1.4).meta({ label: 'held item scale', step: 0.05 }),
+  /** Seconds between glints on items lying nearby (0 = none). */
+  glintEvery: z.number().min(0.2).max(30).default(1.4).meta({ label: 'glint every (s)', step: 0.1 }),
 })
 type Config = z.infer<typeof Config>
 
@@ -134,7 +136,9 @@ export default definePlugin({
       equip(actor, slot) {
         const inv = actor.inventory
         if (!inv) return
-        inv.equipped = slot !== null && inv.slots[slot] ? slot : null
+        const next = slot !== null && inv.slots[slot] ? slot : null
+        if (next !== inv.equipped) api.audio.play('core:equip')
+        inv.equipped = next
         changed(actor)
       },
       cycleTools(actor, dir) {
@@ -164,6 +168,8 @@ export default definePlugin({
         }
         const taken = takeFromSlot(inv, slot, count ?? s.count)!
         changed(actor)
+        api.audio.play('core:drop', { at: { x: x + 0.5, z: z + 0.5 } })
+        api.fx.burst('core:dust', { x: x + 0.5, y, z: z + 0.5 }, { amount: 0.75 })
         return service.spawnDrop(taken.id, taken.count, x + 0.5, y, z + 0.5)
       },
       spawnDrop(id, count, x, y, z) {
@@ -185,6 +191,8 @@ export default definePlugin({
       entity: 'item',
       priority: 100,
       anim: 'pickup',
+      sound: 'core:pickup',
+      particles: 'core:sparkle',
       label: (ctx) => `Подобрать: ${nameOf(ctx.target!.item!.id)}`,
       run: (ctx) => {
         const target = ctx.target!
@@ -203,6 +211,8 @@ export default definePlugin({
       tool: '#core:fruits',
       priority: -50,
       anim: 'pickup',
+      sound: 'core:eat',
+      particles: 'core:munch',
       label: (ctx) => `Съесть: ${nameOf(ctx.held!)}`,
       run: (ctx) => {
         service.remove(ctx.actor, ctx.held!, 1)
@@ -291,17 +301,28 @@ export default definePlugin({
       },
     })
 
-    // Ground items: a gentle breathing so they read as "pick me up".
+    // Ground items: a gentle breathing and an occasional glint so they read as "pick me up".
     let time = 0
+    let glintIn = 1
+    const drops = api.entities.world.with('item', 'view')
     api.systems.add({
       id: 'groundBob',
       phase: 'render',
       run: ({ dt }) => {
         time += dt
-        for (const e of api.entities.world.with('item', 'view')) {
+        glintIn -= dt
+        const glintNow = glintIn <= 0
+        if (glintNow) glintIn = cfg.glintEvery * (0.6 + Math.random() * 0.8)
+        // One pass: bob every drop; pick a random nearby one for the glint (reservoir sampling).
+        const c = api.render.camera.target
+        let pick: (typeof drops)['entities'][number] | undefined
+        let seen = 0
+        for (const e of drops) {
           const s = 1 + Math.sin(time * 3 + (e.uid ?? 0)) * 0.04
           e.view.scale.set(s, 1 / s, s)
+          if (glintNow && Math.hypot(e.transform!.x - c.x, e.transform!.z - c.z) < 14 && Math.random() * ++seen < 1) pick = e
         }
+        if (pick) api.fx.burst('core:glint', { x: pick.transform!.x, y: pick.transform!.y + 0.35, z: pick.transform!.z })
       },
     })
   },

@@ -55,6 +55,9 @@ export default definePlugin({
 | `api.registry('interactions').register({ id, tool, block, entity, when, run, label })` | ячейка матрицы взаимодействий |
 | `api.interactions.at(actor, x, z)` → `find` / `perform` | что произойдёт / сделать действие в клетке |
 | `api.services.provide(name, impl)` / `get(name)` | API для других плагинов (тип — через `interface Services`) |
+| `api.audio.play(id, { at, volume, pitch })` | звук из реестра `sounds` (синтез или файл); `at` — тише вдали от камеры |
+| `api.fx.burst(id, at, { color, amount, scale })` | частицы из реестра `particles` |
+| `api.world.pick(clientX, clientY)` / `api.input.pointer` | клетка под мышью (с учётом изгиба мира) |
 | `api.render.stylize(material, { sway, flowUv })` | дать своему материалу стиль игры: изгиб мира, покачивание, течение |
 | `api.render.blockSurface(blockId, rects, y)` | плоская поверхность с текстурой блока (так сделано море вокруг острова) |
 | `api.onDispose(fn)` | своя очистка |
@@ -121,6 +124,8 @@ api.registry('interactions').register({
 })
 ```
 
+У взаимодействия могут быть эффекты прямо в данных: `sound: 'core:dig'`, `particles: 'core:clods'`, `particleColor: 'block'` (частицы цвета блока).
+
 Препятствия без блоков: хук `movement:blocked` (`(blocked, { x, y, z }) => boolean`) — так ямки от лопаты нужно обходить.
 Иконки предметов рисуются из модели: изометрией или плоским диагональным спрайтом (для высоких тонких вещей вроде инструментов; задаётся `icon.style`).
 
@@ -141,6 +146,19 @@ api.save.register({
 
 В `start()` проверяйте `api.save.loaded`: если сессия загружена из сейва, сущности уже на месте и создавать их заново не нужно. Например, игрок и ракушки появляются только в новой игре.
 
+## Звуки и частицы
+
+Звуки синтезируются в браузере из слоёв, файлы не нужны (`content/core/sounds.json5`):
+
+```json5
+{ id: 'my:boop', bus: 'sfx', pitchJitter: 0.1, layers: [
+  { wave: 'sine', freq: 600, freqEnd: 900, duration: 0.08, gain: 0.2 },
+  { wave: 'noise', duration: 0.05, gain: 0.1, filter: { type: 'lowpass', freq: 1200 } },
+] }
+```
+
+Шаги берутся из блока под ногами (`sounds: { step }` в `blocks.json5`). Громкость каналов sfx, ui и ambient задаётся в `config · engine → audio`. Частицы (`particles.json5`) — это маленькие кубики: `count`, `colors`, `size`, `speed`, `spread`, `gravity` (отрицательная — всплывают), `life`, `glow`.
+
 ## Модели и персонажи
 
 Модель можно нарисовать прямо в данных (`content/<pack>/models.json5`): `layers` снизу вверх, в слое — ряды от задней стороны (-z) к передней (+z), в ряду — символы слева направо, `.` — пусто. `palette` сопоставляет символы цветам. 12 вокселей = 1 блок, перед модели смотрит в +z.
@@ -160,7 +178,8 @@ blobShadow: { radius: 0.36 }                     // мягкая круглая 
 |---|---|
 | `W A S D` / стрелки / левый стик | идти (камера следует за игроком) |
 | `Shift` / `Pad1` | бежать |
-| `Space` / `Enter` / `Pad0` | действие (подсказка внизу экрана) |
+| `Space` / `Enter` / `Pad0` | действие с клеткой перед персонажем (подсказка внизу экрана) |
+| ЛКМ | дойти до клетки и сделать с ней действие (или просто дойти); наведение показывает, что произойдёт |
 | `I` / `Tab` / `Pad3` | карманы |
 | `R` / `Pad5` (`Pad4` — назад) | сменить инструмент в руках |
 | `G` | выбросить предмет из рук |

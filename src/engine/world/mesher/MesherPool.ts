@@ -1,7 +1,10 @@
 import { meshChunk, type MeshInput, type MeshOutput } from './mesher'
 import type { MeshRequest, MeshResponse } from './mesher.worker'
+// Inlined as a blob so the game also runs from a single HTML file opened via file://.
+import MesherWorker from './mesher.worker?worker&inline'
 
 interface Pending {
+  worker: Worker
   resolve(out: MeshOutput): void
   reject(err: Error): void
 }
@@ -16,9 +19,25 @@ export class MesherPool {
   constructor(size = Math.max(1, Math.min(4, (globalThis.navigator?.hardwareConcurrency ?? 2) - 1))) {
     if (typeof Worker === 'undefined') return
     for (let i = 0; i < size; i++) {
-      const w = new Worker(new URL('./mesher.worker.ts', import.meta.url), { type: 'module' })
+      let w: Worker
+      try {
+        w = new MesherWorker()
+      } catch (e) {
+        // Some browsers refuse workers on file:// pages: mesh on the main thread instead.
+        console.warn('[mesher] workers unavailable, meshing on the main thread', e)
+        break
+      }
       w.onmessage = (e: MessageEvent<MeshResponse>) => this.onResult(w, e.data)
-      w.onerror = (e) => console.error('[mesher] worker error', e.message)
+      w.onerror = (e) => {
+        console.error('[mesher] worker error', e.message)
+        // Fail its jobs so callers re-queue them instead of waiting forever.
+        for (const [id, p] of this.pending) {
+          if (p.worker !== w) continue
+          this.pending.delete(id)
+          p.reject(new Error(`mesher worker crashed: ${e.message}`))
+        }
+        this.busy.set(w, 0)
+      }
       this.workers.push(w)
       this.busy.set(w, 0)
     }
@@ -39,7 +58,7 @@ export class MesherPool {
     const worker = [...this.busy].sort((a, b) => a[1] - b[1])[0]![0]
     this.busy.set(worker, this.busy.get(worker)! + 1)
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject })
+      this.pending.set(id, { worker, resolve, reject })
       worker.postMessage({ id, input } satisfies MeshRequest, [input.vol.buffer as ArrayBuffer])
     })
   }

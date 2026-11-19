@@ -48,7 +48,8 @@ export class GameLoop {
       this.step()
       ran++
     }
-    this.scheduler.run('render', { dt: seconds, tick: this.tick, alpha: this.accumulator / this.dt, time: this.time })
+    // Frame delta is clamped too: after a long pause (hidden tab) effects and smoothing don't jump.
+    this.scheduler.run('render', { dt: Math.min(seconds, max), tick: this.tick, alpha: this.accumulator / this.dt, time: this.time })
     return ran
   }
 

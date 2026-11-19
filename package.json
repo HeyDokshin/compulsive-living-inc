@@ -1,7 +1,7 @@
 {
   "name": "compulsive-living",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "play": "npm run build && open dist/index.html"
   },
   "dependencies": {
     "@preact/signals": "^2.11.4",
@@ -29,6 +30,7 @@
     "prettier": "^3.10.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
+    "vite-plugin-singlefile": "^2.3.4",
     "vitest": "^5.1.1"
   }
 }
