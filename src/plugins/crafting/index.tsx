@@ -153,6 +153,18 @@ export default definePlugin({
       when: (ctx) => ctx.target?.decor?.piece === cfg.benchPiece,
       run: () => void api.ui.open('crafting:bench'),
     })
+    // The bench takes the main action, so taking it goes on the second one.
+    interactions.register({
+      id: 'crafting:bench_take',
+      entity: 'decor',
+      button: 'secondary',
+      priority: 20,
+      anim: 'pickup',
+      sound: 'core:pickup',
+      label: 'Забрать верстак',
+      when: (ctx) => ctx.target?.decor?.piece === cfg.benchPiece,
+      run: (ctx) => decor().take(ctx.actor, ctx.target!),
+    })
 
     api.ui.window({
       id: 'crafting:bench',

@@ -74,4 +74,7 @@ export const UI_CSS = /* css */ `
 .cl-toast img { width: 28px; height: 28px; image-rendering: pixelated; }
 @keyframes cl-pop { from { transform: scale(.85); opacity: 0 } to { transform: scale(1); opacity: 1 } }
 @keyframes cl-fade { from { opacity: 0 } to { opacity: 1 } }
+.cl-bells-float { position: absolute; right: 12px; top: 100%; font-weight: 800; font-size: 14px; white-space: nowrap; pointer-events: none;
+  text-shadow: 0 1px 0 #fff, 0 0 6px #fff; animation: cl-float 1.4s ease-out forwards; }
+@keyframes cl-float { 0% { transform: translateY(6px); opacity: 0 } 15% { transform: translateY(0); opacity: 1 } 100% { transform: translateY(-34px); opacity: 0 } }
 `

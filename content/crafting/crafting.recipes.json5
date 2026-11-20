@@ -7,6 +7,7 @@
     { id: 'crafting:crate', piece: 'decor:crate', ingredients: [{ item: 'core:wood', count: 3 }], learned: 'start' },
     { id: 'crafting:sign', piece: 'decor:sign', ingredients: [{ item: 'core:wood', count: 1 }, { item: 'core:stone', count: 1 }], learned: 'start' },
     { id: 'crafting:fence', piece: 'decor:fence', count: 2, ingredients: [{ item: 'core:wood', count: 2 }], learned: 'start' },
+    { id: 'crafting:chest', piece: 'decor:chest', ingredients: [{ item: 'core:wood', count: 5 }, { item: 'core:stone', count: 1 }], learned: 'start' },
     { id: 'crafting:paint', item: 'crafting:paint', ingredients: [{ tag: '#garden:flowers', count: 2 }], learned: 'start' },
     { id: 'crafting:bait', item: 'crafting:bait', count: 2, ingredients: [{ item: 'core:shell', count: 1 }], learned: 'start' },
     { id: 'crafting:lamp', piece: 'decor:lamp', ingredients: [{ item: 'nature:iron', count: 2 }, { item: 'core:wood', count: 2 }], learned: 'card', cardPrice: 980 },

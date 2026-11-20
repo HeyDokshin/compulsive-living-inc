@@ -2,7 +2,9 @@
  * Decor: things you put anywhere on the island — benches, fences, lamps, a bonfire… Pieces and their
  * color variants are data (content/decor/decor.pieces.json5); every variant is an item
  * `decor:<piece>_<variant>`. Hold one and press the action key on free ground to place it (it faces
- * you); take it back with the action key. Lamps and bonfires glow after dark.
+ * you); take it back with the action key, turn it with the second one (F). Lamps and bonfires glow
+ * after dark. A plugin can keep a piece from being taken (a chest with things in it) via the
+ * `decor:canTake` hook.
  * Other plugins find pieces through the `decor:pieces` service (crafting repaints them).
  */
 import { definePlugin, z, type Entity, type PluginApi, type RegistryEntry } from '@sdk'
@@ -34,6 +36,8 @@ export interface DecorPieces {
   freeCell(x: number, z: number): number | null
   /** Put a piece on the island (no item needed — for starting furniture). */
   place(pieceId: string, variantId: string, x: number, z: number, rotY?: number): Entity | null
+  /** Put a placed piece back into the actor's pockets (false: pockets full or not allowed). */
+  take(actor: Entity, piece: Entity): boolean
 }
 
 declare module '@sdk' {
@@ -45,6 +49,10 @@ declare module '@sdk' {
   }
   interface Services {
     'decor:pieces': DecorPieces
+  }
+  interface GameHooks {
+    /** May this placed piece be taken back? (e.g. not a chest with things in it) */
+    'decor:canTake': { value: boolean; ctx: { entity: Entity; actor: Entity } }
   }
 }
 
@@ -141,7 +149,15 @@ export default definePlugin({
       look(e)
       return e
     }
+    const take = (actor: Entity, e: Entity) => {
+      if (!e.decor || !api.hooks.run('decor:canTake', true, { entity: e, actor })) return false
+      const id = variantItemId(e.decor.piece, e.decor.variant)
+      if (inventory().add(actor, id, 1) > 0) return false // pockets full: the service says so
+      api.entities.despawn(e)
+      return true
+    }
     api.services.provide('decor:pieces', {
+      take,
       get: (id) => pieces.get(id) ?? undefined,
       all: () => pieces.all(),
       itemId: variantItemId,
@@ -182,11 +198,19 @@ export default definePlugin({
       label: 'Забрать',
       sound: 'core:pickup',
       anim: 'pickup',
+      run: (ctx) => take(ctx.actor, ctx.target!),
+    })
+    interactions.register({
+      id: 'decor:rotate',
+      entity: 'decor',
+      button: 'secondary',
+      priority: 10,
+      label: 'Повернуть',
+      anim: 'none',
+      sound: 'core:drop',
       run: (ctx) => {
-        const e = ctx.target!
-        const id = variantItemId(e.decor!.piece, e.decor!.variant)
-        if (inventory().add(ctx.actor, id, 1) > 0) return false // pockets full: the service says so
-        api.entities.despawn(e)
+        const t = ctx.target!.transform!
+        t.rotY = Math.round(t.rotY / (Math.PI / 2) + 1) * (Math.PI / 2)
       },
     })
     // Views come back from saves without a model: rebuild them.

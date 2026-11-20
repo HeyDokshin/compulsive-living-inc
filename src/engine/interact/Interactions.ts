@@ -19,6 +19,8 @@ export interface InteractionContext {
   entities: Entity[]
   /** The entity that matched `entity` in the definition, if any. */
   target?: Entity
+  /** Which button: the main action (Space) or the second one (F) — default primary. */
+  button?: 'primary' | 'secondary'
 }
 
 /**
@@ -31,6 +33,8 @@ export interface InteractionDef extends RegistryEntry {
   /** Shown in the hint: "Копать", "Подобрать". May depend on the context. */
   label: string | ((ctx: InteractionContext) => string)
   priority?: number
+  /** 'secondary' = the second action key (F): rotate, take, put away… Default 'primary'. */
+  button?: 'primary' | 'secondary'
   tool?: string | null
   block?: string
   entity?: string
@@ -64,7 +68,9 @@ export class Interactions {
   find(ctx: InteractionContext): InteractionDef | null {
     const candidates = (this.sorted ??= this.defs.all().sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0)))
     let found: InteractionDef | null = null
+    const button = ctx.button ?? 'primary'
     for (const def of candidates) {
+      if ((def.button ?? 'primary') !== button) continue
       if (!this.matchTool(def.tool, ctx.held)) continue
       if (def.block && !this.matchBlock(def.block, ctx.block)) continue
       let target: Entity | undefined

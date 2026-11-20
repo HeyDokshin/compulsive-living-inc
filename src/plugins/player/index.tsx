@@ -253,9 +253,9 @@ export default definePlugin({
     })
     api.ui.slot('hud.bottom', () => <Hint cursor={cursor} cfg={cfg} api={api} />)
 
-    const act = (x: number, z: number) => {
+    const act = (x: number, z: number, button: 'primary' | 'secondary' = 'primary') => {
       if (api.ui.modalOpen.value || player.biped?.action) return
-      const ctx = api.interactions.at(player, x, z)
+      const ctx = { ...api.interactions.at(player, x, z), button }
       const def = api.interactions.perform(ctx)
       if (def && player.biped && def.anim !== 'none') player.biped.action = { name: def.anim ?? 'swing', t: 0 }
     }
@@ -263,6 +263,9 @@ export default definePlugin({
     // Use: whatever the interaction matrix says for (held item × cell in front).
     const useKey = api.input.action('use', ['Space', 'Enter', 'Pad0'])
     api.input.on(useKey, () => act(cursor.front.x, cursor.front.z))
+    // The second action: rotate, take, put away… (shown next to the main one in the hint).
+    const altKey = api.input.action('useAlt', ['KeyF', 'Pad2'])
+    api.input.on(altKey, () => act(cursor.front.x, cursor.front.z, 'secondary'))
 
     // Click: walk next to the clicked cell and act on it (or just walk there).
     const standY = (x: number, z: number): number | null => {
@@ -332,6 +335,8 @@ interface HintState {
   name: string | null
   /** Key shown next to the action. */
   key: string
+  /** The second action (F) here, if any. */
+  alt: string | null
 }
 
 /** Rounded-square marker on the cell in front of the player; resolves what "use" would do there. */
@@ -344,7 +349,7 @@ class Cursor {
   front = { x: 0, z: 0 }
   /** Cell the marker shows (front, or the mouse-hovered / clicked one). */
   cell = { x: 0, z: 0 }
-  readonly hint = signal<HintState>({ action: null, name: null, key: 'Space' })
+  readonly hint = signal<HintState>({ action: null, name: null, key: 'Space', alt: null })
 
   constructor(
     private api: PluginApi,
@@ -394,6 +399,9 @@ class Cursor {
 
     const def = this.api.interactions.find(ctx)
     const action = def ? this.api.interactions.label(def, ctx) : null
+    const altCtx = { ...ctx, target: undefined, button: 'secondary' as const }
+    const altDef = this.api.interactions.find(altCtx)
+    const alt = altDef ? this.api.interactions.label(altDef, altCtx) : null
     const name = ctx.block !== this.api.world.AIR ? (this.api.registry('blocks').get(ctx.block)?.name ?? ctx.block) : null
     const key = `${cx},${top},${cz},${ctx.block}`
     if (key !== this.last) {
@@ -402,13 +410,13 @@ class Cursor {
     }
     const keyName = pointed ? 'ЛКМ' : 'Space'
     const h = this.hint.value
-    if (h.action !== action || h.name !== name || h.key !== keyName) this.hint.value = { action, name, key: keyName }
+    if (h.action !== action || h.name !== name || h.key !== keyName || h.alt !== alt) this.hint.value = { action, name, key: keyName, alt }
   }
 }
 
 function Hint({ cursor, cfg, api }: { cursor: Cursor; cfg: Config; api: PluginApi }) {
   const h = cursor.hint.value
-  if (!cfg.hint || api.ui.modalOpen.value || (!h.action && !h.name)) return null
+  if (!cfg.hint || api.ui.modalOpen.value || (!h.action && !h.name && !h.alt)) return null
   return (
     <ui.Pill>
       {h.action ? (
@@ -417,7 +425,13 @@ function Hint({ cursor, cfg, api }: { cursor: Cursor; cfg: Config; api: PluginAp
           <span>{h.action}</span>
         </>
       ) : (
-        <span style={{ opacity: 0.8 }}>{h.name}</span>
+        !h.alt && <span style={{ opacity: 0.8 }}>{h.name}</span>
+      )}
+      {h.alt && (
+        <>
+          <ui.Key>F</ui.Key>
+          <span>{h.alt}</span>
+        </>
       )}
     </ui.Pill>
   )

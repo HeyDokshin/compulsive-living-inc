@@ -52,7 +52,7 @@ export default definePlugin({
 | `api.registry('worldgen').register({ id, order, run(ctx) })` | шаг генерации мира |
 | `api.textures.pattern(name, fn)` | свой процедурный паттерн текстур |
 | `api.ui.slot('hud.bottomLeft', Component)` / `api.ui.window({ id, title, component })` / `api.ui.toast(text)` | интерфейс на Preact (TSX): слоты HUD, окна, сообщения; компоненты `ui.Pill`, `ui.Button`, `ui.ItemSlot`, `ui.Grid`… из `@sdk` |
-| `api.registry('interactions').register({ id, tool, block, entity, when, run, label })` | ячейка матрицы взаимодействий |
+| `api.registry('interactions').register({ id, tool, block, entity, when, run, label, button })` | ячейка матрицы взаимодействий; `button: 'secondary'` — вторая кнопка (F) |
 | `api.interactions.at(actor, x, z)` → `find` / `perform` | что произойдёт / сделать действие в клетке |
 | `api.services.provide(name, impl)` / `get(name)` | API для других плагинов (тип — через `interface Services`) |
 | `api.audio.play(id, { at, volume, pitch })` | звук из реестра `sounds` (синтез или файл); `at` — тише вдали от камеры |
@@ -204,6 +204,7 @@ api.save.register({
 - **Рецепты** — реестр `crafting:recipes`: `piece` (поделка, цвет выбирают при крафте) или `item`, `ingredients` (`item` или `tag`), `learned: start | card`. Для `card` создаётся открытка `crafting:card_<имя>`. Верстак — поделка `decor:workbench`.
 - **Лавка** — реестр `shop:shelves`: полка берёт товары по тегу или списку, `count` в день, `stock` на день, `markup`. Реплики Тоши — `shop:dialogue`.
 - Модели: `python3 tools/models/decor.py` (поделки), `tools/models/shop.py` (лавка, Тоша, открытка, краска, наживка), `tools/models/economy.py` (ящик).
+- **Сундук** — поделка `decor:chest` (плагин `storage`): у каждого свои ячейки (компонент `storage`). Хук `decor:canTake` не даёт унести непустой.
 - Команды: `shop`, `market`, `bells 5000`, `recipes [all]`, `decor [all]`.
 
 ## Модели и персонажи
@@ -226,6 +227,7 @@ blobShadow: { radius: 0.36 }                     // мягкая круглая 
 | `W A S D` / стрелки / левый стик | идти (камера следует за игроком) |
 | `Shift` / `Pad1` | бежать |
 | `Space` / `Enter` / `Pad0` | действие с клеткой перед персонажем (подсказка внизу экрана) |
+| `F` / `Pad2` | второе действие: повернуть поделку, забрать верстак |
 | ЛКМ | дойти до клетки и сделать с ней действие (или просто дойти); наведение показывает, что произойдёт |
 | `I` / `Tab` / `Pad3` | карманы |
 | `R` / `Pad5` (`Pad4` — назад) | сменить инструмент в руках |

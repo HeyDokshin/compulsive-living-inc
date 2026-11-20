@@ -4,11 +4,13 @@
  * content/economy/economy.market.json5) sets today's price for each kind of goods; the box near the
  * middle of the island buys anything with a price except tools, at today's market price.
  */
-import { definePlugin, signal, ui, useState, z, type Entity, type PluginApi, type ReadonlySignal, type RegistryEntry } from '@sdk'
+import { definePlugin, signal, ui, useEffect, useRef, useState, z, type Entity, type PluginApi, type ReadonlySignal, type RegistryEntry } from '@sdk'
 import { categoryOf, demand, formatDemand } from './market'
 
 export interface Wallet {
   readonly bells: ReadonlySignal<number>
+  /** The last earning or spending (not loads): the HUD floats it over the wallet. */
+  readonly change: ReadonlySignal<{ amount: number; key: number } | null>
   add(amount: number): void
   /** False (and nothing taken) when there isn't enough. */
   spend(amount: number): boolean
@@ -51,6 +53,8 @@ const Config = z.object({
   startBells: z.number().int().min(0).max(1_000_000).default(0).meta({ label: 'bells on a new island', step: 100 }),
   /** Share of the item price the box pays (before the market). */
   sellRate: z.number().min(0).max(2).default(1).meta({ label: 'sell rate', step: 0.05 }),
+  /** Seconds the HUD takes to count up to a new sum. */
+  countUp: z.number().min(0).max(3).default(0.7).meta({ label: 'count up (s)', step: 0.05 }),
   /** Days in one market wave. */
   marketPeriod: z.number().min(2).max(60).default(7).meta({ label: 'market period (days)', step: 1 }),
   /** Items with these tags are never offered to the box. */
@@ -76,12 +80,20 @@ export default definePlugin({
     const cfg = api.config.define(Config)
     api.components.define('sellBox', z.object({}))
     const bells = signal(0)
+    const change = signal<{ amount: number; key: number } | null>(null)
+    let key = 0
     const wallet: Wallet = {
       bells,
-      add: (n) => void (bells.value = Math.max(0, bells.value + Math.round(n))),
+      change,
+      add: (n) => {
+        const before = bells.value
+        bells.value = Math.max(0, bells.value + Math.round(n))
+        if (bells.value !== before) change.value = { amount: bells.value - before, key: ++key }
+      },
       spend: (n) => {
         if (n > bells.value) return false
         bells.value -= Math.round(n)
+        if (n) change.value = { amount: -Math.round(n), key: ++key }
         return true
       },
     }
@@ -106,7 +118,7 @@ export default definePlugin({
     api.services.provide('economy:market', market)
     api.ui.window({ id: 'economy:market', title: 'Цены дня', component: () => <MarketBoard market={market} period={cfg.marketPeriod} /> })
 
-    api.ui.slot('hud.topRight', () => <WalletPill bells={bells} />, { order: 20 })
+    api.ui.slot('hud.topRight', () => <WalletPill bells={bells} change={change} countUp={cfg.countUp} />, { order: 20 })
     try {
       api.registry('daily:sections').register({ id: 'economy:wallet', order: 50, line: () => ({ icon: '🔔', text: `В кошельке ${formatBells(bells.value)} колокольчиков.` }) })
       api.registry('daily:sections').register({
@@ -199,12 +211,47 @@ export default definePlugin({
 
 // --- UI ------------------------------------------------------------------------------------------
 
-function WalletPill({ bells }: { bells: ReadonlySignal<number> }) {
+/** The wallet in the HUD: the sum counts up or down to the new value, changes float above it. */
+function WalletPill({ bells, change, countUp }: { bells: ReadonlySignal<number>; change: ReadonlySignal<{ amount: number; key: number } | null>; countUp: number }) {
+  const target = bells.value
+  const [shown, setShown] = useState(target)
+  const from = useRef(target)
+  useEffect(() => {
+    const start = performance.now()
+    const a = from.current
+    let raf = 0
+    const step = () => {
+      const k = countUp > 0 ? Math.min(1, (performance.now() - start) / (countUp * 1000)) : 1
+      const eased = 1 - (1 - k) ** 3
+      const v = Math.round(a + (target - a) * eased)
+      from.current = v
+      setShown(v)
+      if (k < 1) raf = requestAnimationFrame(step)
+    }
+    step()
+    return () => cancelAnimationFrame(raf)
+  }, [target])
+  const [floats, setFloats] = useState<Array<{ amount: number; key: number }>>([])
+  const c = change.value
+  useEffect(() => {
+    if (!c) return
+    setFloats((f) => [...f, c].slice(-4))
+    const t = window.setTimeout(() => setFloats((f) => f.filter((x) => x.key !== c.key)), 1400)
+    return () => window.clearTimeout(t)
+  }, [c?.key])
   return (
-    <ui.Pill>
-      <span>🔔</span>
-      <span>{formatBells(bells.value)}</span>
-    </ui.Pill>
+    <div style={{ position: 'relative' }}>
+      <ui.Pill>
+        <span>🔔</span>
+        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatBells(shown)}</span>
+      </ui.Pill>
+      {floats.map((f) => (
+        <span key={f.key} class="cl-bells-float" style={{ color: f.amount > 0 ? '#3fa57a' : '#d9774a' }}>
+          {f.amount > 0 ? '+' : '−'}
+          {formatBells(Math.abs(f.amount))} 🔔
+        </span>
+      ))}
+    </div>
   )
 }
 

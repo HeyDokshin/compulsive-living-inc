@@ -67,3 +67,19 @@ describe('shop stock', () => {
     expect(pickDaily(pool, 9, 7, 200, 'decor').length).toBe(5)
   })
 })
+
+describe('chest slots', async () => {
+  const { putInto, takeFrom, isEmpty } = await import('../src/plugins/storage/slots')
+  it('tops up stacks, then fills empty slots, and reports what did not fit', () => {
+    const slots: Array<{ id: string; count: number } | null> = [{ id: 'core:wood', count: 28 }, null, null]
+    expect(putInto(slots, 'core:wood', 5, 30)).toBe(0)
+    expect(slots).toEqual([{ id: 'core:wood', count: 30 }, { id: 'core:wood', count: 3 }, null])
+    expect(putInto(slots, 'core:apple', 25, 10)).toBe(15)
+    expect(slots[2]).toEqual({ id: 'core:apple', count: 10 })
+  })
+  it('takes from a slot and empties it', () => {
+    const slots: Array<{ id: string; count: number } | null> = [{ id: 'core:shell', count: 2 }]
+    expect(takeFrom(slots, 0, 5)).toBe(2)
+    expect(isEmpty(slots)).toBe(true)
+  })
+})

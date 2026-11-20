@@ -199,4 +199,21 @@
       ['...............', '...............', '..h............', '..h............', '...............', '............mm.', '............mm.', '............mm.', '...............', '...............', '...............'],
     ],
   },
+  {
+    id: 'decor:chest',
+    scale: 0.0625,
+    palette: {"p": "#c99560", "P": "#b58450", "m": "#9a9aa4", "k": "#f2c14e", "K": "#6e4630"},
+    layers: [
+      ['PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', '..............', '..............'],
+      ['ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', '..............', '..............'],
+      ['ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', '..............', '..............'],
+      ['PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', '..............', '..............'],
+      ['ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', '......kk......', '..............'],
+      ['ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', '......kk......', '......KK......'],
+      ['PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', 'PPmPPPPPPPPmPP', '......kk......', '..............'],
+      ['ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', '......kk......', '..............'],
+      ['..............', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', '..............', '..............', '..............'],
+      ['..............', '..............', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', 'ppmppppppppmpp', '..............', '..............', '..............', '..............'],
+    ],
+  },
 ]

@@ -68,6 +68,15 @@
       ],
     },
     {
+      id: 'decor:chest', name: 'Сундук', description: 'Сюда помещается всё, что не влезло в карманы.', model: 'decor:chest', price: 500, blocker: true,
+      variants: [
+        { id: 'natural', name: 'светлый', palette: { p: '#c99560', P: '#b58450' } },
+        { id: 'dark', name: 'тёмный', palette: { p: '#8f5e3c', P: '#7a4e30' } },
+        { id: 'blue', name: 'голубой', palette: { p: '#a6cbea', P: '#90b8da' } },
+        { id: 'pink', name: 'розовый', palette: { p: '#f6bccb', P: '#e8a8b8' } },
+      ],
+    },
+    {
       id: 'decor:workbench', name: 'Верстак', description: 'Здесь мастерят поделки по рецептам.', model: 'decor:workbench', price: 600, blocker: true,
       variants: [
         { id: 'natural', name: 'светлый', palette: { p: '#d9a56c', P: '#c99560' } },
