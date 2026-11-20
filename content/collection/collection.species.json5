@@ -1,0 +1,58 @@
+// Everything that can be caught or dug up — fish, bugs, fossils. Each entry also becomes an item
+// (same id, tagged #collection:fish / #collection:bugs / #collection:fossils) and an encyclopedia page.
+//
+//   kind     fish | bug | fossil
+//   place    fish: river · pond · sea;  bugs: flowers · trees · air · ground · rocks · water · beach
+//   months   1–12 for the northern hemisphere (the south is shifted by half a year); [] = all year
+//   hours    [from, to) in game hours, wraps over midnight ([19, 4] = evening to early morning); omit = all day
+//   weather  any | rain | dry
+//   rarity   1 (common) … 5 (very rare) — spawn weight comes from the collection config
+//   size     fish shadow size 1…6
+{
+  entries: [
+    // --- fish ---------------------------------------------------------------------------------
+    { id: 'collection:crucian', kind: 'fish', name: 'Карась', description: 'Неприхотливый и золотистый, водится почти везде.', price: 160, place: ['river', 'pond'], size: 2, rarity: 1 },
+    { id: 'collection:carp', kind: 'fish', name: 'Карп', description: 'Неторопливый толстяк с усиками.', price: 300, place: ['pond'], size: 4, rarity: 2 },
+    { id: 'collection:perch', kind: 'fish', name: 'Окунь', description: 'Полосатый и с оранжевыми плавниками.', price: 240, place: ['river'], size: 2, rarity: 1 },
+    { id: 'collection:roach', kind: 'fish', name: 'Плотва', description: 'Серебристая речная рыбка с красными глазами.', price: 120, place: ['river'], size: 2, rarity: 1 },
+    { id: 'collection:ruffe', kind: 'fish', name: 'Ёрш', description: 'Маленький, колючий и любит холодную воду.', price: 400, place: ['river'], size: 1, rarity: 2, months: [10, 11, 12, 1, 2, 3] },
+    { id: 'collection:pike', kind: 'fish', name: 'Щука', description: 'Длинная пятнистая хищница. Осенью клюёт охотнее.', price: 1800, place: ['river'], size: 5, rarity: 3, months: [9, 10, 11, 12] },
+    { id: 'collection:salmon', kind: 'fish', name: 'Лосось', description: 'Поднимается по рекам в начале осени.', price: 700, place: ['river'], size: 5, rarity: 2, months: [9, 10] },
+    { id: 'collection:catfish', kind: 'fish', name: 'Сом', description: 'Усатый великан илистых прудов. Выходит под вечер.', price: 2400, place: ['pond'], size: 5, rarity: 3, months: [5, 6, 7, 8, 9, 10], hours: [16, 9] },
+    { id: 'collection:goldfish', kind: 'fish', name: 'Золотая рыбка', description: 'Говорят, приносит удачу.', price: 1300, place: ['pond'], size: 1, rarity: 4, hours: [9, 16] },
+    { id: 'collection:sea_bass', kind: 'fish', name: 'Морской окунь', description: 'Самая частая добыча у морского берега.', price: 400, place: ['sea'], size: 4, rarity: 1 },
+    { id: 'collection:flounder', kind: 'fish', name: 'Камбала', description: 'Плоская, оба глаза — на одной стороне.', price: 800, place: ['sea'], size: 3, rarity: 2 },
+    { id: 'collection:mackerel', kind: 'fish', name: 'Скумбрия', description: 'Холодолюбивая стайная рыба в полоску.', price: 350, place: ['sea'], size: 3, rarity: 1, months: [11, 12, 1, 2, 3] },
+    { id: 'collection:pufferfish', kind: 'fish', name: 'Фугу', description: 'Надувается шариком, если её напугать.', price: 5000, place: ['sea'], size: 3, rarity: 4, months: [7, 8, 9], hours: [21, 4] },
+    { id: 'collection:octopus', kind: 'fish', name: 'Осьминог', description: 'Восемь щупалец и ни одного плавника.', price: 1200, place: ['sea'], size: 3, rarity: 3 },
+
+    // --- bugs ---------------------------------------------------------------------------------
+    { id: 'collection:cabbage_white', kind: 'bug', name: 'Капустница', description: 'Белая бабочка — первая весенняя гостья.', price: 160, place: ['flowers'], rarity: 1, months: [3, 4, 5, 6, 9, 10], hours: [4, 19] },
+    { id: 'collection:peacock_eye', kind: 'bug', name: 'Павлиний глаз', description: 'На крыльях — яркие «глаза», чтобы пугать птиц.', price: 2500, place: ['flowers'], rarity: 4, months: [3, 4, 5, 6], hours: [4, 19] },
+    { id: 'collection:bumblebee', kind: 'bug', name: 'Шмель', description: 'Пушистый и деловитый, жужжит над цветами.', price: 400, place: ['flowers'], rarity: 2, months: [3, 4, 5, 6, 7, 8, 9, 10, 11], hours: [8, 17] },
+    { id: 'collection:ladybug', kind: 'bug', name: 'Божья коровка', description: 'Красная в чёрный горошек, приносит хорошую погоду.', price: 200, place: ['flowers'], rarity: 1, months: [3, 4, 5, 6, 10, 11], hours: [8, 17] },
+    { id: 'collection:dragonfly', kind: 'bug', name: 'Стрекоза', description: 'Носится над водой и травой на прозрачных крыльях.', price: 500, place: ['air'], rarity: 2, months: [4, 5, 6, 7, 8, 9, 10], hours: [8, 19] },
+    { id: 'collection:red_dragonfly', kind: 'bug', name: 'Красная стрекоза', description: 'Осенняя стрекоза цвета рябины.', price: 180, place: ['air'], rarity: 1, months: [9, 10, 11], hours: [8, 19] },
+    { id: 'collection:firefly', kind: 'bug', name: 'Светлячок', description: 'Летними ночами светится, как маленький фонарик.', price: 600, place: ['air'], rarity: 3, months: [6, 7], hours: [19, 4] },
+    { id: 'collection:moth', kind: 'bug', name: 'Мотылёк', description: 'Ночной гость, летит на свет.', price: 130, place: ['air'], rarity: 1, months: [3, 4, 5, 6, 7, 8, 9, 10], hours: [19, 4] },
+    { id: 'collection:winter_moth', kind: 'bug', name: 'Зимняя пяденица', description: 'Бледная бабочка, которая не боится холода.', price: 300, place: ['air'], rarity: 2, months: [11, 12, 1, 2], hours: [16, 24] },
+    { id: 'collection:cicada', kind: 'bug', name: 'Цикада', description: 'Её песня — это и есть звук лета.', price: 300, place: ['trees'], rarity: 2, months: [7, 8], hours: [8, 17] },
+    { id: 'collection:rhino_beetle', kind: 'bug', name: 'Жук-носорог', description: 'Силач с рогом. Сидит на деревьях по ночам.', price: 3000, place: ['trees'], rarity: 4, months: [7, 8], hours: [23, 8] },
+    { id: 'collection:grasshopper', kind: 'bug', name: 'Кузнечик', description: 'Прыгает так далеко, что за ним не угнаться.', price: 160, place: ['ground'], rarity: 1, months: [7, 8, 9], hours: [8, 17] },
+    { id: 'collection:cricket', kind: 'bug', name: 'Сверчок', description: 'Стрекочет осенними вечерами.', price: 130, place: ['ground'], rarity: 1, months: [9, 10, 11], hours: [17, 8] },
+    { id: 'collection:ant', kind: 'bug', name: 'Муравей', description: 'Маленький труженик. Встречается круглый год.', price: 80, place: ['ground'], rarity: 1 },
+    { id: 'collection:pill_bug', kind: 'bug', name: 'Мокрица', description: 'Прячется под камнями и сворачивается в шарик.', price: 250, place: ['rocks'], rarity: 1, months: [1, 2, 3, 4, 5, 6, 9, 10, 11, 12], hours: [16, 23] },
+    { id: 'collection:snail', kind: 'bug', name: 'Улитка', description: 'Выползает на камни, когда идёт дождь.', price: 250, place: ['rocks'], rarity: 2, weather: 'rain' },
+    { id: 'collection:pond_skater', kind: 'bug', name: 'Водомерка', description: 'Бегает по воде, как по льду.', price: 130, place: ['water'], rarity: 2, months: [5, 6, 7, 8, 9], hours: [8, 19] },
+
+    // --- fossils: dug up from dig spots as an unknown fossil, identified at the museum ----------
+    { id: 'collection:ammonite', kind: 'fossil', name: 'Аммонит', description: 'Спиральная раковина древнего моллюска.', price: 1100, rarity: 1 },
+    { id: 'collection:trilobite', kind: 'fossil', name: 'Трилобит', description: 'Жил на морском дне задолго до динозавров.', price: 1300, rarity: 1 },
+    { id: 'collection:fern_imprint', kind: 'fossil', name: 'Отпечаток папоротника', description: 'Лист, застывший в камне миллионы лет назад.', price: 800, rarity: 1 },
+    { id: 'collection:amber', kind: 'fossil', name: 'Янтарь', description: 'Застывшая смола, а внутри — крошечная мошка.', price: 1200, rarity: 2 },
+    { id: 'collection:megalodon_tooth', kind: 'fossil', name: 'Зуб мегалодона', description: 'Зуб гигантской древней акулы.', price: 1500, rarity: 2 },
+    { id: 'collection:raptor_claw', kind: 'fossil', name: 'Коготь раптора', description: 'Изогнутый и острый — лучше не трогать.', price: 2500, rarity: 3 },
+    { id: 'collection:dino_egg', kind: 'fossil', name: 'Яйцо динозавра', description: 'Окаменевшее яйцо. Внутри, наверное, никого.', price: 3000, rarity: 3 },
+    { id: 'collection:triceratops_skull', kind: 'fossil', name: 'Череп трицератопса', description: 'Три рога и огромный воротник.', price: 5500, rarity: 4 },
+  ],
+}

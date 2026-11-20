@@ -20,8 +20,6 @@ declare module '@sdk' {
     tree?: TreeState
     rock?: { hits: number; day: number }
     digSpot?: Record<string, never>
-    /** Can't be walked through. */
-    blocker?: Record<string, never>
   }
   interface Registries {
     'nature:trees': TreeKind
@@ -86,29 +84,10 @@ export default definePlugin({
     )
     api.components.define('rock', z.object({ hits: z.number().int(), day: z.number() }))
     api.components.define('digSpot', obj)
-    api.components.define('blocker', obj)
 
-    // --- blockers (trees, rocks): cells characters walk around -----------------------------
-    const blocked = new Map<string, number>() // "x,z" → ground y
+    // Trees and rocks carry a `blocker` component: the engine makes characters walk around them.
+    const blocked = { has: (k: string) => { const [x, z] = k.split(',').map(Number); return !!api.world.blockerAt(x!, z!) } }
     const cellKey = (x: number, z: number) => `${x},${z}`
-    const track = (e: Entity, on: boolean) => {
-      if (!e.blocker || !e.transform) return
-      const k = cellKey(Math.floor(e.transform.x), Math.floor(e.transform.z))
-      if (on) blocked.set(k, Math.round(e.transform.y))
-      else blocked.delete(k)
-    }
-    api.events.on('entity:spawned', ({ entity }) => track(entity, true))
-    api.events.on('entity:despawned', ({ entity }) => track(entity, false))
-    api.events.on('session:started', () => {
-      blocked.clear()
-      for (const e of api.entities.world.with('blocker')) track(e, true)
-    })
-    for (const e of api.entities.world.with('blocker')) track(e, true) // hot reload
-    api.hooks.tap('movement:blocked', (b, { x, y, z }) => {
-      if (b) return b
-      const gy = blocked.get(cellKey(x, z))
-      return gy !== undefined && y >= gy - 1 && y <= gy + 2
-    })
 
     // --- looks ------------------------------------------------------------------------------
     const updateTree = (e: Entity) => {
@@ -477,7 +456,7 @@ function entitiesAt(api: PluginApi, x: number, z: number): Entity[] {
 }
 
 /** Free neighbour cells of an entity (prefer the side facing `towards`) for dropping things. */
-function freeCellsAround(api: PluginApi, e: Entity, blocked: Map<string, number>, n: number, towards?: Entity): Array<{ x: number; y: number; z: number }> {
+function freeCellsAround(api: PluginApi, e: Entity, blocked: { has(k: string): boolean }, n: number, towards?: Entity): Array<{ x: number; y: number; z: number }> {
   const t = e.transform!
   const cx = Math.floor(t.x)
   const cz = Math.floor(t.z)

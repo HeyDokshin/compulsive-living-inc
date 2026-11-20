@@ -130,6 +130,7 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
         return game.worldConfig.seed
       },
       pick: (clientX, clientY) => game.renderer.pick(clientX, clientY),
+      blockerAt: (x, z) => game.blockers.at(x, z),
       getBlock: (x, y, z) => game.world.getBlock(x, y, z),
       setBlock: (x, y, z, id) => game.world.setBlock(x, y, z, id),
       isSolid: (x, y, z) => game.world.isSolid(x, y, z),
@@ -196,7 +197,7 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       perform: (ctx) => game.interactions.perform(ctx),
       label: (d, ctx) => game.interactions.label(d, ctx),
       held: (actor) => game.hooks.run('interaction:held', null, { actor }),
-      at: (actor, x, z) => cellContext(game.world.voxels, game.entities, game.hooks, actor, x, z),
+      at: (actor, x, z) => cellContext(game.world.voxels, game.entities, game.hooks, actor, x, z, (cx, cz) => game.blockers.at(cx, cz)),
     },
     save: {
       register: (d: SaverDef, name?: string) => void track(game.sessions.saves.register(name ? `${owner}:${name}` : owner, d, owner)),

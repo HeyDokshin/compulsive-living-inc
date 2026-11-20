@@ -56,6 +56,32 @@ export class SaveService {
     }
   }
 
+  /** Current data of every saver (hot reload: plugins keep their state through a reload). */
+  snapshot(): Record<string, SavedPlugin & { owner: string }> {
+    const out: Record<string, SavedPlugin & { owner: string }> = {}
+    for (const [key, s] of this.savers) {
+      try {
+        out[key] = { version: s.version, data: structuredClone(s.save()), owner: s.owner }
+      } catch (e) {
+        log.error(`saver "${key}" failed:`, e)
+      }
+    }
+    return out
+  }
+
+  /** Hand snapshot data back to the savers of the given (just reloaded) plugins. */
+  restore(snapshot: Record<string, SavedPlugin & { owner: string }>, owners: readonly string[]): void {
+    for (const [key, saved] of Object.entries(snapshot)) {
+      const s = this.savers.get(key)
+      if (!s || !owners.includes(saved.owner)) continue
+      try {
+        s.load(saved.version < s.version && s.migrate ? s.migrate(saved.data, saved.version) : saved.data)
+      } catch (e) {
+        log.error(`restoring "${key}" after reload failed:`, e)
+      }
+    }
+  }
+
   /** Upgrade old save files to the current format. */
   upgrade(data: SaveData): SaveData {
     return migrateSave(data)

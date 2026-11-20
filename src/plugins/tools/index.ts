@@ -1,7 +1,7 @@
 /**
  * What tools do — entries of the interaction matrix (tool × target → effect).
  * The shovel really digs and fills holes; trees, rocks and flowers add their own actions in the
- * nature and garden plugins. Net and rod answer with a friendly note until stage 6 (fish and bugs). Adding a tool action is one
+ * nature and garden plugins, fishing and bugs in theirs; here are the fallbacks (a swing, a note). Adding a tool action is one
  * `interactions.register(...)` call, from any plugin.
  */
 import { definePlugin, z } from '@sdk'
@@ -19,7 +19,7 @@ interface Hole {
 export default definePlugin({
   id: 'tools',
   version: '0.1.0',
-  description: 'Действия инструментов: лопата копает, остальные — заглушки до своих этапов',
+  description: 'Действия инструментов: лопата копает, запасные действия для остальных',
   dependsOn: ['items'],
 
   setup(api) {
@@ -90,7 +90,7 @@ export default definePlugin({
       },
     })
 
-    // --- stubs until their stages ----------------------------------------------------------
+    // --- fallbacks: what a tool does when no plugin has anything better ---------------------
     interactions.register({
       id: 'tools:cast',
       tool: '#core:rods',
@@ -98,7 +98,7 @@ export default definePlugin({
       label: 'Забросить удочку',
       sound: 'core:splash',
       particles: 'core:splash',
-      run: () => note('Поплавок качается… Рыбалка появится на этапе 6.'),
+      run: () => note('Здесь рыба не водится.'),
     })
     interactions.register({
       id: 'tools:water',
@@ -115,7 +115,7 @@ export default definePlugin({
       priority: -10,
       label: 'Взмахнуть сачком',
       sound: 'core:swing',
-      run: () => note('Никого не поймали. Насекомые прилетят на этапе 6.'),
+      run: () => note('Никого не поймали.'),
     })
     interactions.register({
       id: 'tools:axe_swing',

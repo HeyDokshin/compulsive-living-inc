@@ -144,7 +144,12 @@ export default definePlugin({
       )
     }
     subscribe()
-    steps.onChange(subscribe)
+    // The card re-renders when steps are added later by other plugins.
+    const stepsVersion = signal(0)
+    steps.onChange(() => {
+      subscribe()
+      stepsVersion.value++
+    })
     // Polled steps.
     let poll = 0
     api.systems.add({
@@ -159,7 +164,7 @@ export default definePlugin({
       },
     })
 
-    api.ui.slot('hud.topLeft', () => <Card api={api} progress={progress} />)
+    api.ui.slot('hud.topLeft', () => <Card api={api} progress={progress} stepsVersion={stepsVersion} />)
     api.commands.register({
       name: 'tutorial',
       description: 'Обучение: tutorial reset — начать заново, tutorial skip — пропустить',
@@ -174,7 +179,8 @@ export default definePlugin({
   },
 })
 
-function Card({ api, progress }: { api: PluginApi; progress: Signal<Progress> }) {
+function Card({ api, progress, stepsVersion }: { api: PluginApi; progress: Signal<Progress>; stepsVersion: Signal<number> }) {
+  stepsVersion.value
   const p = progress.value
   if (p.finished || p.skipped || api.ui.modalOpen.value) return null
   const all = api.registry('tutorial:steps').all().sort((a, b) => a.order - b.order)

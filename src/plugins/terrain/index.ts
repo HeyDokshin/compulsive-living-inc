@@ -5,9 +5,20 @@
  * All numbers live in config/terrain.json5 and are tunable live in the debug panel (F2): the world regenerates.
  */
 import { definePlugin, type PluginApi, type SurfaceRect } from '@sdk'
-import { Config, connect, ponds, rivers, seaBedY, seaRing, shape, surface, voxels, type TerrainData } from './gen'
+import { Config, connect, ponds, rivers, seaBedY, seaRing, shape, surface, voxels, waterKindAt, type TerrainData, type WaterKind } from './gen'
 
-export type { TerrainData } from './gen'
+export type { TerrainData, WaterKind } from './gen'
+
+export interface TerrainWater {
+  /** Kind of water in a column, or null when the column has no water on top. */
+  kindAt(x: number, z: number): WaterKind | null
+}
+
+declare module '@sdk' {
+  interface Services {
+    'terrain:water': TerrainWater
+  }
+}
 
 export default definePlugin({
   id: 'terrain',
@@ -86,6 +97,17 @@ export default definePlugin({
       description: 'Remember island stats for the `island` command',
       run: (ctx) => void (last = ctx.data.terrain as TerrainData | undefined),
     })
+    const liquids = api.registry('blocks')
+    api.services.provide('terrain:water', {
+      kindAt: (x, z) => {
+        if (!last || x < 0 || z < 0 || x >= api.world.sizeX || z >= api.world.sizeZ) return null
+        const y = api.world.surfaceY(x, z)
+        // surfaceY is the first air above the top solid block; water sits on top of it
+        if (!liquids.isTagged(api.world.getBlock(x, y, z), '#core:liquid')) return null
+        return waterKindAt(last, x + z * api.world.sizeX)
+      },
+    })
+
     api.commands.register({
       name: 'island',
       description: 'Остров: площадь, лестницы, мосты, проходимость',

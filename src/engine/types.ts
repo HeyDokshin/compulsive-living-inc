@@ -49,6 +49,7 @@ export const ModelSchema = z.object({
 export type ModelSpec = z.infer<typeof ModelSchema>
 
 export const SilhouetteSchema = z.object({ color: z.string().default('#ffffff'), opacity: z.number().min(0).max(1).default(0.45) })
+export const BlockerSchema = z.object({ w: z.number().int().min(1).default(1), d: z.number().int().min(1).default(1), h: z.number().int().min(1).default(3) })
 export const BlobShadowSchema = z.object({ radius: z.number().positive().default(0.4), opacity: z.number().min(0).max(1).default(0.35) })
 
 export interface Components {
@@ -65,6 +66,8 @@ export interface Components {
   silhouette?: { color: string; opacity: number }
   /** Soft round shadow on the ground under the entity. */
   blobShadow?: { radius: number; opacity: number }
+  /** Characters walk around it: footprint w × d cells centered on the entity, h cells tall. */
+  blocker?: { w?: number; d?: number; h?: number }
 }
 
 export type Entity = Components

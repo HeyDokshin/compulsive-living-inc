@@ -42,6 +42,7 @@ import { BlockSchema, PrefabSchema, type BlockDef, type CommandDef, type GameEve
 import { createLogger } from './util/log'
 import { TimeService, type SavedTime } from './time/TimeService'
 import { Clock } from './time/Clock'
+import { Blockers } from './world/Blockers'
 import { isPlainObject } from './util/objects'
 
 export type GamePlugin = PluginDefinition<PluginApi>
@@ -101,6 +102,7 @@ export class Game {
   readonly particles: Particles
   readonly sessions: SessionManager
   readonly time: TimeService
+  readonly blockers: Blockers
   readonly plugins: PluginManager<PluginApi>
   readonly panel: DebugPanel
   readonly devConsole: DevConsole
@@ -135,6 +137,9 @@ export class Game {
     this.particles = new Particles(this.renderer.scene, this.particleDefs)
     this.sessions = new SessionManager(this)
     this.time = new TimeService(this.engineConfig.time, this.events)
+    this.blockers = new Blockers(this.entities)
+    // Engine-level answer: entities with a `blocker` footprint are walked around.
+    this.hooks.tap('movement:blocked', (b, { x, y, z }) => b || this.blockers.isBlocked(x, y, z), { priority: -100 })
     // The clock is part of every save; days missed while away are replayed after the session starts.
     this.sessions.saves.register(
       'engine:time',
@@ -183,10 +188,12 @@ export class Game {
   /** Hot reload: plugin code changed. */
   reloadPlugins(defs: GamePlugin[]): Promise<string[]> {
     return this.serial(async () => {
+      const state = this.sessions.saves.snapshot()
       const ids = await this.plugins.reload(defs, async () => {
         this.reloadContent()
         await this.world.regenerateIfStepsChanged()
       })
+      this.sessions.saves.restore(state, ids)
       for (const id of this.config.ids()) {
         if (id !== 'engine' && id !== 'world' && !this.plugins.isLoaded(id)) this.config.undefine(id)
       }

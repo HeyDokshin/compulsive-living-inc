@@ -1,0 +1,12 @@
+[
+  { id: 'fishing:cast', volume: 0.6, pitchJitter: 0.08, layers: [
+    { wave: 'noise', duration: 0.22, gain: 0.18, filter: { type: 'bandpass', freq: 900, freqEnd: 2600, q: 1.2 } },
+  ] },
+  { id: 'fishing:plop', volume: 0.7, pitchJitter: 0.1, layers: [
+    { wave: 'sine', freq: 700, freqEnd: 260, duration: 0.09, gain: 0.16 },
+  ] },
+  { id: 'fishing:bite', volume: 0.9, layers: [
+    { wave: 'noise', duration: 0.35, gain: 0.34, filter: { type: 'lowpass', freq: 2600, freqEnd: 500 } },
+    { wave: 'sine', freq: 240, freqEnd: 90, duration: 0.16, gain: 0.18 },
+  ] },
+]

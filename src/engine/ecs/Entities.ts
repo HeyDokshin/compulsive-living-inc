@@ -1,6 +1,6 @@
 import { World } from 'miniplex'
 import type { ZodType } from 'zod'
-import { BlobShadowSchema, ModelSchema, SilhouetteSchema, TransformSchema, type Components, type Entity, type PrefabDef } from '../types'
+import { BlobShadowSchema, BlockerSchema, ModelSchema, SilhouetteSchema, TransformSchema, type Components, type Entity, type PrefabDef } from '../types'
 import type { Registry } from '../registry/Registry'
 import type { EventBus } from '../events/EventBus'
 import type { Hooks } from '../events/Hooks'
@@ -26,6 +26,7 @@ const ENGINE_COMPONENTS: Omit<ComponentDef, 'owner'>[] = [
   { name: 'view', persistent: false },
   { name: 'silhouette', schema: SilhouetteSchema, persistent: true },
   { name: 'blobShadow', schema: BlobShadowSchema, persistent: true },
+  { name: 'blocker', schema: BlockerSchema, persistent: true },
 ]
 
 /** ECS world (miniplex) + component schemas + prefab spawning. */

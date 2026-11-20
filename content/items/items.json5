@@ -5,10 +5,10 @@
   entries: [
     // Tools — one per slot, tagged #core:tools and with a kind tag for interactions.
     { id: 'core:shovel', name: 'Лопата', description: 'Копать ямки и закапывать их обратно.', stack: 1, model: 'core:shovel', held: { grip: [2.5, 10.5, 1.5], tilt: -0.55 }, tags: ['core:tools', 'core:shovels'], price: 200 },
-    { id: 'core:axe', name: 'Топор', description: 'Рубить деревья (скоро).', stack: 1, model: 'core:axe', held: { grip: [2.5, 1.5, 1.5], tilt: 1.1 }, tags: ['core:tools', 'core:axes'], price: 200 },
-    { id: 'core:net', name: 'Сачок', description: 'Ловить насекомых (скоро).', stack: 1, model: 'core:net', held: { grip: [3.5, 1.5, 1.5], tilt: 1.0 }, tags: ['core:tools', 'core:nets'], price: 200 },
-    { id: 'core:fishing_rod', name: 'Удочка', description: 'Ловить рыбу (скоро).', stack: 1, model: 'core:fishing_rod', held: { grip: [1.5, 2.5, 1.5], tilt: 1.0 }, tags: ['core:tools', 'core:rods'], price: 200 },
-    { id: 'core:watering_can', name: 'Лейка', description: 'Поливать цветы (скоро).', stack: 1, model: 'core:watering_can', held: { grip: [3.5, 5, 2] }, tags: ['core:tools', 'core:watering_cans'], price: 200 },
+    { id: 'core:axe', name: 'Топор', description: 'Рубить деревья и раскалывать камни.', stack: 1, model: 'core:axe', held: { grip: [2.5, 1.5, 1.5], tilt: 1.1 }, tags: ['core:tools', 'core:axes'], price: 200 },
+    { id: 'core:net', name: 'Сачок', description: 'Ловить насекомых. Подходите медленно!', stack: 1, model: 'core:net', held: { grip: [3.5, 1.5, 1.5], tilt: 1.0 }, tags: ['core:tools', 'core:nets'], price: 200 },
+    { id: 'core:fishing_rod', name: 'Удочка', description: 'Забросьте в воду и подсекайте, когда поплавок нырнёт.', stack: 1, model: 'core:fishing_rod', held: { grip: [1.5, 2.5, 1.5], tilt: 1.0 }, tags: ['core:tools', 'core:rods'], price: 200 },
+    { id: 'core:watering_can', name: 'Лейка', description: 'Поливать цветы.', stack: 1, model: 'core:watering_can', held: { grip: [3.5, 5, 2] }, tags: ['core:tools', 'core:watering_cans'], price: 200 },
 
     // Fruit
     { id: 'core:apple', name: 'Яблоко', stack: 10, model: 'core:apple', held: { grip: [3, 4, 3] }, tags: ['core:fruits'], price: 100 },

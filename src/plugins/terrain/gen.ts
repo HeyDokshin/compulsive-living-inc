@@ -69,6 +69,7 @@ export type Config = z.infer<typeof Config>
 export interface TerrainData {
   land: Uint8Array
   tier: Int8Array
+  /** Inland water carved per column: 0 = none, 1 = river, 2 = pond (see `WATER_RIVER`, `WATER_POND`). */
   river: Uint8Array
   oceanDistance: Int16Array
   /** Share of the world that is land after shaping. */
@@ -270,7 +271,10 @@ export function fillEnclosedWater(land: Uint8Array, sizeX: number, sizeZ: number
 
 /** Carve a disc of river/pond around (x, z): bed one below the reference ground, water up to the brim
  * (the liquid surface is drawn a little lower, so it sits just under the grass). */
-export function carve(ctx: WorldGenContext, x: number, z: number, r: number, ground: number): void {
+export const WATER_RIVER = 1
+export const WATER_POND = 2
+
+export function carve(ctx: WorldGenContext, x: number, z: number, r: number, ground: number, kind = WATER_RIVER): void {
   const t = td(ctx)
   const bed = ground - 1
   const ri = Math.ceil(r)
@@ -285,7 +289,7 @@ export function carve(ctx: WorldGenContext, x: number, z: number, r: number, gro
       if (ctx.heightMap[i]! < bed) continue // already lower (e.g. a lower terrace)
       ctx.heightMap[i] = bed
       ctx.waterMap[i] = Math.max(ctx.waterMap[i]!, bed + 1)
-      t.river[i] = 1
+      if (!t.river[i]) t.river[i] = kind
     }
   }
 }
@@ -365,7 +369,7 @@ export function ponds(ctx: WorldGenContext, cfg: Config): void {
       }
     }
     if (!flat) continue
-    carve(ctx, x, z, r, groundOfTier(cfg, tier))
+    carve(ctx, x, z, r, groundOfTier(cfg, tier), WATER_POND)
     made++
   }
 }
@@ -610,4 +614,14 @@ export function connect(ctx: WorldGenContext, cfg: Config): void {
   }
   const big = regions.sizes.filter((s) => s >= cfg.paths.minRegion)
   t.regions = big.length
+}
+
+export type WaterKind = 'sea' | 'river' | 'pond'
+
+/** What kind of water a column holds by generation: inland river or pond, or sea outside the land. */
+export function waterKindAt(t: Pick<TerrainData, 'land' | 'river'>, i: number): WaterKind {
+  const r = t.river[i]
+  if (r === WATER_POND) return 'pond'
+  if (r) return 'river'
+  return t.land[i] ? 'pond' : 'sea' // water on land that wasn't carved (rare): treat as still water
 }
