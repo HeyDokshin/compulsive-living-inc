@@ -19,6 +19,7 @@ export interface LayoutDef extends RegistryEntry {
   floors: Record<string, string>
   blocks: { wall: string; wainscot: string; glass: string; pedestal: string; desk: string }
   props: { tank: string; terrarium: string; placard: string; plant: string; lamp: string; bell: string }
+  curator: string
 }
 
 export const LayoutSchema = z.looseObject({
@@ -52,6 +53,8 @@ export const LayoutSchema = z.looseObject({
       bell: z.string().default('museum:bell'),
     })
     .prefault({}),
+  /** Rig of the curator standing at the C cells. */
+  curator: z.string().default('museum:curator'),
 })
 
 export const HallConfig = z
@@ -66,6 +69,7 @@ export const HallConfig = z
     waterColor: z.string().default('#8fd6ef').meta({ color: true }),
     waterOpacity: z.number().min(0).max(1).default(0.32).meta({ label: 'water opacity', step: 0.01 }),
     swimSpeed: z.number().min(0).max(3).default(0.6).meta({ label: 'exhibit swim', step: 0.05 }),
+    curatorScale: z.number().min(0.3).max(3).default(1.25).meta({ label: 'curator scale', step: 0.05 }),
   })
   .prefault({})
 type HallConfig = z.infer<typeof HallConfig>
@@ -84,10 +88,12 @@ export interface Hall {
   plan(): HallPlan | null
   /** Where the player appears inside (world coordinates). */
   entrance(): { x: number; y: number; z: number; rotY: number } | null
-  /** Rebuild the room's voxels (each session start). */
+  /** Build the room's voxels (on the way in, or loading a save made inside). */
   build(): void
   /** Exhibits changed (a donation): rebuild them next time they are seen. */
   refresh(): void
+  /** The curator is speaking (nods while text appears). */
+  setTalking(on: boolean): void
   /** What is on display in a world cell, if it is a slot. */
   slotAt(x: number, z: number): { kind: 'fish' | 'bug' | 'fossil'; species?: SpeciesDef } | null
 }
@@ -96,7 +102,7 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
   const T = api.render.three
   const layouts = api.createRegistry<LayoutDef>('museum:layouts', LayoutSchema as never)
   const catalog = () => api.services.get('collection:catalog')
-  const area = api.interiors.area(HALL_ID) // allocate now: the terrain draws sea over it from outside
+  const area = api.interiors.area(HALL_ID)
   const layout = () => layouts.get(HALL_ID) ?? undefined
   let plan: HallPlan | null = null
   const getPlan = () => {
@@ -116,7 +122,7 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
   api.events.on('session:started', () => (live = true))
   layouts.onChange(() => {
     plan = null
-    rebuildRoom = live
+    rebuildRoom = live && inside()
   })
   const inside = () => api.interiors.current === HALL_ID
   const local = (x: number, z: number) => ({ x: x - area.x, z: z - area.z })
@@ -138,7 +144,11 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
         const X = area.x + x
         const Z = area.z + z
         const ch = x < p.width && z < p.depth ? p.at(x, z) : ' '
-        for (let y = 0; y < w.height; y++) {
+        // Below the floor the room keeps the sea it stands in, like the columns around it — an
+        // emptied hole would show the sides of the neighbouring water from outside.
+        const refX = area.x + area.w < w.sizeX ? area.x + area.w : area.x - 1
+        for (let y = 0; y < F; y++) if (w.getBlock(X, y, Z) === w.AIR) set(X, y, Z, w.getBlock(refX, y, Z))
+        for (let y = F; y < w.height; y++) {
           let id = w.AIR
           if (ch !== ' ') {
             if (y === F) id = floorBlock(ch, l.floors)
@@ -147,6 +157,7 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
               if (ch === '#' || ch === 'w' || ch === '=') id = wallBlock(l, ch, h, near(x, z, p))
               else if (h === 1 && (ch === 'F' || ch === 'B' || ch === 'O')) id = l.blocks.pedestal
               else if (h === 1 && ch === 'R') id = l.blocks.desk
+              else if (h === 1 && ch === 'C') id = floorBlock('.', l.floors) // a little stage behind the desk
             }
           }
           set(X, y, Z, id)
@@ -203,9 +214,10 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
   // --- exhibits -----------------------------------------------------------------------------------
   const group = api.render.add(new T.Group())
   group.visible = inside()
+  // The hall exists only while you're in it (outside, its corner of the world is open sea).
   api.events.on('interior:changed', ({ id }) => {
     group.visible = id === HALL_ID
-    if (group.visible) dirty = true
+    if (group.visible) build()
   })
   const waterGeo = new T.BoxGeometry(0.76, 0.5, 0.76)
   const waterMat = api.render.stylize(new T.MeshLambertMaterial({ color: cfg.waterColor, transparent: true, opacity: cfg.waterOpacity, depthWrite: false }))
@@ -276,8 +288,18 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
       })
     }
     for (const d of p.decor) still(d.kind === 'plant' ? l.props.plant : l.props.lamp, d, cfg.floorY + 1, 0)
-    for (const d of p.desks) still(l.props.bell, d, cfg.floorY + 2, 0)
+    const bellAt = p.desks[0]
+    if (bellAt) still(l.props.bell, bellAt, cfg.floorY + 2, 0)
+    curator = null
+    if (p.curator) {
+      curator = api.render.rigModel(l.curator)
+      curator.position.set(area.x + p.curator.x, cfg.floorY + 2, area.z + p.curator.z)
+      curator.scale.setScalar(cfg.curatorScale)
+      group.add(curator)
+    }
   }
+  let curator: Obj | null = null
+  let talking = false
 
   let time = 0
   api.systems.add({
@@ -302,6 +324,22 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
         } else if (e.kind === 'bug') {
           e.obj.position.y = e.y + Math.max(0, Math.sin(t * 1.3)) * 0.05
           e.obj.rotation.y = e.facing + Math.sin(t * 0.4) * 0.6
+        }
+      }
+      // the curator breathes, turns to the player and nods while talking
+      if (curator) {
+        const pl = player()
+        if (pl) {
+          const want = Math.atan2(pl.transform.x - curator.position.x, pl.transform.z - curator.position.z)
+          const d = Math.atan2(Math.sin(want - curator.rotation.y), Math.cos(want - curator.rotation.y))
+          curator.rotation.y += d * Math.min(1, dt * 5)
+        }
+        const body = curator.getObjectByName('body')
+        const head = curator.getObjectByName('head')
+        if (body) body.scale.y = 1 + Math.sin(time * 2.2) * 0.025
+        if (head) {
+          head.rotation.x = talking ? Math.sin(time * 9) * 0.08 + 0.05 : Math.sin(time * 0.7) * 0.03
+          head.rotation.z = talking ? 0 : Math.sin(time * 0.5) * 0.08
         }
       }
     },
@@ -364,7 +402,7 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
     priority: 60,
     anim: 'none',
     sound: 'ui:pop',
-    label: 'Подарить экспонат',
+    label: 'Поговорить со смотрительницей',
     when: () => inside(),
     run: (ctx) => opts.onDesk(ctx.actor),
   })
@@ -377,6 +415,7 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
     },
     build,
     refresh: () => void (dirty = true),
+    setTalking: (on) => void (talking = on),
     slotAt,
   }
 }

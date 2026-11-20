@@ -193,6 +193,18 @@ export class Game {
     return interiors
   }
 
+  /** Give a room's corner back to the sea: every column becomes a copy of the column just outside it. */
+  restoreSea(box: { x: number; z: number; w: number; d: number }): void {
+    const v = this.world.voxels
+    const refX = box.x + box.w < v.sizeX ? box.x + box.w : box.x - 1
+    for (let z = box.z; z < box.z + box.d; z++)
+      for (let x = box.x; x < box.x + box.w; x++)
+        for (let y = 0; y < v.height; y++) {
+          const id = this.world.getBlock(refX, y, z)
+          if (this.world.getBlock(x, y, z) !== id) this.world.setBlock(x, y, z, id)
+        }
+  }
+
   /** Move an actor into a room (or back out): teleport, snap the camera, no interpolation sweep. */
   moveActor(actor: { transform?: Place }, to: Place): void {
     if (!actor.transform) return

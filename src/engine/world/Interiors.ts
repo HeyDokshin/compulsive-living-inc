@@ -1,8 +1,9 @@
 /**
  * Interiors: rooms (a museum hall, later houses) built in reserved corners of the voxel world.
  * The island generator always keeps the world's corners under open sea, so each interior gets one
- * corner chunk (16 × 16 cells). While the player is inside, the renderer shows only that chunk;
- * outside, reserved chunks are hidden and the terrain draws sea over them.
+ * corner chunk (16 × 16 cells). The room exists only while someone is inside: the owner builds it
+ * on `interior:changed`, and on the way out the engine gives the corner back to the sea. While
+ * inside, the renderer shows only that chunk.
  *
  * Pure state (no three.js): allocation, who is inside, save data. The Game wires it to rendering.
  */
@@ -62,6 +63,11 @@ export class Interiors {
     return { x: c.cx * CHUNK, z: c.cz * CHUNK, w: CHUNK, d: CHUNK }
   }
 
+  /** Rooms that have a corner. */
+  ids(): string[] {
+    return [...this.slots.keys()]
+  }
+
   get current(): string | null {
     return this.inside?.id ?? null
   }
@@ -82,25 +88,15 @@ export class Interiors {
     return back
   }
 
-  /** Is the chunk (cx, cz) shown? Inside: only the current room. Outside: all but reserved corners. */
+  /** Is the chunk (cx, cz) shown? Inside: only the current room. Outside: everything. */
   chunkVisible(cx: number, cz: number): boolean {
     const box = this.inside ? this.area(this.inside.id) : null
-    if (box) return cx === box.x / CHUNK && cz === box.z / CHUNK
-    for (const slot of this.slots.values()) {
-      const c = this.corners()[slot]
-      if (c && c.cx === cx && c.cz === cz) return false
-    }
-    return true
+    return !box || (cx === box.x / CHUNK && cz === box.z / CHUNK)
   }
 
   /** Is a world point shown? (entities outside the current room are hidden while inside) */
   pointVisible(x: number, z: number): boolean {
     return this.chunkVisible(Math.floor(x / CHUNK), Math.floor(z / CHUNK))
-  }
-
-  /** Reserved areas (to draw sea over them from outside). */
-  reserved(): InteriorBox[] {
-    return [...this.slots.keys()].map((id) => this.area(id))
   }
 
   save(): SavedInteriors {

@@ -63,6 +63,7 @@ export default definePlugin({
   id: 'weather',
   version: '0.1.0',
   description: 'Погода: ясно, облачно, дождь, снег',
+  optionalDependsOn: ['daily'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -138,6 +139,34 @@ export default definePlugin({
     api.events.on('session:started', () => (checkIn = 0))
 
     api.ui.slot('hud.topRight', () => <WeatherPill shown={shown} />, { order: 10 })
+
+    // A line for the morning note: the day's forecast, merging repeats ("утром и днём ясно").
+    try {
+      api.registry('daily:sections').register({
+        id: 'weather:today',
+        order: 10,
+        line: () => {
+          const now = api.time.now()
+          const parts: Array<[string, WeatherDef | undefined]> = [
+            ['утром', weatherAt(all(), api.world.seed, now.dayIndex, 8, now.season)],
+            ['днём', weatherAt(all(), api.world.seed, now.dayIndex, 13, now.season)],
+            ['вечером', weatherAt(all(), api.world.seed, now.dayIndex, 19, now.season)],
+          ]
+          const groups: Array<[string[], WeatherDef]> = []
+          for (const [when, w] of parts) {
+            if (!w) continue
+            const last = groups[groups.length - 1]
+            if (last && last[1].id === w.id) last[0].push(when)
+            else groups.push([[when], w])
+          }
+          if (!groups.length) return null
+          const text = groups.length === 1 ? `Весь день ${groups[0]![1].name.toLowerCase()}` : groups.map(([w, d]) => `${w.join(' и ')} ${d.name.toLowerCase()}`).join(', ')
+          return { icon: (current ?? groups[0]![1]).icon, text: text[0]!.toUpperCase() + text.slice(1) + '.' }
+        },
+      })
+    } catch {
+      // no daily notes
+    }
     api.commands.register({
       name: 'weather',
       description: 'Погода: weather (прогноз на сегодня) · weather <id> (зафиксировать) · weather auto',

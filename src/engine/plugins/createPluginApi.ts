@@ -205,7 +205,6 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
     },
     interiors: {
       area: (id) => game.interiors.area(id),
-      reserved: () => game.interiors.reserved(),
       get current() {
         return game.interiors.current
       },
@@ -216,8 +215,10 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
         game.moveActor(actor, at)
       },
       exit: (actor) => {
+        const id = game.interiors.current
         const back = game.interiors.exit()
         if (back) game.moveActor(actor, back)
+        if (id) game.restoreSea(game.interiors.area(id))
       },
     },
     save: {

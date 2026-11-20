@@ -109,7 +109,7 @@ export default definePlugin({
   version: '0.1.0',
   description: 'Коллекции: виды рыб, насекомых и окаменелостей, энциклопедия',
   dependsOn: ['items'],
-  optionalDependsOn: ['weather', 'tutorial'],
+  optionalDependsOn: ['weather', 'tutorial', 'daily'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -214,6 +214,27 @@ export default definePlugin({
     api.ui.window({ id: 'collection:book', title: 'Энциклопедия', component: () => <Book api={api} catalog={catalog} /> })
     const key = api.input.action('book', ['KeyB'])
     api.input.on(key, () => api.ui.toggle('collection:book'))
+
+    // Morning note: how many not-yet-found species can turn up today (any hour, any weather).
+    try {
+      api.registry('daily:sections').register({
+        id: 'collection:today',
+        order: 20,
+        line: () => {
+          const c = conditions()
+          const today = (kind: Kind) =>
+            all(kind).filter((s) => !caught.has(s.id) && Array.from({ length: 24 }, (_, h) => h).some((h) => isAvailable(s, { ...c, hour: h + 0.5, raining: s.weather === 'rain' })))
+              .length
+          const fish = today('fish')
+          const bugs = today('bug')
+          if (!fish && !bugs) return { icon: '📖', text: 'Всех, кто водится сегодня, вы уже нашли. Загляните в энциклопедию (B).' }
+          const parts = [fish && `рыб — ${fish}`, bugs && `насекомых — ${bugs}`].filter(Boolean)
+          return { icon: '🎣', text: `Сегодня можно встретить новых: ${parts.join(', ')}.` }
+        },
+      })
+    } catch {
+      // no daily notes
+    }
 
     // A step for the first-minutes tutorial, if it is installed.
     try {

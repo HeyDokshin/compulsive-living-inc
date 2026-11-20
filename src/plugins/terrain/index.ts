@@ -70,12 +70,11 @@ export default definePlugin({
     // Backdrop only — nothing is generated out there: a flat sea and sea bed drawn around the world.
     let sea: ReturnType<PluginApi['render']['blockSurface']>[] = []
     const buildSea = () => {
-      for (const m of [...sea, ...covers]) {
+      for (const m of sea) {
         m.removeFromParent()
         m.geometry.dispose()
       }
       sea = []
-      covers = []
       if (!cfg.seaBackdrop || !api.world.sizeX) return
       const sx = api.world.sizeX
       const sz = api.world.sizeZ
@@ -88,25 +87,14 @@ export default definePlugin({
       ]
       sea.push(api.render.blockSurface(cfg.blocks.sand, rings, seaBedY(cfg)))
       sea.push(api.render.blockSurface(cfg.blocks.water, rings, cfg.waterLevel - 0.125))
-      // Rooms (interiors) live in reserved corners of the world: from outside, the sea covers them.
-      const rooms: SurfaceRect[] = api.interiors.reserved().map((b) => [b.x, b.z, b.x + b.w, b.z + b.d, 1])
-      if (rooms.length) {
-        covers.push(api.render.blockSurface(cfg.blocks.sand, rooms, seaBedY(cfg)))
-        covers.push(api.render.blockSurface(cfg.blocks.water, rooms, cfg.waterLevel - 0.125))
-      }
       showSea()
     }
-    let covers: ReturnType<PluginApi['render']['blockSurface']>[] = []
-    // Inside a room only the room is drawn; outside, the sea (and the covers over rooms) come back.
+    // Inside a room only the room is drawn: no sea around it.
     const showSea = () => {
-      const outside = !api.interiors.current
-      for (const m of sea) m.visible = outside
-      for (const m of covers) m.visible = outside
+      for (const m of sea) m.visible = !api.interiors.current
     }
     api.events.on('world:generated', buildSea)
     api.events.on('interior:changed', showSea)
-    // Rooms are allocated as plugins build them (session start): redraw the covers then.
-    api.events.on('session:started', buildSea)
 
     let last: TerrainData | undefined
     api.registry('worldgen').register({

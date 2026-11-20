@@ -60,7 +60,7 @@ export default definePlugin({
   version: '0.1.0',
   description: 'Деревья с фруктами, камни, раскопки; рост по дням и сезоны',
   dependsOn: ['terrain', 'items'],
-  optionalDependsOn: ['tutorial'],
+  optionalDependsOn: ['tutorial', 'daily'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -416,6 +416,24 @@ export default definePlugin({
         api.fx.burst('core:sparkle', { x: ctx.x + 0.5, y: ctx.y + 1.3, z: ctx.z + 0.5 })
       },
     })
+
+    // Morning note: dig spots and ripe fruit.
+    try {
+      api.registry('daily:sections').register({
+        id: 'nature:today',
+        order: 30,
+        line: () => {
+          const spots = [...api.entities.world.with('digSpot')].length
+          const fruit = [...api.entities.world.with('tree')].filter((e) => e.tree.fruit > 0).length
+          if (!spots && !fruit) return null
+          const parts = [spots && `мест раскопок: ${spots}`, fruit && `деревьев с фруктами: ${fruit}`].filter(Boolean) as string[]
+          const text = parts.join(', ')
+          return { icon: '⛏', text: text[0]!.toUpperCase() + text.slice(1) + '.' }
+        },
+      })
+    } catch {
+      // no daily notes
+    }
 
     // A step for the first-minutes tutorial, if it is installed.
     try {

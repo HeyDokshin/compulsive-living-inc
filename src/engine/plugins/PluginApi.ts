@@ -213,10 +213,9 @@ export interface PluginApi {
   /** Put this plugin's own state into saves (entities and voxels are saved by the engine). */
   /** Rooms built in reserved corners of the world (one 16 × 16 chunk each, always open sea). */
   interiors: {
-    /** The area of a room: first cell and size. Build its voxels there with `world.setBlock`. */
+    /** The area of a room: first cell and size. Build its voxels there with `world.setBlock` when the
+     * player goes in (`interior:changed`); on the way out the engine turns it back into sea. */
     area(id: string): { x: number; z: number; w: number; d: number }
-    /** Areas of all rooms (to draw something over them from outside). */
-    reserved(): Array<{ x: number; z: number; w: number; d: number }>
     /** Room the player is in, or null outside. */
     readonly current: string | null
     /** Put the actor inside at `at`; remembers where it stood to come back. Only that room is drawn. */

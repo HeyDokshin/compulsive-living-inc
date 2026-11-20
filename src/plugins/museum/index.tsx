@@ -4,7 +4,8 @@
  * fossils fill their pedestals as you donate at the reception desk. Unknown fossils dug from dig
  * spots are identified there first. The hall itself is data (content/museum/museum.layouts.json5).
  */
-import { definePlugin, signal, ui, useState, z, type Entity, type PluginApi, type ReadonlySignal } from '@sdk'
+import { definePlugin, signal, z, type Entity, type ReadonlySignal } from '@sdk'
+import { Curator, type DialogueDef } from './curator'
 import { HALL_ID, HallConfig, setupHall } from './interior'
 
 declare module '@sdk' {
@@ -13,6 +14,9 @@ declare module '@sdk' {
   }
   interface Services {
     'museum:donations': Donations
+  }
+  interface Registries {
+    'museum:dialogue': DialogueDef
   }
 }
 
@@ -32,6 +36,9 @@ const Config = z.object({
   /** Item that is identified into a fossil species. */
   unknownFossil: z.string().default('nature:fossil'),
   hall: HallConfig,
+  /** Curator's text: seconds per character, and the pitch of her babble (Hz). */
+  typeSpeed: z.number().min(0.005).max(0.2).default(0.028).meta({ label: 'type speed (s)', step: 0.002 }),
+  voicePitch: z.number().min(80).max(1200).default(330).meta({ label: 'voice pitch', step: 10 }),
 })
 
 const HALLS = [
@@ -39,7 +46,6 @@ const HALLS = [
   { kind: 'bug', title: 'Насекомые', icon: '🦋' },
   { kind: 'fossil', title: 'Окаменелости', icon: '🦴' },
 ] as const
-type Kind = (typeof HALLS)[number]['kind']
 
 export default definePlugin({
   id: 'museum',
@@ -47,7 +53,7 @@ export default definePlugin({
   description: 'Музей: залы рыб, насекомых и окаменелостей, пожертвования, оценка окаменелостей',
   dependsOn: ['items', 'collection'],
   // load after the plugins that put things on a new island, so the museum can clear its plot
-  optionalDependsOn: ['nature', 'garden', 'terrain', 'tutorial'],
+  optionalDependsOn: ['nature', 'garden', 'terrain', 'tutorial', 'daily'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -137,7 +143,7 @@ export default definePlugin({
     }
     api.events.on('session:started', () => {
       if (!museumEntity()) place()
-      hall.build()
+      if (api.interiors.current === HALL_ID) hall.build() // a save made inside the hall
     })
 
     // --- donating ------------------------------------------------------------------------------
@@ -156,7 +162,6 @@ export default definePlugin({
       catalog().record(id)
       version.value++
       hall.refresh()
-      api.ui.toast(`Спасибо! «${s.name}» теперь в музее.`)
       jingle()
       celebrateAt()
       return true
@@ -171,11 +176,19 @@ export default definePlugin({
       if (!pick) return null
       inventory().add(actor, pick.id, 1, { quiet: true })
       catalog().record(pick.id)
-      api.ui.toast(`Это… ${pick.name}!${donated.has(pick.id) ? ' Такой у музея уже есть.' : ''}`)
       api.audio.play('ui:pop')
       return pick.id
     }
 
+    try {
+      api.registry('daily:sections').register({
+        id: 'museum:today',
+        order: 40,
+        line: () => (museumEntity() ? { icon: '🏛', text: `В музее ${donated.size} из ${catalog().all().length} экспонатов.` } : null),
+      })
+    } catch {
+      // no daily notes
+    }
     try {
       api.registry('tutorial:steps').register({
         id: 'museum:tutorial_visit',
@@ -202,10 +215,32 @@ export default definePlugin({
         api.interiors.enter(HALL_ID, ctx.actor, at)
       },
     })
+    // The curator: her lines are data; whether you've met is saved with the island.
+    api.createRegistry<DialogueDef>('museum:dialogue', z.looseObject({ id: z.string(), lines: z.array(z.string()).min(1) }) as never)
+    let met = false
+    api.save.register<{ met: boolean }>({ version: 1, save: () => ({ met }), load: (d) => void (met = d.met) }, 'curator')
     api.ui.window({
       id: 'museum:desk',
       title: 'Музей острова',
-      component: () => <Hall api={api} donated={donated} version={version} donate={donate} identify={identify} unknownFossil={cfg.unknownFossil} />,
+      backdrop: 'clear',
+      align: 'bottom', // like a conversation: the curator stays in view
+      component: () => (
+        <Curator
+          deps={{
+            api,
+            met: () => met,
+            meet: () => void (met = true),
+            donated: (id) => donated.has(id),
+            donatedCount: () => donated.size,
+            donate,
+            identify,
+            unknownFossil: cfg.unknownFossil,
+            setTalking: hall.setTalking,
+            typeSpeed: cfg.typeSpeed,
+            voicePitch: cfg.voicePitch,
+          }}
+        />
+      ),
     })
 
     api.commands.register({
@@ -243,89 +278,3 @@ export default definePlugin({
     })
   },
 })
-
-// --- UI ----------------------------------------------------------------------------------------
-
-function Hall(props: {
-  api: PluginApi
-  donated: Map<string, number>
-  version: ReadonlySignal<number>
-  donate: (actor: Entity, id: string) => boolean
-  identify: (actor: Entity) => string | null
-  unknownFossil: string
-}) {
-  const { api, donated } = props
-  props.version.value
-  const inv = api.services.get('items:inventory')
-  inv.version.value
-  const catalog = api.services.get('collection:catalog')
-  const [tab, setTab] = useState<Kind | 'donate'>('donate')
-  const actor = [...api.entities.world.with('player', 'transform')][0]
-
-  const tabs = (
-    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-      <ui.Button secondary={tab !== 'donate'} onClick={() => setTab('donate')}>
-        🎁 Подарить
-      </ui.Button>
-      {HALLS.map((h) => (
-        <ui.Button key={h.kind} secondary={tab !== h.kind} onClick={() => setTab(h.kind)}>
-          {h.icon} {h.title} {catalog.all(h.kind).filter((s) => donated.has(s.id)).length}/{catalog.all(h.kind).length}
-        </ui.Button>
-      ))}
-    </div>
-  )
-
-  if (tab !== 'donate') {
-    const list = catalog.all(tab)
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: 'min(560px, 86vw)' }}>
-        {tabs}
-        <ui.Grid columns={7}>
-          {list.map((s) =>
-            donated.has(s.id) ? (
-              <ui.ItemSlot key={s.id} icon={api.ui.itemIcon(s.id)} title={s.name} />
-            ) : (
-              <ui.ItemSlot key={s.id} title="Пустая витрина" />
-            ),
-          )}
-        </ui.Grid>
-        <div style={{ fontSize: '13px', color: 'var(--ui-text-soft)' }}>
-          {list.every((s) => donated.has(s.id)) ? 'Зал полностью собран — какая красота!' : 'Пустые витрины ждут новых экспонатов.'}
-        </div>
-      </div>
-    )
-  }
-
-  const pocket = actor ? (inv.of(actor)?.slots ?? []) : []
-  const candidates = [...new Set(pocket.filter((s) => s && catalog.get(s.id) && !donated.has(s.id)).map((s) => s!.id))]
-  const unknown = actor ? inv.count(actor, props.unknownFossil) : 0
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: 'min(560px, 86vw)' }}>
-      {tabs}
-      {unknown > 0 && actor && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <ui.ItemSlot icon={api.ui.itemIcon(props.unknownFossil)} count={unknown} />
-          <div style={{ flex: 1, fontSize: '13px' }}>Неизвестные окаменелости: {unknown}. Смотритель определит, что это.</div>
-          <ui.Button onClick={() => props.identify(actor)}>Оценить</ui.Button>
-        </div>
-      )}
-      {candidates.length ? (
-        <>
-          <ui.Grid columns={7}>
-            {candidates.map((id) => (
-              <ui.ItemSlot key={id} icon={api.ui.itemIcon(id)} title={`Подарить: ${catalog.get(id)?.name}`} onClick={() => actor && props.donate(actor, id)} />
-            ))}
-          </ui.Grid>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', fontSize: '13px', color: 'var(--ui-text-soft)' }}>
-            <span>Этого в музее ещё нет. Нажмите на экспонат, чтобы подарить.</span>
-            <ui.Button onClick={() => actor && candidates.forEach((id) => props.donate(actor, id))}>Подарить всё</ui.Button>
-          </div>
-        </>
-      ) : (
-        <div style={{ fontSize: '13px', color: 'var(--ui-text-soft)', minHeight: '48px' }}>
-          В карманах нет ничего нового для музея. Ловите рыбу и насекомых, копайте в местах с трещинками в земле.
-        </div>
-      )}
-    </div>
-  )
-}

@@ -120,6 +120,8 @@ export class SessionManager {
         }
       })
       for (const id of g.plugins.loadedIds()) g.events.emit('plugin:loaded', { id })
+      // Rooms nobody is in are open sea (older saves may still hold one).
+      for (const id of g.interiors.ids()) if (id !== g.interiors.current) g.restoreSea(g.interiors.area(id))
       g.panel.sync()
       g.camera.placed = false
       if (!g.camera.follow) g.camera.center()

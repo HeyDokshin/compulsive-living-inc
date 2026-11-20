@@ -25,7 +25,7 @@ export interface WindowDef {
   /** 'dim' (default) blurs the game behind; 'clear' keeps it visible (e.g. a character preview). */
   backdrop?: 'dim' | 'clear'
   /** Where the window sits (default center). */
-  align?: 'center' | 'left' | 'right'
+  align?: 'center' | 'left' | 'right' | 'bottom'
 }
 
 interface ToastEntry {

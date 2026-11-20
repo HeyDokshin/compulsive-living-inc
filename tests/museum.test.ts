@@ -26,7 +26,8 @@ describe('museum hall plan', () => {
       { x: 7, z: 15 },
       { x: 8, z: 15 },
     ])
-    expect(plan.desks.length).toBe(1)
+    expect(plan.desks.length).toBe(2)
+    expect(plan.curator).toEqual({ x: 8, z: 1.5 }) // behind the desk
     expect(plan.blocked.has('1,2')).toBe(true) // a fish tank
     expect(plan.blocked.has('7,14')).toBe(false) // where you appear
     expect(plan.slots.fish[0]).toEqual({ x: 1, z: 1 }) // reading order
@@ -54,12 +55,12 @@ describe('interiors', () => {
     expect(j.area('third')).toEqual({ x: 0, z: 112, w: 16, d: 16 })
   })
 
-  it('shows only the room inside and hides rooms outside', () => {
+  it('shows only the room inside, everything outside', () => {
     const i = make()
     const changes: Array<string | null> = []
     i.onChange = (id) => changes.push(id)
     i.area('museum')
-    expect(i.chunkVisible(0, 0)).toBe(false) // a room seen from outside
+    expect(i.chunkVisible(0, 0)).toBe(true) // outside, a room's corner is just sea
     expect(i.chunkVisible(3, 3)).toBe(true)
     i.enter('museum', { x: 60, y: 9, z: 61, rotY: 1 })
     expect(i.current).toBe('museum')

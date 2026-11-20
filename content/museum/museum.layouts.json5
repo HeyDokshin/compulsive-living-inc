@@ -5,7 +5,8 @@
 //   (walls on the side facing the camera are drawn low, like a dollhouse, and follow its turns)
 //   .  parquet            a / b / c  carpet (fish / bugs / fossils hall)
 //   F  fish tank          B  bug terrarium               O  fossil pedestal
-//   p  potted plant       L  lamp                        R  reception desk (donations)
+//   p  potted plant       L  lamp                        R  reception desk
+//   C  where the curator stands (behind the desk)
 //   S  where you appear   D  door: step on it to go out
 {
   entries: [
@@ -13,20 +14,20 @@
       id: 'museum:hall',
       rows: [
         '####ww####ww####',
-        '#FFp..L..LBBBBB#',
-        '#FaaaccccccbbbB#',
-        '#FaaaccccccbbbB#',
-        '#FaaaccccccbbbB#',
-        '#FaaacOOOOcbbbB#',
+        '#FFp..LCCLBBBBB#',
+        '#FaaaccRRccbbbB#',
         '#FaaaccccccbbbB#',
         '#FaaaccccccbbbB#',
         '#FaaacOOOOcbbbB#',
         '#FaaaccccccbbbB#',
         '#FaaaccccccbbbB#',
+        '#FaaacOOOOcbbbB#',
         '#FaaaccccccbbbB#',
         '#FaaaccccccbbbB#',
         '#FaaaccccccbbbB#',
-        '#.p...cSSc..R.p#',
+        '#FaaaccccccbbbB#',
+        '#FaaaccccccbbbB#',
+        '#.p...cSSc....p#',
         '#######DD#######',
       ],
     },

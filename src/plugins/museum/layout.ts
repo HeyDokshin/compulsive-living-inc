@@ -14,6 +14,8 @@ export interface HallPlan {
   spawn: { x: number; z: number }
   doors: Cell[]
   desks: Cell[]
+  /** Where the curator stands (center of the C cells), if anywhere. */
+  curator: { x: number; z: number } | null
   /** Decorations standing on the floor: p = plant, L = lamp. */
   decor: Array<Cell & { kind: 'plant' | 'lamp' }>
   /** Cells you can't walk into (slots, decor, desk, walls). */
@@ -23,7 +25,7 @@ export interface HallPlan {
 
 const SLOT: Record<string, keyof HallPlan['slots']> = { F: 'fish', B: 'bug', O: 'fossil' }
 export const WALLS = '#w='
-const SOLID = 'FBOpLR' + WALLS
+const SOLID = 'FBOpLRC' + WALLS
 
 export function parseHall(rows: readonly string[]): HallPlan {
   const depth = rows.length
@@ -36,11 +38,13 @@ export function parseHall(rows: readonly string[]): HallPlan {
     spawn: { x: width / 2, z: depth / 2 },
     doors: [],
     desks: [],
+    curator: null,
     decor: [],
     blocked: new Set(),
     at: (x, z) => rows[z]?.[x] ?? ' ',
   }
   const spawn: Cell[] = []
+  const curator: Cell[] = []
   rows.forEach((row, z) =>
     [...row].forEach((ch, x) => {
       const kind = SLOT[ch]
@@ -48,17 +52,21 @@ export function parseHall(rows: readonly string[]): HallPlan {
       if (ch === 'S') spawn.push({ x, z })
       if (ch === 'D') plan.doors.push({ x, z })
       if (ch === 'R') plan.desks.push({ x, z })
+      if (ch === 'C') curator.push({ x, z })
       if (ch === 'p' || ch === 'L') plan.decor.push({ x, z, kind: ch === 'p' ? 'plant' : 'lamp' })
       if (SOLID.includes(ch)) plan.blocked.add(`${x},${z}`)
     }),
   )
-  if (spawn.length) {
-    plan.spawn = {
-      x: spawn.reduce((s, c) => s + c.x + 0.5, 0) / spawn.length,
-      z: spawn.reduce((s, c) => s + c.z + 0.5, 0) / spawn.length,
-    }
-  }
+  if (spawn.length) plan.spawn = center(spawn)
+  if (curator.length) plan.curator = center(curator)
   return plan
+}
+
+function center(cells: Cell[]): { x: number; z: number } {
+  return {
+    x: cells.reduce((s, c) => s + c.x + 0.5, 0) / cells.length,
+    z: cells.reduce((s, c) => s + c.z + 0.5, 0) / cells.length,
+  }
 }
 
 /** Floor block under a layout character (`floors['.']` is the default). */
