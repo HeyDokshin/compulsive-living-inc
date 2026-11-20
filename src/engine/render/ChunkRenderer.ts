@@ -37,6 +37,8 @@ export class ChunkRenderer {
   /** Chunks meshed since start (debug stat). */
   meshedCount = 0
   private focus = { x: 0, z: 0 }
+  /** Which chunks are drawn (interiors hide the island and vice versa). Change → applyVisibility(). */
+  isVisible: (cx: number, cz: number) => boolean = () => true
 
   constructor(
     private world: VoxelWorld,
@@ -114,6 +116,16 @@ export class ChunkRenderer {
     }
   }
 
+  applyVisibility(): void {
+    for (const [ci, m] of this.meshes) {
+      const c = this.world.chunks[ci]
+      if (!c) continue
+      const v = this.isVisible(c.cx, c.cz)
+      if (m.opaque) m.opaque.visible = v
+      if (m.transparent) m.transparent.visible = v
+    }
+  }
+
   get pending(): number {
     return this.world.dirty.size + this.inFlight.size
   }
@@ -170,6 +182,7 @@ export class ChunkRenderer {
     geo.computeBoundingSphere()
     const mesh = new Mesh(geo, mat)
     mesh.position.set(cx * 16, 0, cz * 16)
+    mesh.visible = this.isVisible(cx, cz)
     mesh.castShadow = mat === this.opaqueMaterial
     mesh.receiveShadow = true
     mesh.matrixAutoUpdate = false

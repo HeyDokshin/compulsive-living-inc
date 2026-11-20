@@ -64,6 +64,8 @@ export class EntityRenderer {
   }
 
   private frame = 0
+  /** Is an entity at (x, z) drawn? (inside an interior only its room is) */
+  visibleAt: (x: number, z: number) => boolean = () => true
 
   render(ctx: TickContext): void {
     this.frame++
@@ -80,6 +82,9 @@ export class EntityRenderer {
       const p = this.prev.get(e) ?? t
       view.position.set(lerp(p.x, t.x, a), lerp(p.y, t.y, a), lerp(p.z, t.z, a))
       view.rotation.y = lerpAngle(p.rotY, t.rotY, a)
+      view.visible = this.visibleAt(t.x, t.z)
+      const blob = this.blobs.get(e)
+      if (blob) blob.visible = view.visible
       // Parts may load asynchronously; look for new meshes now and then, not every frame.
       if (e.silhouette && (this.frame + (e.uid ?? 0)) % 15 === 0) this.applySilhouette(view, e.silhouette)
       if (e.blobShadow) this.updateBlob(e, view)

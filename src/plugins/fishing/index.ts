@@ -6,6 +6,7 @@
  */
 import { definePlugin, z, type Entity, type PluginApi, type Services } from '@sdk'
 import { judgeReel, planBite, type BitePlan } from './bite'
+import { WaterFx } from './fx'
 
 const Config = z.object({
   maxFish: z.number().int().min(0).max(40).default(10).meta({ label: 'max shadows', step: 1 }),
@@ -28,6 +29,15 @@ const Config = z.object({
   gapMax: z.number().min(0.2).max(8).default(2.2).meta({ label: 'nibble gap max (s)', step: 0.1 }),
   /** Seconds after the bite during which reeling hooks the fish. */
   biteWindow: z.number().min(0.15).max(3).default(0.8).meta({ label: 'bite window (s)', step: 0.05 }),
+  /** Neighbouring cells of the same water a shadow needs (rivers are narrow, the sea is wide). */
+  inlandNeighbours: z.number().int().min(0).max(4).default(2).meta({ label: 'inland neighbours', step: 1 }),
+  seaNeighbours: z.number().int().min(0).max(4).default(3).meta({ label: 'sea neighbours', step: 1 }),
+  /** If no fish noticed the bobber after this many seconds, one may swim in from nearby (small ponds, river mouths). */
+  helpAfter: z.number().min(0).max(60).default(5).meta({ label: 'fish swims in after (s)', step: 0.5 }),
+  helpChance: z.number().min(0).max(1).default(0.85).meta({ label: 'swim-in chance', step: 0.05 }),
+  /** Seconds a new shadow takes to fade in. */
+  fadeIn: z.number().min(0.05).max(5).default(1.2).meta({ label: 'fade in (s)', step: 0.05 }),
+  shake: z.number().min(0).max(0.5).default(0.07).meta({ label: 'bite shake', step: 0.01 }),
   shadowOpacity: z.number().min(0).max(1).default(0.36).meta({ label: 'shadow opacity', step: 0.01 }),
   /** Shadow length for size 1 and 6 (blocks). */
   shadowMin: z.number().min(0.1).max(2).default(0.35).meta({ step: 0.05 }),
@@ -53,6 +63,9 @@ interface Fish {
   mesh: InstanceType<Three['Mesh']>
   /** Little dart forward on a nibble. */
   bump: number
+  /** Shadow length (blocks) and visibility 0…1 (fades in when it appears, out when it flees). */
+  len: number
+  fade: number
 }
 
 interface Cast {
@@ -73,6 +86,7 @@ interface Cast {
   bobber: Obj
   line: InstanceType<Three['Line']>
   dip: number
+  helped: boolean
 }
 
 export default definePlugin({
@@ -95,13 +109,13 @@ export default definePlugin({
       while (y + 1 < api.world.height && liquid(api.world.getBlock(x, y + 1, z))) y++
       return y
     }
-    /** Open water of a kind: the cell and at least 3 of its 4 neighbours hold that water (rivers are narrow). */
+    /** Open water of a kind: the cell and enough of its 4 neighbours hold that water. */
     const openWater = (x: number, z: number, kind: string) => {
       const w = water()
       if (w.kindAt(x, z) !== kind) return false
       let n = 0
       for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) if (w.kindAt(x + dx, z + dz) === kind) n++
-      return n >= 3
+      return n >= (kind === 'sea' ? cfg.seaNeighbours : cfg.inlandNeighbours)
     }
 
     // --- shadows -------------------------------------------------------------------------------
@@ -112,6 +126,9 @@ export default definePlugin({
     const fish: Fish[] = []
     // One tracked container: shadows, bobber and line come and go as its children.
     const group = api.render.add(new T.Group())
+    // indoors only the room is drawn
+    group.visible = !api.interiors.current
+    api.events.on('interior:changed', ({ id }) => void (group.visible = !id))
 
     const player = () => {
       for (const e of api.entities.world.with('player', 'transform')) return e
@@ -139,19 +156,32 @@ export default definePlugin({
       if (!kind) return
       const cells = byKind.get(kind)!
       const [x, z] = cells[Math.floor(Math.random() * cells.length)]!
-      {
-        const species = catalog().pick('fish', kind)
-        if (!species) return
-        const y = waterTop(x, z)
-        const len = cfg.shadowMin + ((species.size - 1) / 5) * (cfg.shadowMax - cfg.shadowMin)
-        const mesh = new T.Mesh(geo, mat)
-        group.add(mesh)
-        mesh.scale.set(len, 1, len * 0.48)
-        mesh.renderOrder = 2
-        const f: Fish = { species, kind, x: x + 0.5, z: z + 0.5, y: y + 0.66, heading: Math.random() * Math.PI * 2, tx: x + 0.5, tz: z + 0.5, rest: Math.random() * 2, state: 'swim', mesh, bump: 0 }
-        fish.push(f)
-        return
-      }
+      spawnAt(x, z, kind)
+    }
+    const spawnAt = (x: number, z: number, kind: string): Fish | null => {
+      const species = catalog().pick('fish', kind)
+      if (!species) return null
+      const y = waterTop(x, z)
+      const len = cfg.shadowMin + ((species.size - 1) / 5) * (cfg.shadowMax - cfg.shadowMin)
+      const mesh = new T.Mesh(geo, mat)
+      mesh.scale.setScalar(0.001)
+      mesh.renderOrder = 2
+      group.add(mesh)
+      const f: Fish = { species, kind, x: x + 0.5, z: z + 0.5, y: y + 0.66, heading: Math.random() * Math.PI * 2, tx: x + 0.5, tz: z + 0.5, rest: Math.random() * 2, state: 'swim', mesh, bump: 0, len, fade: 0 }
+      fish.push(f)
+      return f
+    }
+    /** A fish swims in towards a bobber in water too small for regular spawns. */
+    const spawnNear = (cx: number, cz: number, kind: string, maxR: number): Fish | null => {
+      const cells: Array<[number, number]> = []
+      const r = Math.ceil(maxR)
+      for (let dz = -r; dz <= r; dz++)
+        for (let dx = -r; dx <= r; dx++) {
+          const d = Math.hypot(dx, dz)
+          if (d >= 1.5 && d <= maxR && water().kindAt(Math.floor(cx) + dx, Math.floor(cz) + dz) === kind) cells.push([Math.floor(cx) + dx, Math.floor(cz) + dz])
+        }
+      const cell = cells[Math.floor(Math.random() * cells.length)]
+      return cell ? spawnAt(cell[0], cell[1], kind) : null
     }
     const removeFish = (f: Fish) => {
       f.mesh.removeFromParent()
@@ -193,6 +223,8 @@ export default definePlugin({
       return d - step
     }
 
+    const fx = new WaterFx(api, group)
+
     // --- casting -------------------------------------------------------------------------------
     let cast: Cast | null = null
     const lineGeo = new T.BufferGeometry()
@@ -205,6 +237,7 @@ export default definePlugin({
       if (!cast) return
       cast.bobber.removeFromParent()
       cast.line.removeFromParent()
+      fx.hideMark()
       if (cast.fish && cast.fish.state !== 'flee') cast.fish.state = 'swim'
       cast = null
     }
@@ -223,11 +256,11 @@ export default definePlugin({
       endCast()
       const t = actor.transform!
       // land the bobber one cell further out when that is still the same water
-      const fx = Math.round(Math.sin(t.rotY))
-      const fz = Math.round(Math.cos(t.rotY))
-      if (water().kindAt(cx + fx, cz + fz) === kind) {
-        cx += fx
-        cz += fz
+      const dirX = Math.round(Math.sin(t.rotY))
+      const dirZ = Math.round(Math.cos(t.rotY))
+      if (water().kindAt(cx + dirX, cz + dirZ) === kind) {
+        cx += dirX
+        cz += dirZ
       }
       const y = waterTop(cx, cz)
       if (y < 0) return false
@@ -254,7 +287,9 @@ export default definePlugin({
         bobber,
         line,
         dip: 0,
+        helped: false,
       }
+      fx.ripple(cx + 0.5, y + 0.9, cz + 0.5, 1.4)
       api.audio.play('fishing:cast', { at: { x: cx + 0.5, z: cz + 0.5 } })
       api.fx.burst('core:splash', { x: cx + 0.5, y: y + 0.85, z: cz + 0.5 }, { amount: 0.4, scale: 0.6 })
       return true
@@ -272,6 +307,8 @@ export default definePlugin({
           c.fish = null
           endCast()
           api.fx.burst('core:splash', at, { amount: 1.2 })
+          fx.ripple(at.x, at.y + 0.08, at.z, 2)
+          api.render.shake(cfg.shake * 0.6, 0.25)
           catalog().celebrate(c.actor, f.species.id, at)
           return true
         }
@@ -312,6 +349,7 @@ export default definePlugin({
       phase: 'render',
       run: ({ dt }) => {
         time += dt
+        fx.update(dt)
         const p = player()
         if (!p) return
         const px = p.transform.x
@@ -337,9 +375,14 @@ export default definePlugin({
             }
           } else if (f.state === 'flee') {
             swimTo(f, f.tx, f.tz, cfg.swimSpeed * 5, dt)
-            f.mesh.scale.multiplyScalar(1 - dt * 0.4)
-            if (f.mesh.scale.x < 0.08) removeFish(f)
+            f.fade -= dt * 0.8
+            if (f.fade <= 0) {
+              removeFish(f)
+              continue
+            }
           }
+          if (f.state !== 'flee' && f.fade < 1) f.fade = Math.min(1, f.fade + dt / cfg.fadeIn)
+          f.mesh.scale.set(f.len * f.fade, 1, f.len * 0.48 * f.fade)
           f.bump = Math.max(0, f.bump - dt * 3)
           const bx = Math.sin(f.heading) * f.bump * 0.18
           const bz = Math.cos(f.heading) * f.bump * 0.18
@@ -364,6 +407,10 @@ export default definePlugin({
             const d = Math.hypot(f.x - c.x, f.z - c.z)
             if (d < bestD) (best = f), (bestD = d)
           }
+          if (!best && !c.helped && c.t >= cfg.helpAfter) {
+            c.helped = true
+            if (Math.random() < cfg.helpChance) best = spawnNear(c.x, c.z, c.kind, cfg.noticeRadius)
+          }
           if (best) {
             best.state = 'approach'
             c.fish = best
@@ -372,7 +419,7 @@ export default definePlugin({
         const f = c.fish
         if (f && f.state === 'approach') {
           // stop with the nose at the bobber
-          const len = f.mesh.scale.x * 0.5
+          const len = f.len * 0.5
           const ang = Math.atan2(f.x - c.x, f.z - c.z)
           if (swimTo(f, c.x + Math.sin(ang) * len, c.z + Math.cos(ang) * len, cfg.approachSpeed, dt) < 0.04) {
             f.state = 'nibble'
@@ -388,6 +435,7 @@ export default definePlugin({
             c.nextNibble++
             c.dip = 0.35
             f.bump = 1
+            fx.ripple(c.x, c.y + 0.08, c.z, 0.9, 0.7)
             api.audio.play('fishing:plop', { at: { x: c.x, z: c.z } })
           }
           if (!c.bit && c.since >= c.plan.biteAt) {
@@ -396,6 +444,10 @@ export default definePlugin({
             f.bump = 1
             api.audio.play('fishing:bite', { at: { x: c.x, z: c.z } })
             api.fx.burst('core:splash', { x: c.x, y: c.y, z: c.z }, { amount: 0.8 })
+            fx.ripple(c.x, c.y + 0.08, c.z, 1.6, 0.8)
+            fx.ripple(c.x, c.y + 0.08, c.z, 2.4, 1.1, 0.15)
+            fx.showMark(c.x, c.y + 1.15, c.z)
+            api.render.shake(cfg.shake, 0.3)
           }
           if (c.bit && judgeReel(c.since, c.plan.biteAt, cfg.biteWindow) === 'late') {
             scare(f)

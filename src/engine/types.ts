@@ -162,6 +162,8 @@ export interface GameEvents {
   'time:day': { dayIndex: number; date: GameDate; catchUp: boolean }
   'time:season': { season: Season }
   'ui:opened': { id: string }
+  /** The player went into a room (id) or back outside (null). */
+  'interior:changed': { id: string | null }
   'ui:closed': { id: string }
   'save:loaded': { slot: string }
 }

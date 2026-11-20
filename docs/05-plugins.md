@@ -67,6 +67,8 @@ export default definePlugin({
 | `api.render.stylize(material, { sway, flowUv })` | дать своему материалу стиль игры: изгиб мира, покачивание, течение |
 | `api.render.blockSurface(blockId, rects, y)` | плоская поверхность с текстурой блока (так сделано море вокруг острова) |
 | компонент `blocker: { w, d, h }` / `api.world.blockerAt(x, z)` | персонажи обходят сущность; `w × d` клеток вокруг её центра (дерево 1×1, музей 5×5); взаимодействие находит её из любой клетки |
+| `api.interiors.area(id)` / `enter(id, actor, at)` / `exit(actor)` / `current` | помещения (музей, позже дома): комната 16 × 16 в зарезервированном углу мира; внутри рисуется только она; событие `interior:changed` — спрячьте свои уличные объекты |
+| `api.render.rigModel(id)` / `api.render.shake(amplitude, seconds)` | риг как объект three.js (части — дочерние группы по имени, их можно вращать) / лёгкая тряска камеры |
 | `api.onDispose(fn)` | своя очистка |
 
 **Всё, что зарегистрировано через `api`, удаляется автоматически**, когда плагин выгружается или перезагружается. Поэтому при сохранении файла плагин перезапускается вместе с зависимыми от него, а мир продолжает работать.
@@ -186,7 +188,8 @@ api.save.register({
 - **Виды** — реестр `collection:species` (`content/collection/collection.species.json5`): `kind` (fish · bug · fossil), `place` (fish: river · pond · sea; bugs: flowers · trees · air · ground · rocks · water · beach), `months` (1–12, северное полушарие), `hours` ([с, до), через полночь), `weather` (any · rain · dry), `rarity` 1–5, `size` (тень рыбы), `price`. Для каждого вида создаётся предмет с тем же id и тегом `#collection:fish` / `#collection:bugs` / `#collection:fossils`.
 - **Сервис `collection:catalog`**: `available(kind, place)` — кто водится сейчас, `pick(kind, place)` — взвешенный выбор, `celebrate(actor, id)` — отдать улов (карманы, энциклопедия, сообщение, мелодия, искры). Новая механика ловли — это плагин, который решает, *где и как* ловить, и вызывает `celebrate`.
 - **Сервис `terrain:water`**: `kindAt(x, z)` → `'sea' | 'river' | 'pond' | null`.
-- **Модели** видов генерирует `python3 tools/models/collection.py`, здание музея — `tools/models/museum.py`.
+- **Модели** видов генерирует `python3 tools/models/collection.py` (для крылатых насекомых ещё и риги: тело + два крыла), здание музея и мебель зала — `tools/models/museum.py`. У вида можно задать `glow` (свечение ночью) и `flap` (`flutter` / `buzz`).
+- **Зал музея** — реестр `museum:layouts` (`content/museum/museum.layouts.json5`): план 16 × 16 символами (`F` аквариум, `B` террариум, `O` пьедестал, `R` стойка, `S` вход, `D` дверь, `p`/`L` растение и лампа, `a`/`b`/`c` ковры). Экспонаты встают в слоты по порядку видов.
 - Команды: `now fish river` (кто клюёт сейчас), `catch collection:carp` / `catch fish` / `catch all`, `fish`, `bugs`, `museum` (`museum place` — найти место заново).
 
 ## Модели и персонажи

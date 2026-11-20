@@ -21,7 +21,9 @@ const Config = z.object({
   scareRadius: z.number().min(0.5).max(10).default(3.2).meta({ label: 'scare radius', step: 0.1 }),
   /** The net catches bugs this close to the swing point in front of the player. */
   netReach: z.number().min(0.3).max(3).default(1.05).meta({ label: 'net reach', step: 0.05 }),
-  scale: z.number().min(0.2).max(2).default(0.75).meta({ label: 'bug scale', step: 0.05 }),
+  scale: z.number().min(0.2).max(2).default(0.95).meta({ label: 'bug scale', step: 0.05 }),
+  /** Brightness of glowing bugs (fireflies, moths) at night. */
+  glow: z.number().min(0).max(2).default(1).meta({ step: 0.05 }),
   flySpeed: z.number().min(0.1).max(6).default(1.1).meta({ label: 'fly speed', step: 0.1 }),
   crawlSpeed: z.number().min(0.05).max(3).default(0.35).meta({ label: 'crawl speed', step: 0.05 }),
   /** Seconds a bug stays before it may leave (when the player isn't close). */
@@ -37,6 +39,9 @@ interface Bug {
   species: SpeciesDef
   place: Place
   obj: Obj
+  /** Wing parts of a rigged bug (flap), if any. */
+  wings: [Obj, Obj] | null
+  halo: InstanceType<Three['Sprite']> | null
   x: number
   y: number
   z: number
@@ -67,6 +72,16 @@ export default definePlugin({
     const catalog = () => api.services.get('collection:catalog')
     const blocks = api.registry('blocks')
     const group = api.render.add(new T.Group())
+    // indoors only the room is drawn
+    group.visible = !api.interiors.current
+    api.events.on('interior:changed', ({ id }) => void (group.visible = !id))
+    const haloTexture = new T.CanvasTexture(haloCanvas())
+    api.onDispose(() => haloTexture.dispose())
+    /** 0 by day, 1 at night (glowing bugs show then). */
+    const night = () => {
+      const h = api.time.hour
+      return Math.min(1, Math.max(0, (Math.abs(h - 12.5) - 5.5) / 1.5))
+    }
     const bugs: Bug[] = []
     const hosts = new Set<Entity>()
 
@@ -148,12 +163,23 @@ export default definePlugin({
         if (!species) continue
         const spot = findSpot(place, px, pz)
         if (!spot) continue
-        const obj = api.render.voxelModel(species.model)
+        const rigged = api.registry('rigs').has(species.model)
+        const obj = rigged ? api.render.rigModel(species.model) : api.render.voxelModel(species.model)
         group.add(obj)
+        const wingL = rigged ? obj.getObjectByName('wingL') : undefined
+        const wingR = rigged ? obj.getObjectByName('wingR') : undefined
+        let halo: Bug['halo'] = null
+        if (species.glow) {
+          halo = new T.Sprite(new T.SpriteMaterial({ map: haloTexture, color: species.glow.color, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: 0 }))
+          halo.scale.setScalar(species.glow.size)
+          group.add(halo)
+        }
         const b: Bug = {
           species,
           place,
           obj,
+          wings: wingL && wingR ? [wingL, wingR] : null,
+          halo,
           x: spot.x,
           y: spot.y,
           z: spot.z,
@@ -177,6 +203,10 @@ export default definePlugin({
 
     const remove = (b: Bug) => {
       b.obj.removeFromParent()
+      if (b.halo) {
+        b.halo.removeFromParent()
+        b.halo.material.dispose()
+      }
       if (b.host) hosts.delete(b.host)
       const i = bugs.indexOf(b)
       if (i >= 0) bugs.splice(i, 1)
@@ -366,13 +396,26 @@ export default definePlugin({
       return d - step
     }
 
-    const place = (b: Bug, s: number, flapping: boolean) => {
+    const place = (b: Bug, s: number, flying: boolean) => {
       const o = b.obj
       o.position.set(b.x, b.y, b.z)
       o.rotation.set(0, b.heading - Math.PI / 2, 0)
       if (b.place === 'trees' && !b.fleeing) o.rotation.z = 1.25 // clinging, head up the trunk
-      const flap = flapping ? 0.3 + 0.7 * Math.abs(Math.sin(b.t * 16)) : 1
-      o.scale.set(s, s, s * flap)
+      o.scale.setScalar(s)
+      if (b.wings) {
+        // flutter: big slow beats; buzz: a blur of small fast ones; at rest the wings open and close lazily
+        const buzz = b.species.flap === 'buzz'
+        const a = flying ? (buzz ? 0.35 + 0.35 * Math.sin(b.t * 70) : 0.15 + 0.85 * Math.abs(Math.sin(b.t * 13))) : buzz ? 0 : 0.35 + 0.3 * Math.sin(b.t * 1.7)
+        b.wings[0].rotation.x = a
+        b.wings[1].rotation.x = -a
+      }
+      if (b.halo) {
+        const g = b.species.glow!
+        const pulse = g.pulse ? 0.55 + 0.45 * Math.sin(b.t * 3.1) : 1
+        b.halo.position.set(b.x, b.y + 0.12, b.z)
+        b.halo.material.opacity = Math.min(1, cfg.glow * night() * pulse * (s / cfg.scale))
+        b.halo.visible = b.halo.material.opacity > 0.01
+      }
     }
 
     api.commands.register({
@@ -382,3 +425,17 @@ export default definePlugin({
     })
   },
 })
+
+/** A soft round light: white center fading out (tinted per species by the sprite color). */
+function haloCanvas(): HTMLCanvasElement {
+  const c = document.createElement('canvas')
+  c.width = c.height = 64
+  const g = c.getContext('2d')!
+  const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32)
+  grad.addColorStop(0, 'rgba(255,255,255,0.95)')
+  grad.addColorStop(0.25, 'rgba(255,255,255,0.45)')
+  grad.addColorStop(1, 'rgba(255,255,255,0)')
+  g.fillStyle = grad
+  g.fillRect(0, 0, 64, 64)
+  return c
+}

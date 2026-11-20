@@ -33,7 +33,7 @@ export function SettingsTab({ game }: { game: Game }) {
       onInput={(e) => set({ [key]: Number((e.target as HTMLInputElement).value) })}
     />
   )
-  const check = (key: 'muted' | 'showFps') => (
+  const check = (key: 'muted' | 'showFps' | 'cameraShake') => (
     <input
       type="checkbox"
       checked={s[key]}
@@ -61,6 +61,7 @@ export function SettingsTab({ game }: { game: Game }) {
       <Row label="Звуки интерфейса">{slider('ui')}</Row>
       <Row label="Без звука">{check('muted')}</Row>
       <Row label="Показывать FPS">{check('showFps')}</Row>
+      <Row label="Тряска камеры">{check('cameraShake')}</Row>
       <div style={{ color: 'var(--ui-text-soft)', fontSize: '12px', marginTop: '6px' }}>
         Настройки хранятся в этом браузере и не зависят от сохранений.
       </div>

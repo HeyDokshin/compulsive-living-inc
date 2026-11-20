@@ -16,9 +16,11 @@ export interface UserSettings {
   music: number
   muted: boolean
   showFps: boolean
+  /** Small camera shakes (a fish biting…). */
+  cameraShake: boolean
 }
 
-export const DEFAULT_SETTINGS: UserSettings = { quality: 'high', master: 0.8, sfx: 0.9, ui: 0.7, ambient: 0.6, music: 0.5, muted: false, showFps: false }
+export const DEFAULT_SETTINGS: UserSettings = { quality: 'high', master: 0.8, sfx: 0.9, ui: 0.7, ambient: 0.6, music: 0.5, muted: false, showFps: false, cameraShake: true }
 
 /** Engine config values per quality level (paths in config · engine). */
 export const QUALITY_PRESETS: Record<Quality, Record<string, number | boolean>> = {
@@ -80,6 +82,7 @@ export function applyUserSettings(game: Game, s = loadUserSettings()): void {
     game.config.set('engine', 'audio.music', s.music)
     game.config.set('engine', 'audio.muted', s.muted)
     game.config.set('engine', 'debug.showFps', s.showFps)
+    game.config.set('engine', 'camera.shake', s.cameraShake ? 1 : 0)
   } catch (e) {
     log.warn('could not apply settings:', e)
   }

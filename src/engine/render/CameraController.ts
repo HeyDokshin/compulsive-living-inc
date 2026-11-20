@@ -57,6 +57,15 @@ export class CameraController {
     this.placed = true
   }
 
+  /** Jump straight to the followed entity (after a teleport: no sweep across the map). */
+  snap(): void {
+    const fe = this.follow
+    if (!fe?.transform) return
+    this.iso.target.set(fe.transform.x, fe.transform.y + this.cfg.focusHeight, fe.transform.z)
+    this.last.set(fe.transform.x, fe.transform.y, fe.transform.z)
+    this.vel.set(0, 0, 0)
+  }
+
   update(ctx: TickContext): void {
     const { iso, cfg } = this
     const fe = this.follow

@@ -78,12 +78,16 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       camera: game.renderer.iso,
       stylize: (material, opts) => game.renderer.stylize(material, opts),
       voxelModel: (id, opts) => game.modelLibrary.createVoxel(id, opts),
+      rigModel: (id, opts) => game.modelLibrary.createRig(id, opts),
       refreshView: (e) => game.renderer.entityRenderer.refresh(e),
       modelInfo: async (id) => {
         const m = await game.modelLibrary.getModel(id)
         if (!m) return null
         const [sx, , sz] = m.model.size
         return { size: m.model.size, pivot: m.def.pivot ?? [sx / 2, 0, sz / 2], scale: m.def.scale }
+      },
+      shake: (amplitude, seconds) => {
+        if (game.engineConfig.camera.shake > 0) game.renderer.iso.shake(amplitude * game.engineConfig.camera.shake, seconds)
       },
       setZoom: (zoom) => {
         const c = game.engineConfig.camera
@@ -198,6 +202,23 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       label: (d, ctx) => game.interactions.label(d, ctx),
       held: (actor) => game.hooks.run('interaction:held', null, { actor }),
       at: (actor, x, z) => cellContext(game.world.voxels, game.entities, game.hooks, actor, x, z, (cx, cz) => game.blockers.at(cx, cz)),
+    },
+    interiors: {
+      area: (id) => game.interiors.area(id),
+      reserved: () => game.interiors.reserved(),
+      get current() {
+        return game.interiors.current
+      },
+      enter: (id, actor, at) => {
+        const t = actor.transform
+        if (!t) return
+        game.interiors.enter(id, { x: t.x, y: t.y, z: t.z, rotY: t.rotY })
+        game.moveActor(actor, at)
+      },
+      exit: (actor) => {
+        const back = game.interiors.exit()
+        if (back) game.moveActor(actor, back)
+      },
     },
     save: {
       register: (d: SaverDef, name?: string) => void track(game.sessions.saves.register(name ? `${owner}:${name}` : owner, d, owner)),

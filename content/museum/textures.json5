@@ -1,0 +1,14 @@
+// Museum interior textures (procedural, like the core ones).
+[
+  { id: 'museum:parquet', pattern: 'planks', colors: ['#d9a46c'], params: { boards: 4 }, seed: 41 },
+  { id: 'museum:wall', pattern: 'soft', colors: ['#f4e6cc', '#efdfc2', '#f8eedb'], params: { dots: 5, amount: 0.02 }, seed: 42 },
+  { id: 'museum:wall_top', pattern: 'soft', colors: ['#e8d6b6', '#e0cca9'], params: { dots: 4 }, seed: 43 },
+  { id: 'museum:wainscot', pattern: 'soft', colors: ['#c99a70', '#bf8f64', '#d2a57c'], params: { dots: 5 }, seed: 44 },
+  { id: 'museum:glass', pattern: 'soft', colors: ['#cdeef7', '#e6f8fc'], params: { dots: 3 }, seed: 45 },
+  { id: 'museum:carpet_fish', pattern: 'soft', colors: ['#9fcfe0', '#93c5d8', '#acd8e8'], params: { dots: 9 }, seed: 46 },
+  { id: 'museum:carpet_bugs', pattern: 'soft', colors: ['#b5d995', '#a9cf88', '#c1e2a3'], params: { dots: 9 }, seed: 47 },
+  { id: 'museum:carpet_fossils', pattern: 'soft', colors: ['#ead3a2', '#e1c894', '#f1ddb2'], params: { dots: 9 }, seed: 48 },
+  { id: 'museum:pedestal', pattern: 'stone', colors: ['#efe8dc', '#e2d9ca', '#f7f2e9'], seed: 49 },
+  { id: 'museum:desk', pattern: 'planks', colors: ['#b07a50'], params: { boards: 3 }, seed: 50 },
+  { id: 'museum:mat', pattern: 'soft', colors: ['#c8795a', '#b8694a', '#d68a6a'], params: { dots: 7 }, seed: 51 },
+]

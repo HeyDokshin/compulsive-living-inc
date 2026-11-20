@@ -8,6 +8,8 @@
 //   weather  any | rain | dry
 //   rarity   1 (common) … 5 (very rare) — spawn weight comes from the collection config
 //   size     fish shadow size 1…6
+//   glow     bugs: { color, size, pulse } — a soft light after dark
+//   flap     winged bugs: flutter (butterflies) | buzz (bees, dragonflies)
 {
   entries: [
     // --- fish ---------------------------------------------------------------------------------
@@ -29,13 +31,13 @@
     // --- bugs ---------------------------------------------------------------------------------
     { id: 'collection:cabbage_white', kind: 'bug', name: 'Капустница', description: 'Белая бабочка — первая весенняя гостья.', price: 160, place: ['flowers'], rarity: 1, months: [3, 4, 5, 6, 9, 10], hours: [4, 19] },
     { id: 'collection:peacock_eye', kind: 'bug', name: 'Павлиний глаз', description: 'На крыльях — яркие «глаза», чтобы пугать птиц.', price: 2500, place: ['flowers'], rarity: 4, months: [3, 4, 5, 6], hours: [4, 19] },
-    { id: 'collection:bumblebee', kind: 'bug', name: 'Шмель', description: 'Пушистый и деловитый, жужжит над цветами.', price: 400, place: ['flowers'], rarity: 2, months: [3, 4, 5, 6, 7, 8, 9, 10, 11], hours: [8, 17] },
+    { id: 'collection:bumblebee', kind: 'bug', name: 'Шмель', description: 'Пушистый и деловитый, жужжит над цветами.', price: 400, place: ['flowers'], rarity: 2, months: [3, 4, 5, 6, 7, 8, 9, 10, 11], hours: [8, 17], flap: 'buzz' },
     { id: 'collection:ladybug', kind: 'bug', name: 'Божья коровка', description: 'Красная в чёрный горошек, приносит хорошую погоду.', price: 200, place: ['flowers'], rarity: 1, months: [3, 4, 5, 6, 10, 11], hours: [8, 17] },
-    { id: 'collection:dragonfly', kind: 'bug', name: 'Стрекоза', description: 'Носится над водой и травой на прозрачных крыльях.', price: 500, place: ['air'], rarity: 2, months: [4, 5, 6, 7, 8, 9, 10], hours: [8, 19] },
-    { id: 'collection:red_dragonfly', kind: 'bug', name: 'Красная стрекоза', description: 'Осенняя стрекоза цвета рябины.', price: 180, place: ['air'], rarity: 1, months: [9, 10, 11], hours: [8, 19] },
-    { id: 'collection:firefly', kind: 'bug', name: 'Светлячок', description: 'Летними ночами светится, как маленький фонарик.', price: 600, place: ['air'], rarity: 3, months: [6, 7], hours: [19, 4] },
-    { id: 'collection:moth', kind: 'bug', name: 'Мотылёк', description: 'Ночной гость, летит на свет.', price: 130, place: ['air'], rarity: 1, months: [3, 4, 5, 6, 7, 8, 9, 10], hours: [19, 4] },
-    { id: 'collection:winter_moth', kind: 'bug', name: 'Зимняя пяденица', description: 'Бледная бабочка, которая не боится холода.', price: 300, place: ['air'], rarity: 2, months: [11, 12, 1, 2], hours: [16, 24] },
+    { id: 'collection:dragonfly', kind: 'bug', name: 'Стрекоза', description: 'Носится над водой и травой на прозрачных крыльях.', price: 500, place: ['air'], rarity: 2, months: [4, 5, 6, 7, 8, 9, 10], hours: [8, 19], flap: 'buzz' },
+    { id: 'collection:red_dragonfly', kind: 'bug', name: 'Красная стрекоза', description: 'Осенняя стрекоза цвета рябины.', price: 180, place: ['air'], rarity: 1, months: [9, 10, 11], hours: [8, 19], flap: 'buzz' },
+    { id: 'collection:firefly', kind: 'bug', name: 'Светлячок', description: 'Летними ночами светится, как маленький фонарик.', price: 600, place: ['air'], rarity: 3, months: [6, 7], hours: [19, 4], glow: { color: '#eaff6a', size: 1.2, pulse: true } },
+    { id: 'collection:moth', kind: 'bug', name: 'Мотылёк', description: 'Ночной гость, летит на свет.', price: 130, place: ['air'], rarity: 1, months: [3, 4, 5, 6, 7, 8, 9, 10], hours: [19, 4], glow: { color: '#fff1c8', size: 0.8 } },
+    { id: 'collection:winter_moth', kind: 'bug', name: 'Зимняя пяденица', description: 'Бледная бабочка, которая не боится холода.', price: 300, place: ['air'], rarity: 2, months: [11, 12, 1, 2], hours: [16, 24], glow: { color: '#f1ecff', size: 0.8 } },
     { id: 'collection:cicada', kind: 'bug', name: 'Цикада', description: 'Её песня — это и есть звук лета.', price: 300, place: ['trees'], rarity: 2, months: [7, 8], hours: [8, 17] },
     { id: 'collection:rhino_beetle', kind: 'bug', name: 'Жук-носорог', description: 'Силач с рогом. Сидит на деревьях по ночам.', price: 3000, place: ['trees'], rarity: 4, months: [7, 8], hours: [23, 8] },
     { id: 'collection:grasshopper', kind: 'bug', name: 'Кузнечик', description: 'Прыгает так далеко, что за ним не угнаться.', price: 160, place: ['ground'], rarity: 1, months: [7, 8, 9], hours: [8, 17] },

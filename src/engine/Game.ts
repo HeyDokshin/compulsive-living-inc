@@ -43,6 +43,7 @@ import { createLogger } from './util/log'
 import { TimeService, type SavedTime } from './time/TimeService'
 import { Clock } from './time/Clock'
 import { Blockers } from './world/Blockers'
+import { Interiors, type Place, type SavedInteriors } from './world/Interiors'
 import { isPlainObject } from './util/objects'
 
 export type GamePlugin = PluginDefinition<PluginApi>
@@ -103,6 +104,7 @@ export class Game {
   readonly sessions: SessionManager
   readonly time: TimeService
   readonly blockers: Blockers
+  readonly interiors: Interiors
   readonly plugins: PluginManager<PluginApi>
   readonly panel: DebugPanel
   readonly devConsole: DevConsole
@@ -147,6 +149,7 @@ export class Game {
       'engine',
     )
     this.renderer.adjustLight = (state, hour) => this.hooks.run('light:adjust', state, { hour })
+    this.interiors = this.createInteriors()
     this.panel = new DebugPanel(this.config)
     this.devConsole = new DevConsole(this.commands)
     this.plugins = new PluginManager((def) => createPluginScope(this, def))
@@ -159,6 +162,43 @@ export class Game {
     this.wireEvents()
     this.installEngineSystems()
     this.applyEngineConfig()
+  }
+
+  /** Rooms in reserved world corners: what is drawn, light inside, and the saved state. */
+  private createInteriors(): Interiors {
+    const interiors = new Interiors(() => ({ x: this.worldConfig.chunksX, z: this.worldConfig.chunksZ }))
+    interiors.onChange = (id) => {
+      this.renderer.chunks.applyVisibility()
+      this.events.emit('interior:changed', { id })
+    }
+    this.renderer.chunks.isVisible = (cx, cz) => interiors.chunkVisible(cx, cz)
+    this.renderer.entityRenderer.visibleAt = (x, z) => interiors.pointVisible(x, z)
+    this.hooks.tap(
+      'light:adjust',
+      (st) => {
+        if (!interiors.current) return st
+        const c = this.engineConfig.interior
+        st.background.set(c.background)
+        st.ambient = Math.max(st.ambient, c.minAmbient)
+        st.sunIntensity *= c.sun
+        return st
+      },
+      { priority: 1000 }, // after weather and other tweaks: inside, the sky doesn't matter
+    )
+    this.sessions.saves.register(
+      'engine:interiors',
+      { version: 1, save: () => interiors.save(), load: (d) => interiors.load(d as SavedInteriors) },
+      'engine',
+    )
+    return interiors
+  }
+
+  /** Move an actor into a room (or back out): teleport, snap the camera, no interpolation sweep. */
+  moveActor(actor: { transform?: Place }, to: Place): void {
+    if (!actor.transform) return
+    Object.assign(actor.transform, to)
+    this.renderer.entityRenderer.snapshot()
+    this.camera.snap()
   }
 
   async boot(opts: BootOptions): Promise<void> {

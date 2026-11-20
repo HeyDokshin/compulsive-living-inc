@@ -22,6 +22,10 @@ export interface SpeciesDef extends RegistryEntry {
   weather: 'any' | 'rain' | 'dry'
   rarity: number
   size: number
+  /** Bugs: a soft light around it after dark (fireflies, moths). */
+  glow?: { color: string; size: number; pulse: boolean }
+  /** Winged bugs (with a rig): 'flutter' — big slow beats (butterflies), 'buzz' — small fast ones. */
+  flap: 'flutter' | 'buzz'
 }
 
 export interface Catalog {
@@ -71,6 +75,8 @@ const SpeciesSchema = z
     weather: z.enum(['any', 'rain', 'dry']).default('any'),
     rarity: z.number().int().min(1).max(5).default(1),
     size: z.number().int().min(1).max(6).default(2),
+    glow: z.object({ color: z.string(), size: z.number().min(0.1).max(4).default(1), pulse: z.boolean().default(false) }).optional(),
+    flap: z.enum(['flutter', 'buzz']).default('flutter'),
   })
   .transform((s) => ({ ...s, model: s.model ?? s.id }))
 

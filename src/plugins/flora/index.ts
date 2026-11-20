@@ -75,6 +75,7 @@ export default definePlugin({
 
     const view = new FloraView(api, cfg)
     api.events.on('world:generated', () => view.build(tufts, flowers))
+    api.events.on('interior:changed', ({ id }) => view.setVisible(!id))
     // Plants are generated with the island; saves keep them (so dug/removed ones stay gone).
     api.save.register<{ tufts: Plant[]; flowers: Plant[] }>({
       version: 1,
@@ -151,8 +152,13 @@ class FloraView {
     mesh.receiveShadow = true
     mesh.castShadow = false
     mesh.frustumCulled = false
+    mesh.visible = !this.api.interiors.current // island decoration: hidden indoors
     this.api.render.add(mesh)
     this.meshes.push(mesh)
+  }
+
+  setVisible(v: boolean): void {
+    for (const m of this.meshes) m.visible = v
   }
 
   private clear(): void {

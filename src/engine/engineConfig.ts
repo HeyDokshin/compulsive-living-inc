@@ -9,9 +9,21 @@ export const EngineConfigSchema = z.object({
       timeScale: z.number().min(0).max(8).default(1).meta({ step: 0.05 }),
     })
     .prefault({}),
+  /** Rooms (museum, houses): how they look while the player is inside. */
+  interior: z
+    .object({
+      background: z.string().default('#2e2630').meta({ color: true }),
+      /** Ambient light inside never drops below this (rooms stay readable at night). */
+      minAmbient: z.number().min(0).max(3).default(0.95).meta({ label: 'min ambient', step: 0.05 }),
+      /** Sun inside, as a share of outside (walls and roof keep most of it out). */
+      sun: z.number().min(0).max(2).default(0.55).meta({ step: 0.05 }),
+    })
+    .prefault({}),
   camera: z
     .object({
       pitch: z.number().min(10).max(89).default(44).meta({ label: 'pitch°', step: 0.5 }),
+      /** Strength of camera shakes (bites, thuds); 0 turns them off. */
+      shake: z.number().min(0).max(2).default(1).meta({ step: 0.05 }),
       viewSize: z.number().min(4).max(200).default(24).meta({ label: 'view size (blocks)', step: 1 }),
       zoom: z.number().min(0.1).max(8).default(4).meta({ step: 0.05 }),
       minZoom: z.number().min(0.05).max(10).default(0.2).meta({ step: 0.05 }),

@@ -55,6 +55,20 @@ export class IsoCamera {
     this.aspect = width / Math.max(1, height)
   }
 
+  private shakeAmp = 0
+  private shakeLeft = 0
+  private shakeFor = 0
+  private shakeTime = 0
+  private look = new Vector3()
+
+  /** A short camera shake (blocks of amplitude, fading out over `seconds`). */
+  shake(amplitude: number, seconds: number): void {
+    const now = this.shakeLeft > 0 ? this.shakeAmp * (this.shakeLeft / this.shakeFor) : 0
+    if (seconds <= 0 || amplitude < now) return
+    this.shakeAmp = amplitude
+    this.shakeLeft = this.shakeFor = seconds
+  }
+
   update(dt: number): void {
     const c = this.cfg
     const k = 1 - Math.exp(-c.rotateSmoothing * dt)
@@ -72,11 +86,20 @@ export class IsoCamera {
     const yaw = MathUtils.degToRad(this.yaw)
     const pitch = MathUtils.degToRad(c.pitch)
     const dist = 200
+    this.look.copy(this.target)
+    if (this.shakeLeft > 0) {
+      this.shakeLeft = Math.max(0, this.shakeLeft - dt)
+      this.shakeTime += dt
+      const a = this.shakeAmp * (this.shakeLeft / this.shakeFor)
+      this.look.x += Math.sin(this.shakeTime * 61) * a
+      this.look.y += Math.sin(this.shakeTime * 47 + 1.3) * a * 0.6
+      this.look.z += Math.cos(this.shakeTime * 53) * a
+    }
     this.camera.position.set(
-      this.target.x + dist * Math.cos(pitch) * Math.sin(yaw),
-      this.target.y + dist * Math.sin(pitch),
-      this.target.z + dist * Math.cos(pitch) * Math.cos(yaw),
+      this.look.x + dist * Math.cos(pitch) * Math.sin(yaw),
+      this.look.y + dist * Math.sin(pitch),
+      this.look.z + dist * Math.cos(pitch) * Math.cos(yaw),
     )
-    this.camera.lookAt(this.target)
+    this.camera.lookAt(this.look)
   }
 }

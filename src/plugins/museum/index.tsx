@@ -1,9 +1,11 @@
 /**
  * The island museum: a building (5 × 5 cells) placed on flat grass near the middle of a new island.
- * Walk up to it and press the action key: three halls (fish, bugs, fossils) fill up with what you
- * donate. Unknown fossils dug from dig spots are identified here first.
+ * Step inside (action key at the building) to walk around the hall: fish tanks, terrariums and
+ * fossils fill their pedestals as you donate at the reception desk. Unknown fossils dug from dig
+ * spots are identified there first. The hall itself is data (content/museum/museum.layouts.json5).
  */
 import { definePlugin, signal, ui, useState, z, type Entity, type PluginApi, type ReadonlySignal } from '@sdk'
+import { HALL_ID, HallConfig, setupHall } from './interior'
 
 declare module '@sdk' {
   interface Components {
@@ -29,6 +31,7 @@ const Config = z.object({
   newFossilChance: z.number().min(0).max(1).default(0.7).meta({ label: 'new fossil chance', step: 0.05 }),
   /** Item that is identified into a fossil species. */
   unknownFossil: z.string().default('nature:fossil'),
+  hall: HallConfig,
 })
 
 const HALLS = [
@@ -55,6 +58,7 @@ export default definePlugin({
     const version = signal(0)
 
     api.services.provide('museum:donations', { has: (id) => donated.has(id), version })
+    const hall = setupHall(api, cfg.hall, { donated: (id) => donated.has(id), onDesk: () => void api.ui.open('museum:desk') })
     api.save.register<Record<string, number>>({
       version: 1,
       save: () => Object.fromEntries(donated),
@@ -62,6 +66,7 @@ export default definePlugin({
         donated.clear()
         for (const [id, day] of Object.entries(data)) donated.set(id, day)
         version.value++
+        hall.refresh()
       },
     })
 
@@ -132,6 +137,7 @@ export default definePlugin({
     }
     api.events.on('session:started', () => {
       if (!museumEntity()) place()
+      hall.build()
     })
 
     // --- donating ------------------------------------------------------------------------------
@@ -149,6 +155,7 @@ export default definePlugin({
       donated.set(id, api.time.dayIndex)
       catalog().record(id)
       version.value++
+      hall.refresh()
       api.ui.toast(`Спасибо! «${s.name}» теперь в музее.`)
       jingle()
       celebrateAt()
@@ -173,10 +180,10 @@ export default definePlugin({
       api.registry('tutorial:steps').register({
         id: 'museum:tutorial_visit',
         order: 80,
-        text: 'Загляните в музей в центре острова и подарите ему находку.',
+        text: 'Загляните в музей в центре острова: находки дарят у стойки.',
         keys: ['Space'],
-        event: 'ui:opened',
-        when: (p: { id: string }) => p.id === 'museum:hall',
+        event: 'interior:changed',
+        when: (p: { id: string | null }) => p.id === HALL_ID,
       })
     } catch {
       // no tutorial plugin
@@ -189,20 +196,40 @@ export default definePlugin({
       label: 'Зайти в музей',
       anim: 'none',
       sound: 'ui:open',
-      run: () => void api.ui.open('museum:hall'),
+      run: (ctx) => {
+        const at = hall.entrance()
+        if (!at) return false
+        api.interiors.enter(HALL_ID, ctx.actor, at)
+      },
     })
     api.ui.window({
-      id: 'museum:hall',
+      id: 'museum:desk',
       title: 'Музей острова',
       component: () => <Hall api={api} donated={donated} version={version} donate={donate} identify={identify} unknownFossil={cfg.unknownFossil} />,
     })
 
     api.commands.register({
       name: 'museum',
-      description: 'Музей: museum (что подарено) · museum here (перенести к игроку) · museum place (заново найти место)',
-      usage: '[here | place]',
+      description: 'Музей: museum (что подарено) · museum place (заново найти место) · museum in / out (зайти, выйти) · museum all (подарить всё)',
+      usage: '[place | in | out | all]',
       run: ([what]) => {
-        if (what === 'place' || what === 'here') {
+        const pl = [...api.entities.world.with('player', 'transform')][0]
+        if (what === 'in' && pl) {
+          const at = hall.entrance()
+          if (at) api.interiors.enter(HALL_ID, pl, at)
+          return 'внутри'
+        }
+        if (what === 'out' && pl) {
+          api.interiors.exit(pl)
+          return 'снаружи'
+        }
+        if (what === 'all') {
+          for (const s of catalog().all()) donated.set(s.id, api.time.dayIndex)
+          version.value++
+          hall.refresh()
+          return `подарено: ${donated.size}`
+        }
+        if (what === 'place') {
           const old = museumEntity()
           if (old) api.entities.despawn(old)
           const e = place()

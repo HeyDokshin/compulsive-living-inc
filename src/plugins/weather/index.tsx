@@ -129,7 +129,9 @@ export default definePlugin({
         // fade the old precipitation out and the new one in
         const rain = (kind(current) === 'rain' ? mix : 0) + (kind(previous) === 'rain' ? 1 - mix : 0)
         const snow = (kind(current) === 'snow' ? mix : 0) + (kind(previous) === 'snow' ? 1 - mix : 0)
-        fx.update(dt, rain, snow)
+        // nothing falls indoors
+        const out = api.interiors.current ? 0 : 1
+        fx.update(dt, rain * out, snow * out)
       },
     })
     api.config.onChange(() => (checkIn = 0))

@@ -1,0 +1,34 @@
+// The museum hall, top view, one character per cell (16 × 16, the back wall at the top, the door at
+// the bottom). Exhibits fill their slots in reading order, in the order species are listed.
+//
+//   #  wall               w  wall with a window          =  always-low wall
+//   (walls on the side facing the camera are drawn low, like a dollhouse, and follow its turns)
+//   .  parquet            a / b / c  carpet (fish / bugs / fossils hall)
+//   F  fish tank          B  bug terrarium               O  fossil pedestal
+//   p  potted plant       L  lamp                        R  reception desk (donations)
+//   S  where you appear   D  door: step on it to go out
+{
+  entries: [
+    {
+      id: 'museum:hall',
+      rows: [
+        '####ww####ww####',
+        '#FFp..L..LBBBBB#',
+        '#FaaaccccccbbbB#',
+        '#FaaaccccccbbbB#',
+        '#FaaaccccccbbbB#',
+        '#FaaacOOOOcbbbB#',
+        '#FaaaccccccbbbB#',
+        '#FaaaccccccbbbB#',
+        '#FaaacOOOOcbbbB#',
+        '#FaaaccccccbbbB#',
+        '#FaaaccccccbbbB#',
+        '#FaaaccccccbbbB#',
+        '#FaaaccccccbbbB#',
+        '#FaaaccccccbbbB#',
+        '#.p...cSSc..R.p#',
+        '#######DD#######',
+      ],
+    },
+  ],
+}

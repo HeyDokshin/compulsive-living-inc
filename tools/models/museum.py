@@ -167,3 +167,127 @@ with open(OUT, 'w') as f:
         f.write('      [' + ', '.join(f"'{r}'" for r in layer) + '],\n')
     f.write('    ],\n  },\n]\n')
 print(f'museum: {SX}×{len(layers)}×{SZ}, {len(v)} voxels → {os.path.relpath(OUT, ROOT)}')
+
+
+# ---------------------------------------------------------------------------------------------
+# Props for the interior (1/16 scale, one block wide): display tank and terrarium frames, placard,
+# lamp, potted plant, bell on the reception desk. Written to content/museum/props.json5.
+
+def grid_layers(cells, sx, sy, sz):
+    out = []
+    for y in range(sy):
+        out.append([''.join(cells.get((x, y, z), '.') for x in range(sx)) for z in range(sz)])
+    return out
+
+
+def frame(size=14, height=12, base='b', post='p', rim='p', floor=None, extra=None):
+    c = {}
+    for x in range(size):
+        for z in range(size):
+            c[(x, 0, z)] = base
+            if floor and 0 < x < size - 1 and 0 < z < size - 1:
+                c[(x, 1, z)] = floor(x, z)
+            edge = x in (0, size - 1) or z in (0, size - 1)
+            if edge:
+                c[(x, height - 1, z)] = rim
+    for x in (0, size - 1):
+        for z in (0, size - 1):
+            for y in range(1, height):
+                c[(x, y, z)] = post
+    if extra:
+        extra(c)
+    return grid_layers(c, size, height, size)
+
+
+props = []
+
+def prop(pid, layers, palette):
+    props.append({'id': pid, 'scale': 0.0625, 'palette': palette, 'layers': layers})
+
+
+# fish tank: wooden base, sand and pebbles, posts and rim (the water is a see-through box drawn by the plugin)
+prop('museum:tank', frame(floor=lambda x, z: 'g' if (x * 7 + z * 3) % 11 == 0 else 's'),
+     {'b': '#9a6a48', 'p': '#c8956a', 's': '#f3e2b8', 'g': '#8fbf6a'})
+
+# terrarium: base with grass, a twig
+def twig(c):
+    for i in range(7):
+        c[(4 + i // 2, 2 + i, 6)] = 't'
+    c[(7, 7, 6)] = 'l'
+    c[(8, 8, 6)] = 'l'
+    c[(6, 5, 7)] = 'l'
+prop('museum:terrarium', frame(floor=lambda x, z: 'h' if (x + z) % 3 else 'H', extra=twig),
+     {'b': '#9a6a48', 'p': '#d9c3a0', 'h': '#9bd67a', 'H': '#7cc45e', 't': '#8a5a3a', 'l': '#7cc45e'})
+
+# placard on a little stand (an empty spot)
+pl = {}
+for y in range(0, 4):
+    pl[(5, y, 5)] = 'p'
+for x in range(2, 9):
+    for y in range(4, 8):
+        pl[(x, y, 5)] = 'w' if 2 < x < 8 and 4 < y < 7 else 'f'
+pl[(4, 6, 6)] = 'k'
+pl[(5, 6, 6)] = 'k'
+pl[(6, 5, 6)] = 'k'
+prop('museum:placard', grid_layers(pl, 11, 8, 11), {'p': '#9a6a48', 'f': '#c8956a', 'w': '#fff8e8', 'k': '#b8a890'})
+
+# lamp post
+lp = {}
+for y in range(0, 22):
+    lp[(3, y, 3)] = 'd' if y > 1 else 'b'
+for x in range(1, 6):
+    for z in range(1, 6):
+        lp[(x, 0, z)] = 'b'
+        if 1 < x < 5 and 1 < z < 5:
+            lp[(x, 22, z)] = 'l'
+            lp[(x, 23, z)] = 'l'
+            lp[(x, 24, z)] = 'd'
+prop('museum:lamp', grid_layers(lp, 7, 25, 7), {'b': '#6e4630', 'd': '#8f5e3c', 'l': '#ffe9a8'})
+
+# potted plant
+pp = {}
+for x in range(3, 9):
+    for z in range(3, 9):
+        for y in range(0, 4):
+            if x in (3, 8) or z in (3, 8) or y == 0:
+                pp[(x, y, z)] = 'c'
+            else:
+                pp[(x, y, z)] = 'e'
+import random
+rnd = random.Random(7)
+for y in range(4, 13):
+    r = 3.2 - abs(y - 8) * 0.45
+    for x in range(12):
+        for z in range(12):
+            if (x - 5.5) ** 2 + (z - 5.5) ** 2 <= r * r and rnd.random() < 0.85:
+                pp[(x, y, z)] = 'l' if rnd.random() < 0.7 else 'L'
+prop('museum:plant', grid_layers(pp, 12, 13, 12), {'c': '#e08a5a', 'e': '#7a5232', 'l': '#7cc45e', 'L': '#5aa64a'})
+
+# reception bell
+bl = {}
+for x in range(3, 8):
+    for z in range(3, 8):
+        bl[(x, 0, z)] = 'b'
+for y in range(1, 4):
+    rr = 2.2 - (y - 1) * 0.6
+    for x in range(11):
+        for z in range(11):
+            if (x - 5) ** 2 + (z - 5) ** 2 <= rr * rr:
+                bl[(x, y, z)] = 'g'
+bl[(5, 4, 5)] = 'g'
+prop('museum:bell', grid_layers(bl, 11, 5, 11), {'b': '#6e4630', 'g': '#f2c14e'})
+
+# appended to the same models file (one models.json5 per content pack)
+with open(OUT) as f:
+    text = f.read().rstrip()
+assert text.endswith(']')
+with open(OUT, 'w') as f:
+    f.write(text[:-1])
+    f.write('  // --- interior props ---\n')
+    for m in props:
+        f.write(f"  {{\n    id: '{m['id']}',\n    scale: {m['scale']},\n    palette: {json.dumps(m['palette'])},\n    layers: [\n")
+        for layer in m['layers']:
+            f.write('      [' + ', '.join(f"'{r}'" for r in layer) + '],\n')
+        f.write('    ],\n  },\n')
+    f.write(']\n')
+print(f'{len(props)} props → {os.path.relpath(OUT, ROOT)}')

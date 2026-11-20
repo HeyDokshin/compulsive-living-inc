@@ -103,8 +103,13 @@ export interface PluginApi {
     stylize<T extends THREE.Material>(material: T, opts?: StyleOptions): T
     /** A voxel model from the `models` registry as a three.js object (appears when loaded). Not added to the scene. */
     voxelModel(id: string, opts?: { scale?: number; palette?: Record<string, string> }): THREE.Object3D
+    /** A rig from the `rigs` registry as a three.js object; its parts are child groups named after them
+     * (`obj.getObjectByName('wingL')`) — rotate those to animate. Not added to the scene. */
+    rigModel(id: string, opts?: { scale?: number; palette?: Record<string, string>; parts?: Record<string, string> }): THREE.Object3D
     /** Size (voxels), origin and scale of a voxel model — to hold, lay down or attach it precisely. */
     modelInfo(id: string): Promise<{ size: [number, number, number]; pivot: [number, number, number]; scale: number } | null>
+    /** Shake the camera a little (amplitude in blocks, fading out over `seconds`). Respects the player's setting. */
+    shake(amplitude: number, seconds: number): void
     /** Smoothly zoom the camera (clamped to the configured range). */
     setZoom(zoom: number): void
     /** Rebuild an entity's 3D view after changing its `model` (e.g. recolored clothes, another rig). */
@@ -206,6 +211,19 @@ export interface PluginApi {
   }
 
   /** Put this plugin's own state into saves (entities and voxels are saved by the engine). */
+  /** Rooms built in reserved corners of the world (one 16 × 16 chunk each, always open sea). */
+  interiors: {
+    /** The area of a room: first cell and size. Build its voxels there with `world.setBlock`. */
+    area(id: string): { x: number; z: number; w: number; d: number }
+    /** Areas of all rooms (to draw something over them from outside). */
+    reserved(): Array<{ x: number; z: number; w: number; d: number }>
+    /** Room the player is in, or null outside. */
+    readonly current: string | null
+    /** Put the actor inside at `at`; remembers where it stood to come back. Only that room is drawn. */
+    enter(id: string, actor: Entity, at: { x: number; y: number; z: number; rotY: number }): void
+    /** Back outside where the actor entered. */
+    exit(actor: Entity): void
+  }
   save: {
     /**
      * `save()` returns plain data; `load(data)` gets it back before `start()` runs.

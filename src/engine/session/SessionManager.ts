@@ -96,6 +96,7 @@ export class SessionManager {
       g.entities.clear()
       g.camera.follow = null
       this.saves.reset()
+      g.interiors.reset()
       g.ui.close()
       if (save) {
         const m = save.meta
