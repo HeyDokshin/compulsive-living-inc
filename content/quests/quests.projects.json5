@@ -1,0 +1,8 @@
+// Island projects: fund them at the board (bells and materials), builders finish overnight.
+// `stars` = island rating needed. `build` is what appears: fountain (on the plaza) · pier (into the sea).
+{
+  entries: [
+    { id: 'quests:fountain', name: 'Фонтан на площади', description: 'Журчит, блестит и собирает соседей.', stars: 2, bells: 30000, items: [{ item: 'core:stone', count: 20 }], build: 'fountain' },
+    { id: 'quests:pier', name: 'Причал', description: 'Деревянные мостки в море — рыбачить с них одно удовольствие.', stars: 3, bells: 20000, items: [{ item: 'core:wood', count: 30 }], build: 'pier' },
+  ],
+}

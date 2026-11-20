@@ -63,6 +63,9 @@ declare module '@sdk' {
   interface GameEvents {
     'villagers:movedIn': { id: string }
     'villagers:movedOut': { id: string }
+    'villagers:talked': { id: string }
+    'villagers:gifted': { id: string; item: string; taste: string }
+    'villagers:helped': { id: string; item: string }
   }
 }
 
@@ -557,6 +560,7 @@ export default definePlugin({
         talking.value = ctx.target!
         talkingTo = ctx.target!
         api.ui.open('villagers:talk')
+        api.events.emit('villagers:talked', { id: ctx.target!.villager!.id })
       },
     })
     interactions.register({

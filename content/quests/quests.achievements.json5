@@ -1,0 +1,19 @@
+// Achievements: a stat and its tiers; each tier reached gives leaf points.
+// Stats: fish · bugs · donations · bells_earned · watered · crafted · talks · gifts · helped · shaken ·
+//        tasks · decor_placed · paved · museum_visits
+{
+  entries: [
+    { id: 'quests:a_fish', name: 'Рыбак', text: 'Поймано рыб: {value}', stat: 'fish', tiers: [1, 25, 100, 300], points: [30, 100, 200, 500], icon: '🎣' },
+    { id: 'quests:a_bugs', name: 'Энтомолог', text: 'Поймано насекомых: {value}', stat: 'bugs', tiers: [1, 25, 100, 300], points: [30, 100, 200, 500], icon: '🦋' },
+    { id: 'quests:a_museum', name: 'Меценат', text: 'Подарено музею: {value}', stat: 'donations', tiers: [1, 10, 25, 39], points: [50, 150, 300, 800], icon: '🏛' },
+    { id: 'quests:a_bells', name: 'Торговец', text: 'Заработано колокольчиков: {value}', stat: 'bells_earned', tiers: [1000, 50000, 250000, 1000000], points: [30, 150, 300, 600], icon: '🔔' },
+    { id: 'quests:a_garden', name: 'Садовник', text: 'Полито цветов: {value}', stat: 'watered', tiers: [5, 50, 200, 1000], points: [30, 100, 200, 400], icon: '🌷' },
+    { id: 'quests:a_craft', name: 'Мастер', text: 'Смастерено вещей: {value}', stat: 'crafted', tiers: [1, 20, 100, 300], points: [30, 100, 200, 400], icon: '🔨' },
+    { id: 'quests:a_friend', name: 'Добрый сосед', text: 'Разговоров с соседями: {value}', stat: 'talks', tiers: [1, 30, 150, 500], points: [30, 100, 200, 400], icon: '💬' },
+    { id: 'quests:a_gifts', name: 'Щедрая душа', text: 'Подарков соседям: {value}', stat: 'gifts', tiers: [1, 20, 80, 200], points: [30, 100, 200, 400], icon: '🎁' },
+    { id: 'quests:a_help', name: 'Палочка-выручалочка', text: 'Выполнено просьб: {value}', stat: 'helped', tiers: [1, 10, 40, 100], points: [50, 150, 300, 500], icon: '🤝' },
+    { id: 'quests:a_tasks', name: 'Деловой', text: 'Выполнено заданий: {value}', stat: 'tasks', tiers: [1, 25, 100, 365], points: [30, 150, 300, 800], icon: '📋' },
+    { id: 'quests:a_decor', name: 'Декоратор', text: 'Поставлено поделок: {value}', stat: 'decor_placed', tiers: [1, 20, 100, 300], points: [30, 100, 200, 400], icon: '🪑' },
+    { id: 'quests:a_paths', name: 'Дорожный мастер', text: 'Проложено дорожек: {value}', stat: 'paved', tiers: [10, 100, 500, 2000], points: [30, 100, 200, 400], icon: '🧱' },
+  ],
+}

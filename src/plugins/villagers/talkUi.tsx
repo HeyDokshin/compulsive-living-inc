@@ -74,6 +74,7 @@ export function Talk(props: Props) {
     if (req && items.isTagged(id, req.tag)) {
       r.request = null
       add(cfg.requestPoints)
+      api.events.emit('villagers:helped', { id: v.id, item: id })
       const bells = reward()
       setText(`${say('request_thanks', { item: name })} (+${bells.toLocaleString('ru-RU')} 🔔)`)
       setMode('talk')
@@ -81,6 +82,7 @@ export function Talk(props: Props) {
     }
     const taste = giftTaste((t) => items.isTagged(id, t), pers?.likes ?? [], pers?.dislikes ?? [], items.get(id)?.price ?? 0)
     add(cfg.giftPoints[taste])
+    api.events.emit('villagers:gifted', { id: v.id, item: id, taste })
     let reply = say(`gift_${taste}`, { item: name })
     // a best friend's photo, once
     if (hearts(r.points) >= 5 && !r.photo && api.services.has('decor:pieces')) {

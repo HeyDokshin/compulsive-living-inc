@@ -18,6 +18,9 @@ declare module '@sdk' {
   interface Registries {
     'museum:dialogue': DialogueDef
   }
+  interface GameEvents {
+    'museum:donated': { id: string; kind: string }
+  }
 }
 
 export interface Donations {
@@ -162,6 +165,7 @@ export default definePlugin({
       catalog().record(id)
       version.value++
       hall.refresh()
+      api.events.emit('museum:donated', { id, kind: s.kind })
       jingle()
       celebrateAt()
       return true

@@ -217,6 +217,13 @@ api.save.register({
 - **Реплики** — `villagers:lines`: `{ topic, personality?, when?: { hours, weather, minHearts, maxHearts, seasons }, lines }`. Темы: hello, greet, chat, gift_love/like/neutral/dislike, gift_full, gift_back, photo, request_ask/waiting/none/thanks, leaving, stay, farewell, bye. Выбор — чистая функция `plugins/villagers/talk.ts`.
 - Команды: `villagers`, `villagers add [id]`, `villagers friend <id> <очки>`, `villagers leave <id>`.
 
+## Задания, достижения, праздники
+
+- **Задания** — `quests:tasks`: `{ text, track, params, count: [min, max], step, points, weight }`. Трекеры: catch {kind} · interact {ids} · pick {tag} · sell · craft · talk · gift · help · donate · buy · place · pave. Новый трекер — одна строка в плагине `quests` на нужное событие.
+- **Достижения** — `quests:achievements` (stat, tiers, points); **награды** — `quests:rewards`; **проекты** — `quests:projects` (`build: fountain | pier`).
+- **Праздники** — `events:calendar` (`from`/`to` или `weekdays`, гость, часы, украшения, лавка) и `events:guests` (как жители: голова, цвета, реплики по темам). Команда `event <id>` включает праздник для проверки.
+- Команды: `quests`, `quests points 500`, `quests done`, `quests build fountain`, `quests rating`, `event`.
+
 ## Модели и персонажи
 
 Модель можно нарисовать прямо в данных (`content/<pack>/models.json5`): `layers` снизу вверх, в слое — ряды от задней стороны (-z) к передней (+z), в ряду — символы слева направо, `.` — пусто. `palette` сопоставляет символы цветам. 12 вокселей = 1 блок, перед модели смотрит в +z.

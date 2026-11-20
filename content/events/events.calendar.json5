@@ -1,0 +1,43 @@
+// Calendar events: dates ([month, day] ranges, may wrap over the new year) or weekdays (0 = Sun … 6 = Sat).
+// While one is on, its guest stands on the plaza from `hours` with a little shop, and its decor
+// (decor pieces, offsets from the guest) goes up around them. The first event that is on wins.
+{
+  entries: [
+    {
+      id: 'events:harvest', name: 'Ярмарка урожая', from: [11, 15], to: [11, 30], guest: 'events:bruno', hours: [8, 20],
+      note: 'На площади ярмарка урожая! Барсук Бруно привёз саженцы и тыквенные пироги… то есть поделки.',
+      decor: [{ piece: 'decor:crate', variant: 'natural', dx: -1, dz: 0 }, { piece: 'decor:crate', variant: 'green', dx: 1, dz: 0 }, { piece: 'decor:bonfire', variant: 'default', dx: 0, dz: 3 }],
+      shop: [
+        { item: 'nature:sapling_apple', price: 300 }, { item: 'nature:sapling_peach', price: 300 }, { item: 'nature:sapling_orange', price: 300 },
+        { item: 'decor:bench_natural', price: 400 }, { item: 'decor:crate_green', price: 260 }, { item: 'crafting:card_bonfire', price: 500 },
+      ],
+    },
+    {
+      id: 'events:winter_lights', name: 'Зимние огни', from: [12, 15], to: [1, 7], guest: 'events:pip', hours: [10, 23],
+      note: 'Зимние огни! Пингвин Пип привёз светящиеся украшения.',
+      decor: [{ piece: 'decor:lamp', variant: 'white', dx: -1, dz: 0 }, { piece: 'decor:lamp', variant: 'white', dx: 1, dz: 0 }, { piece: 'decor:bonfire', variant: 'default', dx: 0, dz: 3 }],
+      shop: [
+        { item: 'decor:lamp_white', price: 1000 }, { item: 'decor:bench_white', price: 450 }, { item: 'decor:fence_white', price: 150 },
+        { item: 'decor:floor_lamp_cream', price: 900 }, { item: 'house:wall_sky', price: 700 },
+      ],
+    },
+    {
+      id: 'events:spring_bloom', name: 'Весенний цвет', from: [4, 1], to: [4, 14], guest: 'events:bruno', hours: [8, 19],
+      note: 'Весенний цвет! Бруно продаёт семена и цветочные горшки.',
+      decor: [{ piece: 'decor:flower_pot', variant: 'clay', dx: -1, dz: 0 }, { piece: 'decor:flower_pot', variant: 'blue', dx: 1, dz: 0 }],
+      shop: [{ item: 'garden:seeds_tulip', price: 60 }, { item: 'garden:seeds_rose', price: 60 }, { item: 'garden:seeds_cosmos', price: 60 }, { item: 'decor:flower_pot_white', price: 360 }],
+    },
+    {
+      id: 'events:summer_fest', name: 'Летний фестиваль', from: [7, 20], to: [8, 5], guest: 'events:pip', hours: [14, 24],
+      note: 'Летний фестиваль! Вечером на площади костёр и фонарики.',
+      decor: [{ piece: 'decor:bonfire', variant: 'default', dx: 0, dz: 3 }, { piece: 'decor:lamp', variant: 'mint', dx: -1, dz: 0 }, { piece: 'decor:lamp', variant: 'mint', dx: 1, dz: 0 }],
+      shop: [{ item: 'decor:rug_round_sun', price: 500 }, { item: 'decor:lamp_mint', price: 1000 }, { item: 'crafting:bait', price: 50 }],
+    },
+    {
+      id: 'events:saturday', name: 'Субботний рынок', weekdays: [6], guest: 'events:bruno', hours: [9, 17],
+      note: 'Суббота — на площади рынок Бруно.',
+      decor: [{ piece: 'decor:crate', variant: 'natural', dx: -1, dz: 0 }],
+      shop: [{ item: 'nature:sapling_oak', price: 250 }, { item: 'crafting:paint', price: 120 }, { item: 'landscaping:stone', price: 70 }, { item: 'decor:table_natural', price: 700 }],
+    },
+  ],
+}

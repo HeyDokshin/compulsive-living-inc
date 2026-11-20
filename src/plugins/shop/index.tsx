@@ -39,6 +39,9 @@ declare module '@sdk' {
   interface Services {
     'shop:counter': Shop
   }
+  interface GameEvents {
+    'shop:bought': { id: string; price: number }
+  }
 }
 
 const Config = z.object({
@@ -137,6 +140,7 @@ export default definePlugin({
         wallet().spend(g.price)
         bought.set(id, (bought.get(id) ?? 0) + 1)
         version.value++
+        api.events.emit('shop:bought', { id, price: g.price })
         api.audio.play('economy:coins')
         return 'ok'
       },

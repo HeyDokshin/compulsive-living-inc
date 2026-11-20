@@ -1,0 +1,14 @@
+// What leaf points buy at the island board.
+{
+  entries: [
+    { id: 'quests:r_paint', item: 'crafting:paint', count: 3, cost: 120 },
+    { id: 'quests:r_paths', item: 'landscaping:brick', count: 20, cost: 200 },
+    { id: 'quests:r_card_lamp', item: 'crafting:card_lamp', count: 1, cost: 400 },
+    { id: 'quests:r_card_bonfire', item: 'crafting:card_bonfire', count: 1, cost: 300 },
+    { id: 'quests:r_floor_lamp', item: 'decor:floor_lamp_mint', count: 1, cost: 450 },
+    { id: 'quests:r_armchair', item: 'decor:armchair_green', count: 1, cost: 500 },
+    { id: 'quests:r_wall', item: 'house:wall_brick', count: 1, cost: 350 },
+    { id: 'quests:r_floor', item: 'house:floor_grass', count: 1, cost: 350 },
+    { id: 'quests:r_bells', item: '', bells: 5000, count: 1, cost: 500 },
+  ],
+}

@@ -1,0 +1,24 @@
+// Daily tasks: 5 are picked each morning. `track` says what counts (see the quests plugin):
+//   catch {kind: fish|bug} · interact {ids: [...]} · pick {tag} · sell (bells) · craft · talk (different
+//   neighbours) · gift · help · donate · buy · place (decor) · pave
+// {count} in the text is the goal; `count: [min, max]`, `step` rounds it (500 → 1500, 2000…).
+{
+  entries: [
+    { id: 'quests:fish', text: 'Поймать рыб: {count}', track: 'catch', params: { kind: 'fish' }, count: [2, 4], points: 60, weight: 3 },
+    { id: 'quests:bugs', text: 'Поймать насекомых: {count}', track: 'catch', params: { kind: 'bug' }, count: [2, 4], points: 60, weight: 3 },
+    { id: 'quests:water', text: 'Полить цветов: {count}', track: 'interact', params: { ids: ['garden:water'] }, count: [3, 6], points: 40, weight: 2 },
+    { id: 'quests:shake', text: 'Потрясти деревьев: {count}', track: 'interact', params: { ids: ['nature:shake'] }, count: [2, 4], points: 30, weight: 2 },
+    { id: 'quests:rocks', text: 'Постучать по камням: {count}', track: 'interact', params: { ids: ['nature:hit_rock'] }, count: [3, 6], points: 40, weight: 2 },
+    { id: 'quests:dig', text: 'Раскопать мест с трещинками: {count}', track: 'interact', params: { ids: ['nature:dig_spot'] }, count: [1, 3], points: 50, weight: 2 },
+    { id: 'quests:fruit', text: 'Собрать фруктов: {count}', track: 'pick', params: { tag: '#core:fruits' }, count: [3, 6], points: 30, weight: 2 },
+    { id: 'quests:shells', text: 'Найти ракушек на пляже: {count}', track: 'pick', params: { tag: '#core:beach_finds' }, count: [2, 4], points: 30, weight: 2 },
+    { id: 'quests:sell', text: 'Продать вещей на {count} 🔔', track: 'sell', count: [1000, 3000], step: 500, points: 50, weight: 2 },
+    { id: 'quests:craft', text: 'Смастерить вещей: {count}', track: 'craft', count: [1, 3], points: 60, weight: 2 },
+    { id: 'quests:talk', text: 'Поговорить с соседями: {count}', track: 'talk', count: [2, 3], points: 40, weight: 3 },
+    { id: 'quests:gift', text: 'Подарить подарков соседям: {count}', track: 'gift', count: [1, 2], points: 50, weight: 2 },
+    { id: 'quests:help', text: 'Выполнить просьбу соседа', track: 'help', count: [1, 1], points: 80, weight: 1 },
+    { id: 'quests:donate', text: 'Подарить экспонат музею', track: 'donate', count: [1, 1], points: 80, weight: 1 },
+    { id: 'quests:place', text: 'Поставить поделок: {count}', track: 'place', count: [1, 3], points: 40, weight: 2 },
+    { id: 'quests:pave', text: 'Проложить дорожку, клеток: {count}', track: 'pave', count: [3, 8], points: 40, weight: 1 },
+  ],
+}

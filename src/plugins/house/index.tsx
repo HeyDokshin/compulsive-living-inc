@@ -45,6 +45,9 @@ declare module '@sdk' {
     'house:levels': LevelDef
     'house:finishes': FinishDef
   }
+  interface Services {
+    'house:info': { level(): number; debt(): number }
+  }
 }
 
 const Config = z.object({
@@ -97,6 +100,7 @@ export default definePlugin({
     const state = signal<HouseState>(fresh())
     const set = (patch: Partial<HouseState>) => (state.value = { ...state.value, ...patch })
     api.save.register<HouseState>({ version: 1, save: () => state.value, load: (d) => (state.value = { ...fresh(), ...d }) })
+    api.services.provide('house:info', { level: () => state.value.level, debt: () => state.value.debt })
 
     const levelDef = (n = state.value.level) => levels.all().find((l) => l.level === n)
     const plan = (): RoomPlan => {
