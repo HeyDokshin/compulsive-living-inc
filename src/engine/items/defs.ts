@@ -22,6 +22,17 @@ export const ItemDefSchema = z.looseObject({
       style: z.enum(['iso', 'sprite']).optional(),
     })
     .optional(),
+  /** How it sits in the hand: `grip` = voxel of the model held in the fist; `tilt` (radians) tips the
+   * top of the model forward (+) or back (−); `scale` multiplies the held size. */
+  held: z
+    .object({
+      grip: z.tuple([z.number(), z.number(), z.number()]).optional(),
+      tilt: z.number().default(0),
+      scale: z.number().positive().default(1),
+    })
+    .optional(),
+  /** On the ground: `lie` lays the model down (default: yes for tall, thin models like tools). */
+  ground: z.object({ lie: z.boolean().optional() }).optional(),
   /** Sell price (economy stage). */
   price: z.number().int().min(0).optional(),
 })

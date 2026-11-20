@@ -102,6 +102,8 @@ export interface PluginApi {
     stylize<T extends THREE.Material>(material: T, opts?: StyleOptions): T
     /** A voxel model from the `models` registry as a three.js object (appears when loaded). Not added to the scene. */
     voxelModel(id: string, opts?: { scale?: number; palette?: Record<string, string> }): THREE.Object3D
+    /** Size (voxels), origin and scale of a voxel model — to hold, lay down or attach it precisely. */
+    modelInfo(id: string): Promise<{ size: [number, number, number]; pivot: [number, number, number]; scale: number } | null>
     /** Smoothly zoom the camera (clamped to the configured range). */
     setZoom(zoom: number): void
     /** Rebuild an entity's 3D view after changing its `model` (e.g. recolored clothes, another rig). */

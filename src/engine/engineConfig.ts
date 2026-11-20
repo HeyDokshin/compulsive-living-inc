@@ -13,9 +13,9 @@ export const EngineConfigSchema = z.object({
     .object({
       pitch: z.number().min(10).max(89).default(44).meta({ label: 'pitch°', step: 0.5 }),
       viewSize: z.number().min(4).max(200).default(24).meta({ label: 'view size (blocks)', step: 1 }),
-      zoom: z.number().min(0.1).max(6).default(2.6).meta({ step: 0.05 }),
+      zoom: z.number().min(0.1).max(8).default(4).meta({ step: 0.05 }),
       minZoom: z.number().min(0.05).max(10).default(0.2).meta({ step: 0.05 }),
-      maxZoom: z.number().min(0.1).max(10).default(4).meta({ step: 0.05 }),
+      maxZoom: z.number().min(0.1).max(10).default(6).meta({ step: 0.05 }),
       zoomSpeed: z.number().min(0).max(0.01).default(0.0015).meta({ step: 0.0001 }),
       zoomSmoothing: z.number().min(1).max(40).default(10).meta({ label: 'zoom smoothing', step: 0.5 }),
       rotateSmoothing: z.number().min(1).max(40).default(12).meta({ step: 0.5 }),
@@ -90,6 +90,8 @@ export const EngineConfigSchema = z.object({
       lift: z.number().min(0).max(0.2).default(0.035).meta({ label: 'lift (pastel)', step: 0.005 }),
       vignette: z.number().min(0).max(1).default(0.3).meta({ step: 0.01 }),
       tiltShift: z.number().min(0).max(20).default(3).meta({ label: 'tilt-shift blur', step: 0.1 }),
+      /** Blur fades out as the camera zooms in past this zoom (a close-up shouldn't look smudged). */
+      tiltShiftZoom: z.number().min(0.5).max(10).default(2.2).meta({ label: 'tilt-shift full until zoom', step: 0.1 }),
       tiltFocus: z.number().min(0).max(1).default(0.5).meta({ label: 'tilt-shift focus', step: 0.01 }),
       curvature: z.number().min(0).max(0.02).default(0.0025).meta({ label: 'world curvature', step: 0.0005 }),
       shadowSoftness: z.number().min(0).max(10).default(4).meta({ label: 'shadow softness', step: 0.25 }),

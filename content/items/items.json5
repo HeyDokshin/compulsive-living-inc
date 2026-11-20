@@ -1,22 +1,23 @@
 // Items. What an item *does* comes from interactions that refer to its id or tags.
 // stack = max per pocket slot; model = voxel model used on the ground, in hand and as the icon.
+// held.grip = model voxel held in the fist, held.tilt = lean forward (+) / back (−) in radians.
 {
   entries: [
     // Tools — one per slot, tagged #core:tools and with a kind tag for interactions.
-    { id: 'core:shovel', name: 'Лопата', description: 'Копать ямки и закапывать их обратно.', stack: 1, model: 'core:shovel', tags: ['core:tools', 'core:shovels'], price: 200 },
-    { id: 'core:axe', name: 'Топор', description: 'Рубить деревья (скоро).', stack: 1, model: 'core:axe', tags: ['core:tools', 'core:axes'], price: 200 },
-    { id: 'core:net', name: 'Сачок', description: 'Ловить насекомых (скоро).', stack: 1, model: 'core:net', tags: ['core:tools', 'core:nets'], price: 200 },
-    { id: 'core:fishing_rod', name: 'Удочка', description: 'Ловить рыбу (скоро).', stack: 1, model: 'core:fishing_rod', tags: ['core:tools', 'core:rods'], price: 200 },
-    { id: 'core:watering_can', name: 'Лейка', description: 'Поливать цветы (скоро).', stack: 1, model: 'core:watering_can', tags: ['core:tools', 'core:watering_cans'], price: 200 },
+    { id: 'core:shovel', name: 'Лопата', description: 'Копать ямки и закапывать их обратно.', stack: 1, model: 'core:shovel', held: { grip: [2.5, 10.5, 1.5], tilt: -0.55 }, tags: ['core:tools', 'core:shovels'], price: 200 },
+    { id: 'core:axe', name: 'Топор', description: 'Рубить деревья (скоро).', stack: 1, model: 'core:axe', held: { grip: [2.5, 1.5, 1.5], tilt: 1.1 }, tags: ['core:tools', 'core:axes'], price: 200 },
+    { id: 'core:net', name: 'Сачок', description: 'Ловить насекомых (скоро).', stack: 1, model: 'core:net', held: { grip: [3.5, 1.5, 1.5], tilt: 1.0 }, tags: ['core:tools', 'core:nets'], price: 200 },
+    { id: 'core:fishing_rod', name: 'Удочка', description: 'Ловить рыбу (скоро).', stack: 1, model: 'core:fishing_rod', held: { grip: [1.5, 2.5, 1.5], tilt: 1.0 }, tags: ['core:tools', 'core:rods'], price: 200 },
+    { id: 'core:watering_can', name: 'Лейка', description: 'Поливать цветы (скоро).', stack: 1, model: 'core:watering_can', held: { grip: [3.5, 5, 2] }, tags: ['core:tools', 'core:watering_cans'], price: 200 },
 
     // Fruit
-    { id: 'core:apple', name: 'Яблоко', stack: 10, model: 'core:apple', tags: ['core:fruits'], price: 100 },
-    { id: 'core:peach', name: 'Персик', stack: 10, model: 'core:peach', tags: ['core:fruits'], price: 100 },
-    { id: 'core:orange', name: 'Апельсин', stack: 10, model: 'core:orange', tags: ['core:fruits'], price: 100 },
+    { id: 'core:apple', name: 'Яблоко', stack: 10, model: 'core:apple', held: { grip: [3, 4, 3] }, tags: ['core:fruits'], price: 100 },
+    { id: 'core:peach', name: 'Персик', stack: 10, model: 'core:peach', held: { grip: [3, 4, 3] }, tags: ['core:fruits'], price: 100 },
+    { id: 'core:orange', name: 'Апельсин', stack: 10, model: 'core:orange', held: { grip: [3, 4, 3] }, tags: ['core:fruits'], price: 100 },
 
     // Materials and beach finds
-    { id: 'core:wood', name: 'Древесина', stack: 30, model: 'core:wood', tags: ['core:materials'], price: 60 },
-    { id: 'core:stone', name: 'Камешек', stack: 30, model: 'core:stone_item', tags: ['core:materials'], price: 75 },
-    { id: 'core:shell', name: 'Ракушка', description: 'Нашлась на пляже.', stack: 10, model: 'core:shell', tags: ['core:beach_finds'], price: 60 },
+    { id: 'core:wood', name: 'Древесина', stack: 30, model: 'core:wood', held: { grip: [4, 2, 2] }, tags: ['core:materials'], price: 60 },
+    { id: 'core:stone', name: 'Камешек', stack: 30, model: 'core:stone_item', held: { grip: [2.5, 2, 2.5] }, tags: ['core:materials'], price: 75 },
+    { id: 'core:shell', name: 'Ракушка', description: 'Нашлась на пляже.', stack: 10, model: 'core:shell', held: { grip: [3.5, 1, 3] }, tags: ['core:beach_finds'], price: 60 },
   ],
 }

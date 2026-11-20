@@ -79,11 +79,26 @@ export class PostFX {
     this.grade.uniforms.aspect!.value.set(width / Math.max(1, Math.max(width, height)), height / Math.max(1, Math.max(width, height)))
   }
 
+  private tilt = 0
+  private tiltScale = 1
+
+  /** 0..1 multiplier for the tilt-shift strength (the renderer lowers it in close-ups). Cheap: uniforms only. */
+  setTiltScale(k: number): void {
+    if (Math.abs(k - this.tiltScale) < 0.005) return
+    this.tiltScale = k
+    this.updateTilt()
+  }
+
+  private updateTilt(): void {
+    const t = this.tilt * this.tiltScale
+    this.tiltH.enabled = this.tiltV.enabled = t > 0.05
+    this.tiltH.uniforms.h!.value = t / Math.max(1, this.size.x)
+    this.tiltV.uniforms.v!.value = t / Math.max(1, this.size.y)
+  }
+
   apply(style: EngineConfig['style']): void {
-    const tilt = style.tiltShift
-    this.tiltH.enabled = this.tiltV.enabled = tilt > 0
-    this.tiltH.uniforms.h!.value = tilt / Math.max(1, this.size.x)
-    this.tiltV.uniforms.v!.value = tilt / Math.max(1, this.size.y)
+    this.tilt = style.tiltShift
+    this.updateTilt()
     this.tiltH.uniforms.r!.value = this.tiltV.uniforms.r!.value = style.tiltFocus
     const g = this.grade.uniforms
     g.saturation!.value = style.saturation

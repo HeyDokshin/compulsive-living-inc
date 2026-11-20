@@ -288,13 +288,25 @@ export default definePlugin({
           const model = id ? items.get(id)?.model : undefined
           if (!hand || !model) continue
           const T = api.render.three
+          const hold = items.get(id!)?.held
           const holder = new T.Group()
           // The arm lives in rig voxel space (arm → body → scaled rig root): undo the rig scale so the
           // item keeps its own size (models are 1/16 block per voxel), times `heldScale`.
           const rigScale = hand.parent?.parent?.scale.x ?? 1 / 12
-          holder.position.set(0, -3.4, 0.6)
-          holder.rotation.x = Math.PI * 0.42
-          holder.add(api.render.voxelModel(model, { scale: ((1 / 16) * cfg.heldScale) / rigScale }))
+          const scale = ((1 / 16) * cfg.heldScale * (hold?.scale ?? 1)) / rigScale
+          holder.position.set(0, -3.4, 0.4) // the fist, at the end of the arm
+          holder.rotation.x = hold?.tilt ?? 0
+          const obj = api.render.voxelModel(model, { scale })
+          holder.add(obj)
+          // Put the grip voxel in the fist (e.g. a shovel by the top of its handle).
+          const grip = hold?.grip
+          if (grip) {
+            void api.render.modelInfo(model).then((info) => {
+              if (!info) return
+              const [px, py, pz] = info.pivot
+              obj.position.set(-(grip[0] - px) * scale, -(grip[1] - py) * scale, -(grip[2] - pz) * scale)
+            })
+          }
           hand.add(holder)
           h.obj = holder
         }
@@ -305,6 +317,24 @@ export default definePlugin({
     let time = 0
     let glintIn = 1
     const drops = api.entities.world.with('item', 'view')
+    // Tall things (tools) lie down on the ground instead of standing like posts.
+    const laid = new WeakSet<object>()
+    const layDown = (e: Entity) => {
+      laid.add(e.view!)
+      const def = items.get(e.item!.id)
+      if (!def?.model || def.ground?.lie === false) return
+      const view = e.view!
+      void api.render.modelInfo(def.model).then((info) => {
+        const inner = view.children[0]
+        if (!info || !inner) return
+        const [sx, sy, sz] = info.size
+        const tall = sy >= 1.6 * Math.max(sx, sz)
+        if (!(def.ground?.lie ?? tall)) return
+        // rotate about the bottom center: height runs along x, width becomes thickness
+        inner.rotation.z = Math.PI / 2
+        inner.position.set((sy / 2) * info.scale, (sx / 2) * info.scale, 0)
+      })
+    }
     api.systems.add({
       id: 'groundBob',
       phase: 'render',
@@ -318,6 +348,7 @@ export default definePlugin({
         let pick: (typeof drops)['entities'][number] | undefined
         let seen = 0
         for (const e of drops) {
+          if (!laid.has(e.view)) layDown(e)
           const s = 1 + Math.sin(time * 3 + (e.uid ?? 0)) * 0.04
           e.view.scale.set(s, 1 / s, s)
           if (glintNow && Math.hypot(e.transform!.x - c.x, e.transform!.z - c.z) < 14 && Math.random() * ++seen < 1) pick = e

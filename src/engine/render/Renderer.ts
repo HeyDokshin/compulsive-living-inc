@@ -179,7 +179,10 @@ export class Renderer {
     styleUniforms.uCurveCenter.value.copy(this.iso.target)
     const f = this.iso.forwardXZ()
     styleUniforms.uCurveDir.value.set(f.x, f.z)
-    if (this.cfg.style.postfx) this.postfx.render(ctx.dt)
+    if (this.cfg.style.postfx) {
+      this.postfx.setTiltScale(Math.min(1, this.cfg.style.tiltShiftZoom / this.iso.currentZoom))
+      this.postfx.render(ctx.dt)
+    }
     else this.renderer.render(this.scene, this.iso.camera)
   }
 

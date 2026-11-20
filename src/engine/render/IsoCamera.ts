@@ -17,6 +17,11 @@ export class IsoCamera {
 
   constructor(private cfg: EngineConfig['camera']) {}
 
+  /** Zoom actually shown right now (eases towards the configured one). */
+  get currentZoom(): number {
+    return this.zoomNow || this.cfg.zoom
+  }
+
   get targetYaw(): number {
     return 45 + this.quarter * 90
   }

@@ -79,6 +79,12 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       stylize: (material, opts) => game.renderer.stylize(material, opts),
       voxelModel: (id, opts) => game.modelLibrary.createVoxel(id, opts),
       refreshView: (e) => game.renderer.entityRenderer.refresh(e),
+      modelInfo: async (id) => {
+        const m = await game.modelLibrary.getModel(id)
+        if (!m) return null
+        const [sx, , sz] = m.model.size
+        return { size: m.model.size, pivot: m.def.pivot ?? [sx / 2, 0, sz / 2], scale: m.def.scale }
+      },
       setZoom: (zoom) => {
         const c = game.engineConfig.camera
         game.config.set('engine', 'camera.zoom', Math.min(c.maxZoom, Math.max(c.minZoom, zoom)))

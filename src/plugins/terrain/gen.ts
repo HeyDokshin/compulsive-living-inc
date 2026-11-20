@@ -268,10 +268,11 @@ export function fillEnclosedWater(land: Uint8Array, sizeX: number, sizeZ: number
   for (let i = 0; i < land.length; i++) if (!land[i] && !sea[i]) land[i] = 1
 }
 
-/** Carve a disc of river/pond around (x, z): bed two below the reference ground, water one below. */
+/** Carve a disc of river/pond around (x, z): bed one below the reference ground, water up to the brim
+ * (the liquid surface is drawn a little lower, so it sits just under the grass). */
 export function carve(ctx: WorldGenContext, x: number, z: number, r: number, ground: number): void {
   const t = td(ctx)
-  const bed = ground - 2
+  const bed = ground - 1
   const ri = Math.ceil(r)
   for (let dz = -ri; dz <= ri; dz++) {
     for (let dx = -ri; dx <= ri; dx++) {
@@ -329,9 +330,9 @@ export function rivers(ctx: WorldGenContext, cfg: Config): void {
       const ground = Math.min(prevGround, groundOfTier(cfg, Math.max(0, t.tier[i]!)))
       carve(ctx, xi, zi, r, ground)
       // Waterfall: where the river drops a terrace, stack water up to the level above.
-      if (prevWater && ground - 1 < prevWater) ctx.waterMap[i] = Math.max(ctx.waterMap[i]!, prevWater)
+      if (prevWater && ground < prevWater) ctx.waterMap[i] = Math.max(ctx.waterMap[i]!, prevWater)
       prevGround = ground
-      prevWater = ground - 1
+      prevWater = ground
       const outward = Math.atan2(z - cz, x - cx)
       heading = outward + meander(x * 0.05 + k * 31.7, z * 0.05) * cfg.rivers.meander
       x += Math.cos(heading)
@@ -544,7 +545,8 @@ export function connect(ctx: WorldGenContext, cfg: Config): void {
         const i = ctx.index(x, z)
         if (t.river[i]) {
           // the deck must sit above the water surface
-          if (ctx.waterMap[i]! > deck - 1 || ctx.heightMap[i]! > deck - 1) return false
+          // the deck replaces the top water cell; it must not be under deeper water
+          if (ctx.waterMap[i]! > deck || ctx.heightMap[i]! > deck - 1) return false
           continue
         }
         if (len === 1 || h(i) !== deck || !big(label[i]!)) return false
@@ -553,7 +555,7 @@ export function connect(ctx: WorldGenContext, cfg: Config): void {
           const out: number[] = []
           for (let m = 1; m < len; m++) {
             const j = ctx.index(ax + dx * m + ox, az + dz * m + oz)
-            if (!t.river[j] || ctx.waterMap[j]! > deck - 1) return null
+            if (!t.river[j] || ctx.waterMap[j]! > deck) return null
             out.push(j)
           }
           return out
