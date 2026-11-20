@@ -99,6 +99,21 @@ export const EngineConfigSchema = z.object({
       waterSpeed: z.number().min(0).max(5).default(1).meta({ label: 'water speed', step: 0.05 }),
     })
     .prefault({}),
+  /** The game clock (see TimeService). */
+  time: z
+    .object({
+      /** real: device clock (days pass while away) · scaled: fast clock while playing · frozen: fixed hour */
+      mode: z.enum(['real', 'scaled', 'frozen']).default('real'),
+      /** scaled mode: game seconds per real second (60 → a day in 24 minutes). */
+      scale: z.number().min(1).max(3600).default(60).meta({ step: 1 }),
+      frozenHour: z.number().min(0).max(24).default(10).meta({ label: 'frozen hour', step: 0.25 }),
+      hemisphere: z.enum(['north', 'south']).default('north'),
+      /** At most this many missed days are simulated after being away. */
+      maxCatchUpDays: z.number().int().min(0).max(365).default(30).meta({ label: 'max catch-up days', step: 1 }),
+      /** The light follows the clock (off: light.time is set by hand). */
+      drivesLight: z.boolean().default(true).meta({ label: 'clock drives light' }),
+    })
+    .prefault({}),
   audio: z
     .object({
       muted: z.boolean().default(false),
@@ -124,6 +139,7 @@ export const EngineConfigSchema = z.object({
       /** Debug panel (toggle with F2). */
       showPanel: z.boolean().default(false),
       showFps: z.boolean().default(false).meta({ label: 'show FPS' }),
+      showClock: z.boolean().default(true).meta({ label: 'show clock' }),
       showGrid: z.boolean().default(false),
       showAxes: z.boolean().default(false),
       showChunks: z.boolean().default(false),

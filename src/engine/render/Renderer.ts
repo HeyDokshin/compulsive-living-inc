@@ -18,7 +18,7 @@ import { EntityRenderer } from './EntityRenderer'
 import { IsoCamera } from './IsoCamera'
 import { BlockAtlas } from './BlockAtlas'
 import { ChunkRenderer } from './ChunkRenderer'
-import { createLightState, sampleLight } from './dayCycle'
+import { createLightState, sampleLight, type LightState } from './dayCycle'
 import type { VoxelWorld } from '../world/VoxelWorld'
 import { MesherPool } from '../world/mesher/MesherPool'
 import { PostFX } from './PostFX'
@@ -160,6 +160,8 @@ export class Renderer {
   private last = { mesh: '', borders: false, ratio: 0 }
   private tmpColor = new Color()
   private lightState = createLightState()
+  /** Per-frame light adjustment (the engine routes it through the `light:adjust` hook — weather). */
+  adjustLight?: (state: LightState, hour: number) => LightState
 
   /** Engine system, start of each tick: remember transforms so rendering can interpolate. */
   snapshot(): void {
@@ -282,7 +284,8 @@ export class Renderer {
     let dir: [number, number, number]
     if (light.dayCycle) {
       if (light.timeSpeed > 0) light.time = (light.time + light.timeSpeed * dt) % 24
-      const st = sampleLight(light.keys, light.time, light.sunAzimuth, light.maxElevation, this.lightState)
+      let st = sampleLight(light.keys, light.time, light.sunAzimuth, light.maxElevation, this.lightState)
+      if (this.adjustLight) st = this.adjustLight(st, light.time)
       this.sun.color.copy(st.sun)
       this.sun.intensity = st.sunIntensity
       this.ambient.color.copy(st.sky)

@@ -1,0 +1,24 @@
+// Nature entities. `blocker` cells can't be walked through (trees, rocks).
+[
+  { id: 'nature:tree', components: {
+      name: 'Дерево',
+      transform: { x: 0, y: 0, z: 0 },
+      model: { shape: 'rig', ref: 'nature:tree' },
+      tree: { kind: 'nature:oak', stage: 2, fruit: 0, fruitDay: 0, growDay: 0, wood: 0, woodDay: 0 },
+      blocker: {},
+      blobShadow: { radius: 0.9, opacity: 0.22 },
+  } },
+  { id: 'nature:rock', components: {
+      name: 'Камень',
+      transform: { x: 0, y: 0, z: 0 },
+      model: { shape: 'voxel', ref: 'nature:rock' },
+      rock: { hits: 0, day: 0 },
+      blocker: {},
+  } },
+  { id: 'nature:dig_spot', components: {
+      name: 'Трещинка в земле',
+      transform: { x: 0, y: 0, z: 0 },
+      model: { shape: 'voxel', ref: 'nature:dig_spot' },
+      digSpot: {},
+  } },
+]

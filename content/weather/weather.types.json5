@@ -1,0 +1,13 @@
+// Weather types. Chosen every 6 game hours from these weights (per season), deterministically per
+// island seed and day. light: multipliers for sun and ambient light, plus a tint mixed into the sky.
+// precipitation: none | rain | snow. waters: counts as watering the flowers that day.
+[
+  { id: 'weather:clear', name: 'Ясно', icon: '☀️', weights: { spring: 4, summer: 6, autumn: 3, winter: 3 },
+    light: { sun: 1, ambient: 1 } },
+  { id: 'weather:cloudy', name: 'Облачно', icon: '☁️', weights: { spring: 3, summer: 2, autumn: 3.5, winter: 3 },
+    light: { sun: 0.45, ambient: 1.05, tint: '#e3e9f2', tintAmount: 0.18 } },
+  { id: 'weather:rain', name: 'Дождь', icon: '🌧️', weights: { spring: 2, summer: 1.2, autumn: 2.5, winter: 0 },
+    light: { sun: 0.22, ambient: 0.92, tint: '#c3cfe0', tintAmount: 0.32 }, precipitation: 'rain', waters: true },
+  { id: 'weather:snow', name: 'Снег', icon: '🌨️', weights: { spring: 0, summer: 0, autumn: 0.3, winter: 3 },
+    light: { sun: 0.4, ambient: 1.12, tint: '#eef3ff', tintAmount: 0.25 }, precipitation: 'snow' },
+]

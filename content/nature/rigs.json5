@@ -1,0 +1,18 @@
+// Trees are rigs so parts can be swapped: fruit parts show a fruit model or 'nature:none',
+// the canopy is recolored per season (model.palette). Units: voxels (scale 1/12).
+[
+  {
+    id: 'nature:tree',
+    parts: [
+      { name: 'trunk', model: 'nature:trunk', pivot: [1.5, 0, 1.5], at: [0, 0, 0] },
+      { name: 'canopy', model: 'nature:canopy', pivot: [7, 0, 7], at: [0, 10, 0] },
+      { name: 'fruitA', model: 'nature:none', pivot: [1.5, 3, 1.5], at: [3, 14, 6.4], parent: 'canopy' },
+      { name: 'fruitB', model: 'nature:none', pivot: [1.5, 3, 1.5], at: [6.4, 15, 2], parent: 'canopy' },
+      { name: 'fruitC', model: 'nature:none', pivot: [1.5, 3, 1.5], at: [-2, 13, 6.2], parent: 'canopy' },
+    ],
+  },
+  {
+    id: 'nature:sapling',
+    parts: [{ name: 'canopy', model: 'nature:sapling', pivot: [2.5, 0, 2.5], at: [0, 0, 0] }],
+  },
+]

@@ -150,6 +150,19 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
         })
       },
     },
+    time: {
+      now: () => game.time.now(),
+      get hour() {
+        return game.time.now().hour
+      },
+      get dayIndex() {
+        return game.time.now().dayIndex
+      },
+      get season() {
+        return game.time.now().season
+      },
+      shift: (ms) => game.time.shift(ms),
+    },
     audio: {
       play: (id, opts) => game.audio.play(id, opts),
       note: (n) => game.audio.note(n),
@@ -189,6 +202,9 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       register: (d: SaverDef, name?: string) => void track(game.sessions.saves.register(name ? `${owner}:${name}` : owner, d, owner)),
       get loaded() {
         return game.sessions.session.loaded
+      },
+      get hasData() {
+        return game.sessions.saves.loadedKeys.has(owner)
       },
       saveNow: () => game.sessions.save().then(() => undefined),
     },

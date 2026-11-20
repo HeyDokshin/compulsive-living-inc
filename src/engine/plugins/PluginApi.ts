@@ -12,6 +12,7 @@ import type { SaverDef } from '../save/SaveService'
 import type { LoopHandle, LoopOptions, NoteOptions, PlayOptions } from '../audio/Audio'
 import type { BurstOptions } from '../fx/Particles'
 import type { VoxelHit } from '../world/pick'
+import type { GameDate, Season } from '../time/calendar'
 import type { Dispose } from '../util/disposables'
 import type { Logger } from '../util/log'
 import type { IsoCamera } from '../render/IsoCamera'
@@ -165,6 +166,16 @@ export interface PluginApi {
     burst(id: string, at: { x: number; y: number; z: number }, opts?: BurstOptions): void
   }
 
+  /** The game clock. Listen to `time:hour`, `time:day` (also replayed for missed days), `time:season`. */
+  time: {
+    now(): GameDate
+    readonly hour: number
+    readonly dayIndex: number
+    readonly season: Season
+    /** Move the clock (debug / time travel), e.g. `shift(3 * 86_400_000)`. */
+    shift(ms: number): void
+  }
+
   /** Preact UI: HUD slots, windows, toasts, item icons. */
   ui: {
     /** Put a component on screen. `order` sorts within the slot. */
@@ -201,6 +212,11 @@ export interface PluginApi {
     register<T>(def: SaverDef<T>, name?: string): void
     /** True when this session was restored from a save (skip first-time setup in `start`). */
     readonly loaded: boolean
+    /**
+     * True when the loaded save had data for this plugin. False on a new island — and on an older
+     * save made before the plugin existed: that's the moment to set the island up for it.
+     */
+    readonly hasData: boolean
     saveNow(): Promise<void>
   }
 

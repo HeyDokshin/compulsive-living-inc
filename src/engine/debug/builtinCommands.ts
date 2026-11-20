@@ -2,6 +2,7 @@ import JSON5 from 'json5'
 import type { Game } from '../Game'
 import type { CommandDef } from '../types'
 import { getPath } from '../util/objects'
+import { formatDate, formatTime, SEASON_NAMES } from '../time/calendar'
 
 type Cmd = Omit<CommandDef, 'id'>
 
@@ -192,13 +193,19 @@ export function builtinCommands(game: Game): Cmd[] {
     },
     {
       name: 'time',
-      description: 'Время суток для освещения: time 18.5 (скорость: time speed 0.5)',
-      usage: '[hour | speed <h/s>]',
+      description: 'Часы игры: time · time 18:30 · time +3d / +5h (вперёд) · time mode real|scaled|frozen',
+      usage: '[HH:MM | +Nd | +Nh | mode <real|scaled|frozen>]',
       run: ([a, b]) => {
-        if (a === 'speed') game.config.set('engine', 'light.timeSpeed', num(b, 'speed'))
-        else if (a !== undefined) game.config.set('engine', 'light.time', ((num(a, 'hour') % 24) + 24) % 24)
-        const l = game.engineConfig.light
-        return `time ${l.time.toFixed(2)} h, speed ${l.timeSpeed} h/s${l.dayCycle ? '' : ' (day cycle off)'}`
+        if (a === 'mode') game.config.set('engine', 'time.mode', b)
+        else if (a && /^\d{1,2}(:\d{2})?$/.test(a)) {
+          const [hh, mm = '0'] = a.split(':')
+          game.time.setHour(Number(hh) + Number(mm) / 60)
+        } else if (a && /^[+-]?\d+(\.\d+)?[dh]$/.test(a)) {
+          const n = parseFloat(a)
+          game.time.shift(n * (a.endsWith('d') ? 86_400_000 : 3_600_000))
+        } else if (a) throw new Error('формат: 18:30, +3d, +5h или mode real|scaled|frozen')
+        const g = game.time.now()
+        return `${formatDate(g)} ${formatTime(g)} · ${SEASON_NAMES[g.season]} · день ${g.dayIndex} · режим ${game.engineConfig.time.mode}`
       },
     },
     {

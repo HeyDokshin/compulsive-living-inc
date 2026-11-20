@@ -1,0 +1,41 @@
+// Flower species. colors: petal color per gene name; base: colors found in the wild / from seeds;
+// breeding: what two watered neighbours can give (order of a/b doesn't matter, chance 0..1);
+// pairs not listed give one of the parents' colors. palette: extra recolors per color (e.g. rose d).
+[
+  {
+    id: 'garden:tulip', name: 'Тюльпан', short: 'tulip', model: 'garden:tulip',
+    colors: { red: '#ff6b7a', white: '#fff8f0', yellow: '#ffe066', pink: '#ffb3c7', orange: '#ffad5c', purple: '#c49cf2', black: '#5a3f5e' },
+    base: ['red', 'white', 'yellow'],
+    breeding: [
+      { a: 'red', b: 'white', child: 'pink', chance: 0.5 },
+      { a: 'red', b: 'yellow', child: 'orange', chance: 0.5 },
+      { a: 'white', b: 'white', child: 'purple', chance: 0.25 },
+      { a: 'red', b: 'red', child: 'black', chance: 0.2 },
+    ],
+  },
+  {
+    id: 'garden:cosmos', name: 'Космея', short: 'cosmos', model: 'garden:cosmos',
+    colors: { red: '#ff7a7a', white: '#fffaf2', yellow: '#ffe680', pink: '#ffb8d0', orange: '#ffb070', black: '#6a3a4a' },
+    base: ['red', 'white', 'yellow'],
+    breeding: [
+      { a: 'red', b: 'white', child: 'pink', chance: 0.5 },
+      { a: 'red', b: 'yellow', child: 'orange', chance: 0.5 },
+      { a: 'orange', b: 'orange', child: 'black', chance: 0.2 },
+    ],
+  },
+  {
+    id: 'garden:rose', name: 'Роза', short: 'rose', model: 'garden:rose',
+    colors: { red: '#ff5a6e', white: '#fff6f2', yellow: '#ffe066', pink: '#ffa8c0', orange: '#ff9f50', purple: '#b88ae8', blue: '#7ab0ff' },
+    palette: {
+      red: { d: '#d63a52' }, white: { d: '#efe2dc' }, yellow: { d: '#f2c94a' }, pink: { d: '#f084a6' },
+      orange: { d: '#ef7f3a' }, purple: { d: '#9a6ad0' }, blue: { d: '#5a8fe0' },
+    },
+    base: ['red', 'white', 'yellow'],
+    breeding: [
+      { a: 'red', b: 'white', child: 'pink', chance: 0.5 },
+      { a: 'red', b: 'yellow', child: 'orange', chance: 0.5 },
+      { a: 'white', b: 'white', child: 'purple', chance: 0.25 },
+      { a: 'purple', b: 'orange', child: 'blue', chance: 0.05 },
+    ],
+  },
+]

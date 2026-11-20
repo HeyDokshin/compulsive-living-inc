@@ -13,6 +13,8 @@ export const ItemDefSchema = z.looseObject({
   stack: z.number().int().min(1).max(999).default(10),
   /** Voxel model shown on the ground, in hands and as the icon. */
   model: z.string().optional(),
+  /** Recolor the model's palette characters (e.g. one flower model, many colors). */
+  palette: z.record(z.string(), z.string()).optional(),
   /** Icon fallback when there is no model: a block cube or a colored dot. */
   icon: z
     .object({

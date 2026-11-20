@@ -35,7 +35,7 @@ export class IconService {
     const def = this.items.get(id)
     if (!def) return paintDotIcon('#ff00ff')
     if (def.model) {
-      const m = await this.library.getModel(def.model)
+      const m = await this.library.getModel(def.model, def.palette)
       if (m) {
         const style = def.icon?.style ?? (prefersSprite(m.model) ? 'sprite' : 'iso')
         return style === 'sprite' ? paintSpriteIcon(m.model, m.colors) : paintVoxelIcon(m.model, m.colors)

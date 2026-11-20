@@ -178,7 +178,7 @@ export default definePlugin({
           name: def?.name ?? id,
           transform: { x, y, z, rotY: Math.random() * Math.PI * 2 },
           item: { id, count },
-          model: def?.model ? { shape: 'voxel', ref: def.model, size: [1, 1, 1], color: '#ccc', anchor: 'bottom' } : { shape: 'box', size: [0.3, 0.3, 0.3], color: def?.icon?.color ?? '#ccc', anchor: 'bottom' },
+          model: def?.model ? { shape: 'voxel', ref: def.model, palette: def.palette, size: [1, 1, 1], color: '#ccc', anchor: 'bottom' } : { shape: 'box', size: [0.3, 0.3, 0.3], color: def?.icon?.color ?? '#ccc', anchor: 'bottom' },
         })
       },
     }
@@ -296,7 +296,7 @@ export default definePlugin({
           const scale = ((1 / 16) * cfg.heldScale * (hold?.scale ?? 1)) / rigScale
           holder.position.set(0, -3.4, 0.4) // the fist, at the end of the arm
           holder.rotation.x = hold?.tilt ?? 0
-          const obj = api.render.voxelModel(model, { scale })
+          const obj = api.render.voxelModel(model, { scale, palette: items.get(id!)?.palette })
           holder.add(obj)
           // Put the grip voxel in the fist (e.g. a shovel by the top of its handle).
           const grip = hold?.grip

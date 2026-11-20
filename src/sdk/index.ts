@@ -46,6 +46,8 @@ export type { SoundDef, SynthLayer } from '../engine/audio/defs'
 export type { LoopHandle, NoteOptions } from '../engine/audio/Audio'
 export type { ParticleDef } from '../engine/fx/defs'
 export type { VoxelHit } from '../engine/world/pick'
+export type { GameDate, Season } from '../engine/time/calendar'
+export type { LightState } from '../engine/render/dayCycle'
 
 // UI toolkit for plugins: Preact + signals + the game's components.
 export { h, Fragment, type ComponentChildren, type ComponentType } from 'preact'

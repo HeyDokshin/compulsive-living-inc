@@ -1,0 +1,8 @@
+[
+  { id: 'nature:leaves', count: 10, colors: ['#7cc45e', '#9ad97a'], size: [0.06, 0.12], speed: [0.4, 1.2], spread: 1.5,
+    gravity: 1.4, drag: 2, life: [0.8, 1.4], radius: 0.9, spin: 5 },
+  { id: 'nature:chips', count: 7, colors: ['#d9b48a', '#b0805a'], size: [0.05, 0.1], speed: [1.6, 2.6], spread: 0.9,
+    gravity: 9, drag: 0.6, life: [0.35, 0.6], radius: 0.2 },
+  { id: 'nature:rock_chips', count: 8, colors: ['#c9ccd5', '#aeb2bd', '#ffffff'], size: [0.05, 0.1], speed: [1.8, 2.8], spread: 1,
+    gravity: 9, drag: 0.5, life: [0.3, 0.55], radius: 0.2 },
+]

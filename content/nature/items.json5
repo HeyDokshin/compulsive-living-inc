@@ -1,0 +1,20 @@
+// Nature items. Tags: nature:saplings (can be planted), nature:rock_tools (can hit rocks).
+{
+  entries: [
+    { id: 'nature:sapling_apple', name: 'Саженец яблони', stack: 10, model: 'nature:sapling', tags: ['nature:saplings'], price: 100,
+      held: { grip: [2.5, 1, 2.5] } },
+    { id: 'nature:sapling_peach', name: 'Саженец персика', stack: 10, model: 'nature:sapling', tags: ['nature:saplings'], price: 100,
+      held: { grip: [2.5, 1, 2.5] } },
+    { id: 'nature:sapling_orange', name: 'Саженец апельсина', stack: 10, model: 'nature:sapling', tags: ['nature:saplings'], price: 100,
+      held: { grip: [2.5, 1, 2.5] } },
+    { id: 'nature:sapling_oak', name: 'Саженец дуба', stack: 10, model: 'nature:sapling', tags: ['nature:saplings'], price: 100,
+      held: { grip: [2.5, 1, 2.5] } },
+    { id: 'nature:fossil', name: 'Окаменелость', description: 'Что-то древнее. Узнать бы, что это…', stack: 1, model: 'nature:fossil', price: 100,
+      held: { grip: [3, 1, 3] } },
+    { id: 'nature:iron', name: 'Железный самородок', stack: 30, model: 'nature:iron', tags: ['core:materials'], price: 375,
+      held: { grip: [2, 1, 2] } },
+  ],
+  tags: {
+    'nature:rock_tools': ['core:shovel', 'core:axe'],
+  },
+}

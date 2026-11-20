@@ -1,0 +1,18 @@
+[
+  { id: 'nature:rustle', volume: 0.8, pitchJitter: 0.1, layers: [
+    { wave: 'noise', duration: 0.38, attack: 0.04, gain: 0.22, filter: { type: 'bandpass', freq: 2800, freqEnd: 1800, q: 0.6 } },
+    { wave: 'noise', delay: 0.12, duration: 0.25, gain: 0.12, filter: { type: 'bandpass', freq: 3400, q: 0.8 } },
+  ] },
+  { id: 'nature:fruit_drop', volume: 0.7, pitchJitter: 0.15, layers: [
+    { wave: 'sine', freq: 230, freqEnd: 140, duration: 0.08, gain: 0.22 },
+    { wave: 'noise', duration: 0.03, gain: 0.06, filter: { type: 'lowpass', freq: 900 } },
+  ] },
+  { id: 'nature:chop', volume: 0.9, pitchJitter: 0.08, layers: [
+    { wave: 'triangle', freq: 190, freqEnd: 120, duration: 0.12, gain: 0.3 },
+    { wave: 'noise', duration: 0.04, gain: 0.16, filter: { type: 'bandpass', freq: 2200, q: 1.2 } },
+  ] },
+  { id: 'nature:rock_hit', volume: 0.8, pitchJitter: 0.1, layers: [
+    { wave: 'sine', freq: 950, freqEnd: 720, duration: 0.09, gain: 0.18 },
+    { wave: 'noise', duration: 0.05, gain: 0.14, filter: { type: 'highpass', freq: 2000 } },
+  ] },
+]

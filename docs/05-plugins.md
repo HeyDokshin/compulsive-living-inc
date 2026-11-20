@@ -58,6 +58,9 @@ export default definePlugin({
 | `api.audio.play(id, { at, volume, pitch })` | звук из реестра `sounds` (синтез или файл); `at` — тише вдали от камеры |
 | `api.audio.note({ wave, freq, duration, at, bus })` / `api.audio.loop({...})` | отдельные ноты (генеративная музыка) и непрерывные звуки (прибой); `api.audio.ready` / `time` |
 | `api.fx.burst(id, at, { color, amount, scale })` | частицы из реестра `particles` |
+| `api.time.now()` / `hour` / `season` / `dayIndex` / `shift(ms)` | часы игры; события `time:hour`, `time:day` (`catchUp` для пропущенных дней), `time:season` |
+| хук `light:adjust` | поправить свет каждый кадр (погода) |
+| `api.save.hasData` | в сейве есть данные этого плагина (нет — новый остров или плагин появился позже: пора засеять) |
 | `api.render.refreshView(entity)` / `api.render.setZoom(z)` | пересобрать модель сущности после смены `model` / плавный зум |
 | события `ui:opened` / `ui:closed` | окно открыто или закрыто (по ним работает обучение) |
 | `api.world.pick(clientX, clientY)` / `api.input.pointer` | клетка под мышью (с учётом изгиба мира) |
@@ -169,6 +172,13 @@ api.save.register({
 - **Причёски и цвета** — записи реестра `wardrobe:options` (`content/wardrobe/wardrobe.options.json5`): `kind: 'style'` меняет модель части рига (`model.parts.head`), `kind: 'color'` — цвет канала палитры (`h s e t p o`). Новая причёска — это новая модель головы в данных.
 - **Шаги обучения** — реестр `tutorial:steps`: `{ id, order, text, keys, event, when }` или `check(api)`. Шаг засчитывается в любом порядке, прогресс сохраняется с островом. Команды: `tutorial reset`, `tutorial skip`.
 - **Музыка** — плагин `ambience`: аккорды, бас и мелодия по пентатонике, днём мажор, ночью тише и в миноре; после ~4 минут музыки пауза. Громкость: Esc → Настройки → «Музыка» и «Природа».
+
+## Время, погода, природа
+
+- **Время** идёт по часам устройства: за ночь деревья отрастят фрукты. Для тестов: `time 6:00`, `time +2d`, `time mode scaled` (быстрые сутки).
+- **Погода** — реестр `weather:types` (веса по сезонам, свет, осадки). `weather` показывает прогноз, `weather rain` фиксирует погоду, `weather auto` возвращает прогноз. Сервис `weather:forecast` отвечает, был ли дождь в нужный день.
+- **Деревья** — реестр `nature:trees` (фрукт, модель фрукта на ветках, саженец, цвета кроны по сезонам). Логика роста — чистая функция `plugins/nature/growth.ts`. Команда `trees`.
+- **Цветы** — реестр `garden:species` (цвета, базовые цвета, правила скрещивания). Предметы «вид × цвет» и семена создаются из этих данных. Команда `flowers`.
 
 ## Модели и персонажи
 

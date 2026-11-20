@@ -1,0 +1,139 @@
+// Nature models (text layers, see content/core/models.json5 for the format).
+[
+  // Tree trunk 3×12×3
+  {
+    id: 'nature:trunk',
+    palette: {"w": "#b0805a", "k": "#93664a"},
+    layers: [
+      ['www', 'www', 'www'],
+      ['kwk', 'kwk', 'kwk'],
+      ['.w.', 'www', '.w.'],
+      ['.w.', 'www', '.w.'],
+      ['.w.', 'www', '.w.'],
+      ['.w.', 'kwk', '.w.'],
+      ['.w.', 'www', '.w.'],
+      ['.w.', 'www', '.w.'],
+      ['.w.', 'www', '.w.'],
+      ['.w.', 'kwk', '.w.'],
+      ['.w.', 'www', '.w.'],
+      ['.w.', 'www', '.w.'],
+    ],
+  },
+  // Round canopy 14×11×14 — l leaves, d shade, h highlights (recolored per season)
+  {
+    id: 'nature:canopy',
+    palette: {"l": "#7cc45e", "d": "#5aa64a", "h": "#9ad97a"},
+    layers: [
+      ['..............', '..............', '..............', '......dd......', '.....dhddd....', '....ddddhd....', '...dddddhd....', '...dddddddd...', '....ddddddd...', '.....ddddd....', '.....dddd.....', '..............', '..............', '..............'],
+      ['..............', '..............', '....ddddd.....', '...dddddddd...', '..ddhddddhh...', '..ddhddddddd..', '..ddddddhddd..', '..ddddddddhd..', '..dddddddddd..', '..ddddddddd...', '...dddhdddd...', '....ddddd.....', '..............', '..............'],
+      ['..............', '....d.ddd.....', '...dhdddddd...', '..ddddddddd...', '.ddddddddddd..', '.dddddhdhdddd.', '.dddddddhdhdd.', '.ddddddddddd..', '.hdddddddddd..', '.dhddddddddd..', '..ddddddddhd..', '...ddddddhd...', '......dddd....', '..............'],
+      ['.....dd.d.....', '....hddddd....', '...ddddhdddd..', '..ddhdddhddd..', '.dddddddddddd.', 'ddhhddddddddd.', 'ddhdddddddddd.', 'dddddddddddddd', '.ddddddhdddddd', '.dhhddhdddddd.', '.ddhdddddhddd.', '...ddddddddd..', '...dddddddd...', '......dd......'],
+      ['....lll.l.....', '...dhlllllhl..', '..ldlllllhll..', '..lhldhhlllll.', '.lhllhlllllll.', 'lldldhllldlll.', 'lllllllllllll.', 'ldllllllllllld', '.llldlllllllll', '.ldllldldllll.', '.llllhlllllll.', '..lllhlhllll..', '...llhlllll...', '.....dl..h....'],
+      ['.....d.ldl....', '...lllllllh...', '..lllllldlll..', '.lllllllllll..', '.hllldhllllhhl', 'llllldlldllll.', 'dlddllllldldl.', 'lllhllllllldll', '.llllllllllhlh', '.llhhllhlldll.', '.lhllldllhlll.', '..ldllllldld..', '...llllllld...', '......llll....'],
+      ['.....lh.l.....', '....llllll....', '...lllllllll..', '..llllllllll..', '.dlllllllllll.', 'lllllllllllhl.', 'llllllllllhlh.', 'llllllllllllll', '.lllldllllldll', '.lhhlllllllll.', '.llllllhlllhl.', '...lllhlhlll..', '...lhllllll...', '.....lll......'],
+      ['..............', '....lllll.....', '...hlddlllll..', '..llllhlllll..', '..llhdlldllll.', '.lhhldlhllhll.', '.llllhhlhlldl.', '..lllllllhlll.', '..llllldlldll.', '..lllllllllld.', '...lllllllll..', '...hlllldhll..', '....llll......', '..............'],
+      ['..............', '..............', '......hhh.....', '..hhldlllll...', '..hhlhlhhlh...', '..lhhhlhhdll..', '..llhlhhhllh..', '..hllhhllhll..', '..hlhlhllll...', '..hhlhldlhl...', '...dlhhldl....', '....h.lhl.....', '..............', '..............'],
+      ['..............', '..............', '..............', '......hl......', '.....lhlhh....', '....hhdllh....', '...hlhllll....', '...llhhllhl...', '....hlhdhll...', '.....hlhlh....', '.....lhhl.....', '..............', '..............', '..............'],
+      ['..............', '..............', '..............', '..............', '..............', '..............', '..............', '..............', '..............', '..............', '..............', '..............', '..............', '..............'],
+    ],
+  },
+  // Small apple hanging on the tree
+  {
+    id: 'nature:fruit_apple',
+    palette: {"f": "#ef6a6a", "l": "#ff9e9e", "s": "#7cc96a"},
+    layers: [
+      ['.f.', 'fff', '.f.'],
+      ['fff', 'fff', 'fff'],
+      ['.f.', 'fff', '.fl'],
+      ['...', '.s.', '...'],
+    ],
+  },
+  // Small peach hanging on the tree
+  {
+    id: 'nature:fruit_peach',
+    palette: {"f": "#ffb59a", "l": "#ffd6c4", "s": "#7cc96a"},
+    layers: [
+      ['.f.', 'fff', '.f.'],
+      ['fff', 'fff', 'fff'],
+      ['.f.', 'fff', '.fl'],
+      ['...', '.s.', '...'],
+    ],
+  },
+  // Small orange hanging on the tree
+  {
+    id: 'nature:fruit_orange',
+    palette: {"f": "#ffa94d", "l": "#ffc98a", "s": "#7cc96a"},
+    layers: [
+      ['.f.', 'fff', '.f.'],
+      ['fff', 'fff', 'fff'],
+      ['.f.', 'fff', '.fl'],
+      ['...', '.s.', '...'],
+    ],
+  },
+  // Empty model (hidden rig parts)
+  {
+    id: 'nature:none',
+    palette: {"x": "#000000"},
+    layers: [
+      ['.'],
+    ],
+  },
+  // Sapling
+  {
+    id: 'nature:sapling',
+    palette: {"w": "#9a7a52", "l": "#8fd06a"},
+    layers: [
+      ['.....', '.....', '..w..', '.....', '.....'],
+      ['.....', '.....', '..w..', '.....', '.....'],
+      ['.....', '.....', '..w..', '.....', '.....'],
+      ['.....', '.....', '..w..', '.....', '.....'],
+      ['.....', '.....', '.lw..', '.....', '.....'],
+      ['.....', '..l..', '...l.', '.....', '.....'],
+      ['.....', '.....', '.lll.', '..l..', '.....'],
+      ['.....', '.....', '..l..', '.....', '.....'],
+    ],
+  },
+  // Boulder — hit with a shovel or an axe
+  {
+    id: 'nature:rock',
+    palette: {"r": "#aeb2bd", "h": "#c9ccd5", "d": "#8e93a0", "m": "#a5cf8a"},
+    layers: [
+      ['..rrddrd..', '.hrrrrrdr.', '.rhdrrrdr.', 'hrdrrrrrrr', 'rddrrrrrrd', 'rrrrrrdrrd', '.rdrrrrrrr', '.rhrrrrrr.', '..rrdrrr..'],
+      ['..drdrrd..', '.rrhrdrrr.', '.rdddrrdr.', 'rdhrrhrrdr', 'rrrrrdrrdd', 'ddrdrdddrr', '.ddrdrrrd.', '.ddrdddrr.', '...rrdrr..'],
+      ['...hrrr...', '.rhrrrrr..', '.rrrrrrrh.', '.rrrrrrrrr', 'rrhrrrhhrr', 'rrhrrrrrr.', '.rrrrhrrr.', '..hrrhrhr.', '....rrr...'],
+      ['..........', '..hrrrrr..', '..hrrrrr..', '.rrrhrrrr.', '.rrhrrrrr.', '.rrrhrrrr.', '..rrrrrrr.', '..rrrrrr..', '..........'],
+      ['..........', '....rrr...', '..rrrrrr..', '.rhrrrhrr.', '.rrhrrrrh.', '.hrrhrrr..', '..hrrrrh..', '...rrr....', '..........'],
+      ['..........', '..........', '...hhhm...', '..mmhhhm..', '..hhhmhh..', '...hhmhh..', '...hhhh...', '..........', '..........'],
+      ['..........', '..........', '..........', '...mm.....', '..........', '.....h....', '..........', '..........', '..........'],
+    ],
+  },
+  // Dig spot: a star-shaped crack in the ground
+  {
+    id: 'nature:dig_spot',
+    palette: {"c": "#7a5638", "d": "#5c3f28"},
+    layers: [
+      ['....c....', '.c..c..c.', '..c.c.c..', '....c....', 'ccccdcccc', '....c....', '..c.c.c..', '.c..c..c.', '....c....'],
+    ],
+  },
+  // Fossil item
+  {
+    id: 'nature:fossil',
+    scale: 0.0625,
+    palette: {"b": "#d9c7a8", "s": "#a8916c"},
+    layers: [
+      ['..bb..', '.bbbb.', 'bbbbbb', 'bbbbbb', '.bbbb.', '..bb..'],
+      ['......', '..s...', '.s.s..', '....s.', '..ss..', '......'],
+    ],
+  },
+  // Iron nugget
+  {
+    id: 'nature:iron',
+    scale: 0.0625,
+    palette: {"i": "#9aa3b8", "h": "#d4dae6"},
+    layers: [
+      ['....', '.ih.', '.hh.', '....'],
+      ['.hi.', 'iiii', 'iiii', '.hi.'],
+      ['....', '.ii.', '.ih.', '....'],
+    ],
+  },
+]

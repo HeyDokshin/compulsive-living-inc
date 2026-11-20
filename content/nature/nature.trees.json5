@@ -1,0 +1,12 @@
+// Tree kinds. fruitItem: what shaking drops and what you plant to grow one; fruitModel: the small
+// fruit shown on the branches; sapling: item you get when digging up a young tree.
+// seasons: canopy colors per season (palette chars of nature:canopy: l leaves, d shade, h highlights).
+[
+  { id: 'nature:apple', name: 'Яблоня', fruitItem: 'core:apple', fruitModel: 'nature:fruit_apple', sapling: 'nature:sapling_apple' },
+  { id: 'nature:peach', name: 'Персик', fruitItem: 'core:peach', fruitModel: 'nature:fruit_peach', sapling: 'nature:sapling_peach' },
+  { id: 'nature:orange', name: 'Апельсин', fruitItem: 'core:orange', fruitModel: 'nature:fruit_orange', sapling: 'nature:sapling_orange' },
+  { id: 'nature:oak', name: 'Дуб', sapling: 'nature:sapling_oak',
+    seasons: {
+      autumn: { l: '#e8b04e', d: '#c98a3a', h: '#f2d27a' },
+    } },
+]

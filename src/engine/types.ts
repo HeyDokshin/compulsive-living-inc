@@ -16,6 +16,8 @@ import type { ModelDef, RigDef } from './models/defs'
 import type { ItemDef } from './items/defs'
 import type { SoundDef } from './audio/defs'
 import type { ParticleDef } from './fx/defs'
+import type { GameDate, Season } from './time/calendar'
+import type { LightState } from './render/dayCycle'
 import type { InteractionContext, InteractionDef } from './interact/Interactions'
 
 // ---------- components ----------
@@ -151,6 +153,11 @@ export interface GameEvents {
   /** A new game or a loaded save is fully set up (plugins started). */
   'session:started': { loaded: boolean; slot: string }
   'save:saved': { slot: string }
+  /** A new game hour started. */
+  'time:hour': { hour: number; dayIndex: number }
+  /** A new day started (also replayed for days missed while away: `catchUp` true for all but the last). */
+  'time:day': { dayIndex: number; date: GameDate; catchUp: boolean }
+  'time:season': { season: Season }
   'ui:opened': { id: string }
   'ui:closed': { id: string }
   'save:loaded': { slot: string }
@@ -174,6 +181,8 @@ export interface GameHooks {
   'movement:blocked': { value: boolean; ctx: { x: number; y: number; z: number } }
   /** Which item an actor holds (the inventory plugin answers this). */
   'interaction:held': { value: string | null; ctx: { actor: Entity } }
+  /** Adjust the light every frame (weather: darker skies, tints). Mutate and return the state. */
+  'light:adjust': { value: LightState; ctx: { hour: number } }
   /** Change or cancel a block edit made through `api.world.setBlock`. */
   'world:beforeSetBlock': { value: { id: string; cancelled: boolean }; ctx: { x: number; y: number; z: number; from: string } }
 }

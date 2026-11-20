@@ -77,11 +77,11 @@ export class ModelLibrary {
   }
 
   /** Parsed model + its definition (for icons, tools, previews). */
-  async getModel(id: string): Promise<{ model: VoxelModel; def: ModelDef; colors: string[] } | null> {
+  async getModel(id: string, palette?: Record<string, string>): Promise<{ model: VoxelModel; def: ModelDef; colors: string[] } | null> {
     const def = this.models.get(id)
     if (!def) return null
     const model = this.ready.get(id) ?? (await this.load(id, def))
-    return model ? { model, def, colors: resolveColors(model, def) } : null
+    return model ? { model, def, colors: resolveColors(model, def, palette) } : null
   }
 
   private withModel(id: string, cb: (model: VoxelModel, def: ModelDef) => void): void {

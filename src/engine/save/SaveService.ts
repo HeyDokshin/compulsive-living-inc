@@ -21,6 +21,8 @@ export interface SaverDef<T = unknown> {
 /** Collects and distributes everything a save holds. Pure orchestration — storage lives elsewhere. */
 export class SaveService {
   private savers = new Map<string, SaverDef & { owner: string }>()
+  /** Saver keys that received data from the last loaded save. */
+  readonly loadedKeys = new Set<string>()
   /** Data of plugins that are not loaded now — written back unchanged so it isn't lost. */
   private orphans: Record<string, SavedPlugin> = {}
 
@@ -63,6 +65,7 @@ export class SaveService {
   loadPlugins(plugins: Record<string, SavedPlugin>): string[] {
     const failed: string[] = []
     this.orphans = {}
+    this.loadedKeys.clear()
     for (const [key, saved] of Object.entries(plugins)) {
       const s = this.savers.get(key)
       if (!s) {
@@ -78,6 +81,7 @@ export class SaveService {
           log.warn(`"${key}" data is newer (v${saved.version}) than the plugin (v${s.version}); trying anyway`)
         }
         s.load(data)
+        this.loadedKeys.add(key)
       } catch (e) {
         failed.push(key)
         log.error(`loading "${key}" failed:`, e)
@@ -90,5 +94,6 @@ export class SaveService {
   /** Forget orphans (new game). */
   reset(): void {
     this.orphans = {}
+    this.loadedKeys.clear()
   }
 }

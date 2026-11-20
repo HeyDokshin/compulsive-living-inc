@@ -104,6 +104,7 @@ export class SessionManager {
       } else {
         this.session = { loaded: false, slot: opts.slot ?? this.session.slot, name: opts.name ?? 'Мой остров', createdAt: Date.now(), playTime: 0 }
         if (opts.seed !== undefined) g.worldConfig.seed = opts.seed
+        g.time.reset() // a new island starts today
       }
       g.panel.refresh()
       await g.plugins.loadAll(async () => {
@@ -123,6 +124,7 @@ export class SessionManager {
       if (!g.camera.follow) g.camera.center()
       this.sinceSave = 0
       g.events.emit('session:started', { loaded: !!save, slot: this.session.slot })
+      g.time.flushCatchUp() // days that passed while away (plugins are listening now)
       log.info(save ? `loaded "${save.meta.name}" (${save.meta.slot})` : `new island, seed ${g.worldConfig.seed}`)
     } finally {
       this.switching = false

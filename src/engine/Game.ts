@@ -40,6 +40,8 @@ import { Particles } from './fx/Particles'
 import { ParticleDefSchema, type ParticleDef } from './fx/defs'
 import { BlockSchema, PrefabSchema, type BlockDef, type CommandDef, type GameEvents, type GameHooks, type PrefabDef } from './types'
 import { createLogger } from './util/log'
+import { TimeService, type SavedTime } from './time/TimeService'
+import { Clock } from './time/Clock'
 import { isPlainObject } from './util/objects'
 
 export type GamePlugin = PluginDefinition<PluginApi>
@@ -98,6 +100,7 @@ export class Game {
   readonly audio: Audio
   readonly particles: Particles
   readonly sessions: SessionManager
+  readonly time: TimeService
   readonly plugins: PluginManager<PluginApi>
   readonly panel: DebugPanel
   readonly devConsole: DevConsole
@@ -131,6 +134,14 @@ export class Game {
     this.audio = new Audio(this.sounds, this.engineConfig.audio)
     this.particles = new Particles(this.renderer.scene, this.particleDefs)
     this.sessions = new SessionManager(this)
+    this.time = new TimeService(this.engineConfig.time, this.events)
+    // The clock is part of every save; days missed while away are replayed after the session starts.
+    this.sessions.saves.register(
+      'engine:time',
+      { version: 1, save: () => this.time.save(), load: (d) => this.time.load(d as SavedTime) },
+      'engine',
+    )
+    this.renderer.adjustLight = (state, hour) => this.hooks.run('light:adjust', state, { hour })
     this.panel = new DebugPanel(this.config)
     this.devConsole = new DevConsole(this.commands)
     this.plugins = new PluginManager((def) => createPluginScope(this, def))
@@ -303,6 +314,8 @@ export class Game {
       this.particles.update(ctx.dt)
       this.audio.listener.x = this.renderer.iso.target.x
       this.audio.listener.z = this.renderer.iso.target.z
+      this.time.tick(ctx.dt, this.loop.paused)
+      if (this.engineConfig.time.drivesLight) this.engineConfig.light.time = this.time.now().hour
       this.renderer.render(ctx)
       this.sessions.tick(ctx.dt, this.loop.paused)
       if (!this.engineConfig.debug.showPanel) return
@@ -327,6 +340,7 @@ export class Game {
     this.input.define('engine:menu', ['Pad9'], 'engine')
     this.input.on('engine:menu', toggleMenu)
     this.ui.window({ id: 'engine:menu', title: 'Меню', component: () => h(GameMenu, { game: this }) }, 'engine')
+    this.ui.slot('hud.topRight', () => h(Clock, { game: this }), 'engine', 0)
     this.ui.slot('hud.topRight', () => h(FpsMeter, { game: this }), 'engine', 100)
   }
 }

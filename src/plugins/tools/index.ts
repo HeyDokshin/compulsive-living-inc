@@ -1,7 +1,7 @@
 /**
  * What tools do — entries of the interaction matrix (tool × target → effect).
- * The shovel really digs and fills holes; the other tools answer with a friendly note until
- * their stage arrives (trees — stage 5, fish and bugs — stage 6). Adding a tool action is one
+ * The shovel really digs and fills holes; trees, rocks and flowers add their own actions in the
+ * nature and garden plugins. Net and rod answer with a friendly note until stage 6 (fish and bugs). Adding a tool action is one
  * `interactions.register(...)` call, from any plugin.
  */
 import { definePlugin, z } from '@sdk'
@@ -107,7 +107,7 @@ export default definePlugin({
       label: 'Полить',
       sound: 'core:splash',
       particles: 'core:splash',
-      run: () => note('Трава благодарна. Цветы появятся на этапе 5.'),
+      run: () => note('Поливайте цветы — политые цветы рядом друг с другом размножаются.'),
     })
     interactions.register({
       id: 'tools:net_swing',
@@ -123,7 +123,7 @@ export default definePlugin({
       priority: -10,
       label: 'Взмахнуть топором',
       sound: 'core:swing',
-      run: () => note('Рубить пока нечего — деревья вырастут на этапе 5.'),
+      run: () => note('Подойдите к дереву, чтобы нарубить древесины.'),
     })
     // Any tool, nothing to do: just a swing (keeps the controls feeling alive).
     interactions.register({
