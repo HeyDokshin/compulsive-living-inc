@@ -1,4 +1,4 @@
-/** Grid A* for click-to-walk (pure). Cells are columns (x, z). */
+/** Grid A* over columns (x, z) — pure; plugins get it from '@sdk' (click-to-walk, villagers). */
 
 export interface Cell {
   x: number

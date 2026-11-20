@@ -1,0 +1,25 @@
+// Characters: how a villager spends the day and what they like.
+//   schedule  [from, to) hours → activity: sleep (at home) · wander (near home) · plaza (middle of the island)
+//             · garden (waters flowers) · shore (walks to the water) · visit (the museum, the shop)
+//   likes / dislikes  item tags (a gift they love / don't care for)
+//   voice     pitch of the babble (Hz), speed  seconds per letter
+{
+  entries: [
+    { id: 'villagers:sleepy', name: 'Соня', voice: 240, speed: 0.034, likes: ['#core:fruits', '#decor:pieces'], dislikes: ['#collection:bugs'],
+      schedule: [[0, 9, 'sleep'], [9, 12, 'wander'], [12, 15, 'plaza'], [15, 19, 'garden'], [19, 22, 'wander'], [22, 24, 'sleep']] },
+    { id: 'villagers:sporty', name: 'Спортсмен', voice: 300, speed: 0.022, likes: ['#collection:fish', '#core:fruits'], dislikes: ['#decor:pieces'],
+      schedule: [[0, 6, 'sleep'], [6, 9, 'shore'], [9, 13, 'plaza'], [13, 17, 'shore'], [17, 21, 'wander'], [21, 24, 'sleep']] },
+    { id: 'villagers:elegant', name: 'Модница', voice: 420, speed: 0.028, likes: ['#garden:flowers', '#decor:pieces'], dislikes: ['#core:materials'],
+      schedule: [[0, 9, 'sleep'], [9, 12, 'visit'], [12, 16, 'garden'], [16, 20, 'plaza'], [20, 24, 'sleep']] },
+    { id: 'villagers:dreamy', name: 'Мечтательница', voice: 460, speed: 0.03, likes: ['#garden:flowers', '#core:beach_finds'], dislikes: ['#collection:fossils'],
+      schedule: [[0, 8, 'sleep'], [8, 11, 'shore'], [11, 15, 'garden'], [15, 19, 'shore'], [19, 23, 'wander'], [23, 24, 'sleep']] },
+    { id: 'villagers:cheerful', name: 'Весельчак', voice: 380, speed: 0.024, likes: ['#collection:bugs', '#collection:fish'], dislikes: [],
+      schedule: [[0, 7, 'sleep'], [7, 10, 'plaza'], [10, 14, 'shore'], [14, 18, 'visit'], [18, 22, 'plaza'], [22, 24, 'sleep']] },
+    { id: 'villagers:grumpy', name: 'Ворчун', voice: 200, speed: 0.032, likes: ['#collection:fossils', '#core:materials'], dislikes: ['#garden:flowers'],
+      schedule: [[0, 10, 'sleep'], [10, 13, 'wander'], [13, 17, 'visit'], [17, 23, 'wander'], [23, 24, 'sleep']] },
+    { id: 'villagers:caring', name: 'Заботливая', voice: 350, speed: 0.027, likes: ['#garden:flowers', '#core:fruits'], dislikes: [],
+      schedule: [[0, 7, 'sleep'], [7, 11, 'garden'], [11, 14, 'plaza'], [14, 18, 'garden'], [18, 22, 'wander'], [22, 24, 'sleep']] },
+    { id: 'villagers:bookish', name: 'Книжник', voice: 280, speed: 0.03, likes: ['#collection:fossils', '#crafting:cards'], dislikes: ['#core:fruits'],
+      schedule: [[0, 8, 'sleep'], [8, 12, 'visit'], [12, 15, 'wander'], [15, 19, 'visit'], [19, 23, 'plaza'], [23, 24, 'sleep']] },
+  ],
+}

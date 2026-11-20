@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { pickCurved, raycastVoxels } from '../src/engine/world/pick'
-import { findPath } from '../src/plugins/player/path'
+import { findPath } from '../src/engine/world/path'
 
 const ground = (x: number, y: number, z: number) => y < 2 || (x === 5 && z === 5 && y < 4)
 

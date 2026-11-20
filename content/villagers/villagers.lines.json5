@@ -1,0 +1,75 @@
+// What villagers say. Each entry: a topic, optional conditions, a few lines (one is picked).
+// A line for the villager's own personality beats a general one; among those, the most specific
+// conditions win. Placeholders: {name} {phrase} {animal} {player} {other} {item} {request} {hearts};
+// {a} — the villager's own ending ("рад{a}" → рад / рада).
+//   when: { hours: [from, to), weather: rain | dry, minHearts, maxHearts, seasons: [...] }
+{
+  entries: [
+    // --- meeting ------------------------------------------------------------------------------
+    { id: 'villagers:hello', topic: 'hello', lines: [
+      'Привет! Я {name}, {animal}. Теперь мы соседи, {phrase}!',
+      'Ой, здравствуй! Меня зовут {name}. Я только что переехал{a} — {phrase}!',
+    ] },
+
+    // --- greetings ----------------------------------------------------------------------------
+    { id: 'villagers:greet', topic: 'greet', lines: ['Привет, {player}! {phrase}!', 'О, это ты! Как дела, {phrase}?', 'Здравствуй-здравствуй, {phrase}!'] },
+    { id: 'villagers:greet_morning', topic: 'greet', when: { hours: [5, 11] }, lines: ['Доброе утро, {player}! Уже на ногах, {phrase}?', 'Утро — моё любимое время, {phrase}!'] },
+    { id: 'villagers:greet_evening', topic: 'greet', when: { hours: [18, 23] }, lines: ['Добрый вечер, {phrase}! Скоро звёзды.', 'Вечер такой тихий… {phrase}.'] },
+    { id: 'villagers:greet_rain', topic: 'greet', when: { weather: 'rain' }, lines: ['Ну и ливень, {phrase}! Цветам-то хорошо.', 'Люблю дождь: шуршит, как сказка, {phrase}.'] },
+    { id: 'villagers:greet_friend', topic: 'greet', when: { minHearts: 3 }, lines: ['{player}! Я так рад{a} тебя видеть, {phrase}!', 'А я как раз о тебе думал{a}, {phrase}!'] },
+    { id: 'villagers:greet_grumpy', topic: 'greet', personality: 'villagers:grumpy', when: { maxHearts: 2 }, lines: ['Хм. Ты опять. {phrase}.', 'Чего тебе, {phrase}?'] },
+    { id: 'villagers:greet_sporty', topic: 'greet', personality: 'villagers:sporty', lines: ['Йо, {player}! Разминаешься? {phrase}!', 'Пять кругов по острову — и я как новенький, {phrase}!'] },
+    { id: 'villagers:greet_elegant', topic: 'greet', personality: 'villagers:elegant', lines: ['Ах, {player}, ты сегодня мило выглядишь, {phrase}.', 'Здравствуй, дорогуша, {phrase}.'] },
+    { id: 'villagers:greet_sleepy', topic: 'greet', personality: 'villagers:sleepy', lines: ['Приве-е-ет… {phrase}… я, кажется, задремал{a}.', 'О, {player}! А у тебя нет чего-нибудь вкусненького, {phrase}?'] },
+    { id: 'villagers:greet_night', topic: 'greet', when: { hours: [0, 5] }, lines: ['Ты чего не спишь, {phrase}? Я вот тоже…', 'Ночью остров совсем другой, {phrase}.'] },
+
+    // --- small talk ---------------------------------------------------------------------------
+    { id: 'villagers:chat', topic: 'chat', lines: [
+      'Я вчера видел{a}, как {other} разговаривает с цветами. Это мило, {phrase}.',
+      'Говорят, в музее появились новые экспонаты. Надо сходить, {phrase}!',
+      'Лавка Тоши сегодня такая нарядная, {phrase}.',
+      'Знаешь, что я люблю в нашем острове? Тишину, {phrase}.',
+      'Если будешь в музее — передай привет Мире, {phrase}!',
+    ] },
+    { id: 'villagers:chat_summer', topic: 'chat', when: { seasons: ['summer'] }, lines: ['Летом море такое тёплое, {phrase}!', 'Слышишь цикад? Значит, лето, {phrase}.'] },
+    { id: 'villagers:chat_autumn', topic: 'chat', when: { seasons: ['autumn'] }, lines: ['Листья такие рыжие — прямо как шарфик, {phrase}.', 'Осенью щука клюёт, говорят. Не проверял{a}, {phrase}.'] },
+    { id: 'villagers:chat_winter', topic: 'chat', when: { seasons: ['winter'] }, lines: ['Бр-р, холодно! Пойду домой греться, {phrase}.', 'Снег скрипит под лапами — красота, {phrase}.'] },
+    { id: 'villagers:chat_spring', topic: 'chat', when: { seasons: ['spring'] }, lines: ['Всё цветёт! У меня от этого настроение, {phrase}.', 'Весной на цветах так много бабочек, {phrase}!'] },
+    { id: 'villagers:chat_rain', topic: 'chat', when: { weather: 'rain' }, lines: ['В дождь на камни выползают улитки, {phrase}. Представляешь?'] },
+    { id: 'villagers:chat_friend', topic: 'chat', when: { minHearts: 4 }, lines: [
+      'Знаешь, с тобой на острове стало веселее, {phrase}.',
+      'Если когда-нибудь тебе будет грустно — заходи ко мне, {phrase}.',
+    ] },
+    { id: 'villagers:chat_bookish', topic: 'chat', personality: 'villagers:bookish', lines: [
+      'А ты в курсе, что трилобиты жили задолго до динозавров, {phrase}?',
+      'Я дочитал{a} третью книгу за неделю, {phrase}. Рекомендую!',
+    ] },
+    { id: 'villagers:chat_grumpy', topic: 'chat', personality: 'villagers:grumpy', lines: ['Все слишком шумные. Кроме тебя. Пока что, {phrase}.', 'Окаменелости — вот это вещь. Не то что ваши цветочки, {phrase}.'] },
+    { id: 'villagers:chat_sporty', topic: 'chat', personality: 'villagers:sporty', lines: ['Плавание! Бег! Рыбалка! В смысле… рыбалка — это тоже спорт, {phrase}!'] },
+    { id: 'villagers:chat_dreamy', topic: 'chat', personality: 'villagers:dreamy', lines: ['Иногда я лежу у воды и считаю облака, {phrase}.', 'Ракушки шепчут, если приложить к уху, {phrase}.'] },
+    { id: 'villagers:chat_caring', topic: 'chat', personality: 'villagers:caring', lines: ['Ты хорошо кушаешь, {player}? Смотри у меня, {phrase}!', 'Я полил{a} цветы у дорожки. Они так благодарно кивают, {phrase}.'] },
+    { id: 'villagers:chat_cheerful', topic: 'chat', personality: 'villagers:cheerful', lines: ['Я поймал{a} бабочку и сразу отпустил{a}! Она такая красивая была, {phrase}!'] },
+
+    // --- gifts --------------------------------------------------------------------------------
+    { id: 'villagers:gift_love', topic: 'gift_love', lines: ['Ого! «{item}»! Это же то, что я люблю больше всего, {phrase}!', 'Мне?! «{item}»! Спасибо-спасибо, {phrase}!'] },
+    { id: 'villagers:gift_like', topic: 'gift_like', lines: ['«{item}»? Как приятно, спасибо, {phrase}!', 'Ой, спасибо! Найду, куда поставить «{item}», {phrase}.'] },
+    { id: 'villagers:gift_neutral', topic: 'gift_neutral', lines: ['Хм, «{item}». Спасибо, {phrase}.', '«{item}»… Ну что ж, пригодится, {phrase}.'] },
+    { id: 'villagers:gift_dislike', topic: 'gift_dislike', lines: ['«{item}»?.. Ну… спасибо, наверное, {phrase}.', 'Э-э… Это мне? Ладно, {phrase}…'] },
+    { id: 'villagers:gift_full', topic: 'gift_full', lines: ['Сегодня подарков уже достаточно! Оставь себе, {phrase}.'] },
+    { id: 'villagers:gift_back', topic: 'gift_back', lines: ['Держи, это тебе в ответ, {phrase}! «{item}».', 'У меня для тебя тоже кое-что есть: «{item}», {phrase}!'] },
+    { id: 'villagers:photo', topic: 'photo', lines: ['Ты мой лучший друг на острове. Вот, держи мою фотографию, {phrase}. На память!'] },
+
+    // --- requests -----------------------------------------------------------------------------
+    { id: 'villagers:request_ask', topic: 'request_ask', lines: ['Слушай, а можешь принести мне {request}? Я в долгу не останусь, {phrase}!', 'Мне бы {request}… Поможешь, {phrase}?'] },
+    { id: 'villagers:request_waiting', topic: 'request_waiting', lines: ['Помнишь, я просил{a} {request}? Я всё ещё жду, {phrase}.'] },
+    { id: 'villagers:request_none', topic: 'request_none', lines: ['У меня всё хорошо, спасибо, {phrase}!', 'Да вроде ничего не нужно, {phrase}. Просто рад{a} поболтать.'] },
+    { id: 'villagers:request_thanks', topic: 'request_thanks', lines: ['Ура, {item}! Ты лучший сосед, {phrase}! Вот, держи за помощь.', 'Это же {item}! Спасибо огромное, {phrase}!'] },
+
+    // --- moving -------------------------------------------------------------------------------
+    { id: 'villagers:leaving', topic: 'leaving', lines: ['Знаешь… я подумываю переехать на другой остров, {phrase}. Как думаешь?'] },
+    { id: 'villagers:stay', topic: 'stay', lines: ['Правда? Ты хочешь, чтобы я остался{a}? Тогда остаюсь, {phrase}!'] },
+    { id: 'villagers:farewell', topic: 'farewell', lines: ['Спасибо, что понимаешь. Буду скучать, {phrase}…'] },
+
+    { id: 'villagers:bye', topic: 'bye', lines: ['Пока-пока, {phrase}!', 'Увидимся, {phrase}!', 'Заходи ещё, {phrase}!'] },
+  ],
+}

@@ -3,9 +3,8 @@
  * no walking off cliffs or into water, smooth turning, camera follow, a soft cursor on the
  * cell in front of the player, and the "use" button that runs the interaction matrix there.
  */
-import { definePlugin, signal, ui, z, type Entity, type PluginApi } from '@sdk'
+import { definePlugin, findPath, signal, ui, z, type Cell, type Entity, type PluginApi } from '@sdk'
 import { moveBody, type Body, type MoveRules, type WorldQuery } from './physics'
-import { findPath, type Cell } from './path'
 
 declare module '@sdk' {
   interface Components {

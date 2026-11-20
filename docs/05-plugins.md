@@ -210,6 +210,13 @@ api.save.register({
 - **Сундук** — поделка `decor:chest` (плагин `storage`): у каждого свои ячейки (компонент `storage`). Хук `decor:canTake` не даёт унести непустой.
 - Команды: `shop`, `market`, `bells 5000`, `recipes [all]`, `decor [all]`.
 
+## Жители
+
+- **Характеры** — `villagers:personalities`: `voice`, `speed`, `likes` / `dislikes` (теги), `schedule` ([с, до, занятие]: sleep · wander · plaza · garden · shore · visit).
+- **Жители** — `villagers:villagers`: имя, `she`, животное, голова (`villagers:head_<животное>`), характер, присказка, цвета рига и дома.
+- **Реплики** — `villagers:lines`: `{ topic, personality?, when?: { hours, weather, minHearts, maxHearts, seasons }, lines }`. Темы: hello, greet, chat, gift_love/like/neutral/dislike, gift_full, gift_back, photo, request_ask/waiting/none/thanks, leaving, stay, farewell, bye. Выбор — чистая функция `plugins/villagers/talk.ts`.
+- Команды: `villagers`, `villagers add [id]`, `villagers friend <id> <очки>`, `villagers leave <id>`.
+
 ## Модели и персонажи
 
 Модель можно нарисовать прямо в данных (`content/<pack>/models.json5`): `layers` снизу вверх, в слое — ряды от задней стороны (-z) к передней (+z), в ряду — символы слева направо, `.` — пусто. `palette` сопоставляет символы цветам. 12 вокселей = 1 блок, перед модели смотрит в +z.

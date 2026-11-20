@@ -1,0 +1,23 @@
+// Who can live on the island. head = villagers:head_<animal>; colors recolor the chibi rig
+// (s fur — also the hands, S light fur, t shirt, p pants, o shoes) and the house (roof, walls, door).
+// she: true — for word endings in lines ({a}).
+{
+  entries: [
+    { id: 'villagers:ponchik', name: 'Пончик', animal: 'медвежонок', head: 'villagers:head_bear', personality: 'villagers:sleepy', phrase: 'ням',
+      colors: { s: '#b07a50', S: '#f2dcb8', t: '#ffd27a', p: '#8a6a4a', o: '#6e4630' }, house: { q: '#e8b45a', R: '#c8903a', d: '#8f5e3c' } },
+    { id: 'villagers:iriska', name: 'Ириска', she: true, animal: 'лисичка', head: 'villagers:head_fox', personality: 'villagers:elegant', phrase: 'ах',
+      colors: { s: '#e8844a', S: '#fff4e6', t: '#f6bccb', p: '#fffaf0', o: '#c8504a' }, house: { q: '#f6a8bc', R: '#e0849e', d: '#fffaf0' } },
+    { id: 'villagers:pryg', name: 'Прыг', animal: 'кролик', head: 'villagers:head_rabbit', personality: 'villagers:sporty', phrase: 'хоп',
+      colors: { s: '#f4efe6', S: '#ffffff', t: '#7fcfb0', p: '#4a6aa8', o: '#e8645a' }, house: { q: '#6fb7a8', R: '#4f9a8a', d: '#e8645a' } },
+    { id: 'villagers:kuvshinka', name: 'Кувшинка', she: true, animal: 'лягушка', head: 'villagers:head_frog', personality: 'villagers:dreamy', phrase: 'ква',
+      colors: { s: '#8fcf6a', S: '#e2f4c8', t: '#c8b6f0', p: '#7a8ad0', o: '#f2c14e' }, house: { q: '#a8c8f0', R: '#88a8d8', d: '#f2c14e' } },
+    { id: 'villagers:kryak', name: 'Кряк', animal: 'утёнок', head: 'villagers:head_duck', personality: 'villagers:cheerful', phrase: 'кря',
+      colors: { s: '#ffe08a', S: '#fff4cc', t: '#6aa0d8', p: '#3a5a8a', o: '#ffb34a' }, house: { q: '#ffd23a', R: '#e8b42a', d: '#6aa0d8' } },
+    { id: 'villagers:murka', name: 'Мурка', she: true, animal: 'кошка', head: 'villagers:head_cat', personality: 'villagers:grumpy', phrase: 'мрр',
+      colors: { s: '#9a9aa4', S: '#e6e6ec', t: '#5a5a6a', p: '#3a3a4a', o: '#2a2a30' }, house: { q: '#7a7a8a', R: '#5a5a6a', d: '#c8504a' } },
+    { id: 'villagers:kudryashka', name: 'Кудряшка', she: true, animal: 'овечка', head: 'villagers:head_sheep', personality: 'villagers:caring', phrase: 'бе-е',
+      colors: { s: '#5a4a4a', S: '#7a6a6a', w: '#fffaf0', t: '#ffb3c7', p: '#fffaf0', o: '#8a5a3a' }, house: { q: '#ffb3c7', R: '#e8879e', d: '#8a5a3a' } },
+    { id: 'villagers:syrok', name: 'Сырок', animal: 'мышонок', head: 'villagers:head_mouse', personality: 'villagers:bookish', phrase: 'пи',
+      colors: { s: '#c8c0b8', S: '#f4efe6', t: '#8a6aa8', p: '#4a4a5a', o: '#6e4630' }, house: { q: '#9a7ac8', R: '#7a5aa8', d: '#f2c14e' } },
+  ],
+}

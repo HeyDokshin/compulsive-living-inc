@@ -131,8 +131,8 @@ export default definePlugin({
       }
     }
     api.events.on('content:loaded', registerItems)
+    pieces.onChange(registerItems) // other plugins add pieces too (villagers' photos)
     registerItems()
-
 
     const look = (e: Entity) => {
       const d = e.decor!

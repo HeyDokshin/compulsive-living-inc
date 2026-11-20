@@ -71,3 +71,6 @@ export function definePlugin(def: Plugin): Plugin {
 export function voiceBlip(api: PluginApi, pitch: number): void {
   api.audio.note({ wave: 'triangle', freq: pitch * (0.85 + Math.random() * 0.35), duration: 0.045, gain: 0.05, attack: 0.004, bus: 'ui' })
 }
+
+// Pure helpers plugins share.
+export { findPath, type Cell, type PathOptions } from '../engine/world/path'
