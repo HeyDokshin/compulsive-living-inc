@@ -1,0 +1,9 @@
+// Path blocks: walkable ground (furniture can stand on them too).
+{
+  entries: [
+    { id: 'landscaping:path_stone', name: 'Каменная дорожка', color: '#d8d2c8', textures: { all: 'landscaping:path_stone' }, sounds: { step: 'core:step_stone' }, tags: ['core:ground', 'landscaping:paved'] },
+    { id: 'landscaping:path_brick', name: 'Кирпичная дорожка', color: '#e0957a', textures: { all: 'landscaping:path_brick' }, sounds: { step: 'core:step_stone' }, tags: ['core:ground', 'landscaping:paved'] },
+    { id: 'landscaping:path_wood', name: 'Деревянный настил', color: '#d9a56c', textures: { all: 'landscaping:path_wood' }, sounds: { step: 'core:step_wood' }, tags: ['core:ground', 'landscaping:paved'] },
+    { id: 'landscaping:path_dirt', name: 'Тропинка', color: '#d6ab84', textures: { all: 'landscaping:path_dirt' }, sounds: { step: 'core:step_sand' }, tags: ['core:ground', 'landscaping:paved'] },
+  ],
+}

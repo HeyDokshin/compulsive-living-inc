@@ -1,0 +1,10 @@
+// Path kits: hold one and press the action key on grass, sand or soil to pave that cell.
+// Each is an item (same id) sold in bundles at the shop.
+{
+  entries: [
+    { id: 'landscaping:stone', name: 'Каменная плитка', block: 'landscaping:path_stone', price: 60 },
+    { id: 'landscaping:brick', name: 'Кирпичная плитка', block: 'landscaping:path_brick', price: 70 },
+    { id: 'landscaping:wood', name: 'Доски для настила', block: 'landscaping:path_wood', price: 50 },
+    { id: 'landscaping:dirt', name: 'Мешочек земли для тропинки', block: 'landscaping:path_dirt', price: 30 },
+  ],
+}

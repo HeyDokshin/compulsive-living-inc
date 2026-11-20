@@ -60,7 +60,9 @@ describe('interiors', () => {
     const changes: Array<string | null> = []
     i.onChange = (id) => changes.push(id)
     i.area('museum')
-    expect(i.chunkVisible(0, 0)).toBe(true) // outside, a room's corner is just sea
+    expect(i.chunkVisible(0, 0)).toBe(true) // outside, a room's corner is just sea…
+    expect(i.pointVisible(5, 5)).toBe(false) // …and its furniture is not drawn
+    expect(i.roomAt(5, 5)).toBe('museum')
     expect(i.chunkVisible(3, 3)).toBe(true)
     i.enter('museum', { x: 60, y: 9, z: 61, rotY: 1 })
     expect(i.current).toBe('museum')

@@ -1,0 +1,16 @@
+// House interior textures (procedural).
+[
+  { id: 'house:baseboard', pattern: 'planks', colors: ['#c99a70'], params: { boards: 2 }, seed: 61 },
+  { id: 'house:wall_top', pattern: 'soft', colors: ['#e8d6b6', '#e0cca9'], params: { dots: 4 }, seed: 62 },
+  { id: 'house:wall_cream', pattern: 'speckle', colors: ['#f7ecd6', '#f0e2c6', '#fbf4e4'], seed: 63 },
+  { id: 'house:wall_mint', pattern: 'speckle', colors: ['#cdeee0', '#bfe4d4', '#dcf4ea'], seed: 64 },
+  { id: 'house:wall_rose', pattern: 'speckle', colors: ['#f8d6df', '#f0c6d2', '#fce4ea'], seed: 65 },
+  { id: 'house:wall_sky', pattern: 'speckle', colors: ['#d4e8f8', '#c4dcf0', '#e2f0fc'], seed: 66 },
+  { id: 'house:wall_logs', pattern: 'planks', colors: ['#c99560'], params: { boards: 3 }, seed: 67 },
+  { id: 'house:wall_brick', pattern: 'stone', colors: ['#d88a70', '#c87a60', '#e49a80'], seed: 68 },
+  { id: 'house:floor_planks', pattern: 'planks', colors: ['#e2b27f'], params: { boards: 4 }, seed: 69 },
+  { id: 'house:floor_dark', pattern: 'planks', colors: ['#8f5e3c'], params: { boards: 4 }, seed: 70 },
+  { id: 'house:floor_tiles', pattern: 'stone', colors: ['#eef0f2', '#e0e4e8', '#f8f8fa'], seed: 71 },
+  { id: 'house:floor_carpet', pattern: 'soft', colors: ['#f6c8a8', '#efbc9a', '#fbd6ba'], params: { dots: 9 }, seed: 72 },
+  { id: 'house:floor_grass', pattern: 'grass_top', colors: ['#9bd67a', '#b4e591', '#89c76a'], params: { blades: 9 }, seed: 73 },
+]

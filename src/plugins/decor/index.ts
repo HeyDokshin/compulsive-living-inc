@@ -8,6 +8,7 @@
  * Other plugins find pieces through the `decor:pieces` service (crafting repaints them).
  */
 import { definePlugin, z, type Entity, type PluginApi, type RegistryEntry } from '@sdk'
+import { fits, topmost, type Layer, type Placed } from './layers'
 
 export interface Variant {
   id: string
@@ -22,6 +23,12 @@ export interface PieceDef extends RegistryEntry {
   price: number
   stack: number
   blocker: boolean
+  /** floor (furniture) · rug · top (on a table) · wall (hangs on a wall, indoors). */
+  layer: Layer
+  /** Tables: height of the top other pieces stand on (blocks). */
+  surface: number
+  /** Only inside rooms (wall pieces). */
+  indoor: boolean
   glow?: { color: string; size: number; y: number; flicker: boolean }
   variants: Variant[]
 }
@@ -65,6 +72,9 @@ const PieceSchema = z.looseObject({
   price: z.number().int().min(0).default(100),
   stack: z.number().int().min(1).default(1),
   blocker: z.boolean().default(true),
+  layer: z.enum(['floor', 'rug', 'top', 'wall']).default('floor'),
+  surface: z.number().min(0).max(2).default(0),
+  indoor: z.boolean().default(false),
   glow: z.object({ color: z.string(), size: z.number().default(2), y: z.number().default(1), flicker: z.boolean().default(false) }).optional(),
   variants: z.array(z.object({ id: z.string(), name: z.string().default(''), palette: z.record(z.string(), z.string()).default({}) })).min(1),
 })
@@ -73,7 +83,13 @@ const Config = z.object({
   /** Brightness of lamp and bonfire light at night. */
   glow: z.number().min(0).max(2).default(1).meta({ step: 0.05 }),
   /** Ground blocks things can stand on (tags). */
-  groundTag: z.string().default('#core:ground'),
+  groundTags: z.array(z.string()).default(['#core:ground', '#house:floors']),
+  /** Rooms where pieces may be placed (others, like the museum hall, are not yours to furnish). */
+  rooms: z.array(z.string()).default(['house:home']),
+  /** Lamps and fires glow at least this much inside rooms, day or night. */
+  indoorGlow: z.number().min(0).max(1).default(0.55).meta({ label: 'indoor glow', step: 0.05 }),
+  /** Wall pieces hang this high above the floor (blocks). */
+  wallHeight: z.number().min(0).max(4).default(1.1).meta({ label: 'wall height', step: 0.05 }),
 })
 
 export const variantItemId = (pieceId: string, variantId: string) => `${pieceId}_${variantId}`
@@ -130,27 +146,76 @@ export default definePlugin({
     // --- placing and taking back -------------------------------------------------------------
     const blocks = api.registry('blocks')
     const inventory = () => api.services.get('items:inventory')
-    /** Ground height of a free cell, or null. */
-    const freeCell = (x: number, z: number): number | null => {
+    const decorQuery = api.entities.world.with('decor', 'transform')
+    const layerOf = (e: Entity): Layer => pieces.get(e.decor!.piece)?.layer ?? 'floor'
+    /** Decor pieces in a cell, as layer records. */
+    const placedAt = (x: number, z: number): Array<Placed<Entity>> => {
+      const out: Array<Placed<Entity>> = []
+      for (const e of decorQuery) {
+        if (Math.floor(e.transform.x) !== x || Math.floor(e.transform.z) !== z) continue
+        out.push({ layer: layerOf(e), surface: pieces.get(e.decor.piece)?.surface ?? 0, y: e.transform.y, ref: e })
+      }
+      return out
+    }
+    const ground = (x: number, z: number): number | null => {
       const y = api.world.surfaceY(x, z)
-      if (y <= 0 || !blocks.isTagged(api.world.getBlock(x, y - 1, z), cfg.groundTag)) return null
+      if (y <= 0 || !cfg.groundTags.some((t) => blocks.isTagged(api.world.getBlock(x, y - 1, z), t))) return null
       if (api.world.getBlock(x, y, z) !== api.world.AIR || api.world.getBlock(x, y + 1, z) !== api.world.AIR) return null
-      if (api.world.blockerAt(x, z) || api.hooks.run('movement:blocked', false, { x, y, z })) return null
-      for (const e of api.entities.world.with('transform')) if (Math.floor(e.transform.x) === x && Math.floor(e.transform.z) === z) return null
       return y
+    }
+    /** Ground height of a cell free for furniture (rugs don't count), or null. */
+    const freeCell = (x: number, z: number): number | null => {
+      const y = ground(x, z)
+      if (y === null || api.world.blockerAt(x, z) || api.hooks.run('movement:blocked', false, { x, y, z })) return null
+      for (const e of api.entities.world.with('transform')) {
+        if (Math.floor(e.transform.x) !== x || Math.floor(e.transform.z) !== z) continue
+        if (!e.decor || layerOf(e) !== 'rug') return null
+      }
+      return y
+    }
+    /** Where a piece would go in a cell (base height), or null. `actorY` = the floor the actor stands on. */
+    const spotFor = (piece: PieceDef, x: number, z: number, actorY: number): number | null => {
+      const room = api.interiors.current
+      if (room ? !cfg.rooms.includes(room) : piece.indoor) return null
+      const here = placedAt(x, z)
+      const rule = fits(piece.layer, here)
+      if (!rule.ok) return null
+      switch (piece.layer) {
+        case 'floor':
+          return freeCell(x, z)
+        case 'rug': {
+          // under furniture is fine; not under a tree or a rock
+          const y = ground(x, z)
+          const b = api.world.blockerAt(x, z)
+          return y !== null && (!b || !!b.decor) ? y : null
+        }
+        case 'top':
+          return rule.on ? rule.on.y + rule.on.surface : null
+        case 'wall': {
+          // a wall in front: solid where a picture would hang
+          const y = Math.round(actorY)
+          return api.world.isSolid(x, y, z) && api.world.isSolid(x, y + 1, z) ? y + cfg.wallHeight : null
+        }
+      }
     }
     const spawnPiece = (piece: PieceDef, variant: Variant, x: number, y: number, z: number, rotY: number) => {
       const e = api.entities.spawn({
         transform: { x: x + 0.5, y, z: z + 0.5, rotY },
         decor: { piece: piece.id, variant: variant.id },
-        blobShadow: { radius: 0.42, opacity: 0.18 },
-        ...(piece.blocker ? { blocker: { w: 1, d: 1, h: 2 } } : {}),
+        ...(piece.layer === 'floor' ? { blobShadow: { radius: 0.42, opacity: 0.18 } } : {}),
+        // wall pieces are found through the blocker index (the wall is the cell's top, not them)
+        ...((piece.blocker && piece.layer === 'floor') || piece.layer === 'wall' ? { blocker: { w: 1, d: 1, h: piece.layer === 'wall' ? 1 : 2 } } : {}),
       })
       look(e)
       return e
     }
     const take = (actor: Entity, e: Entity) => {
       if (!e.decor || !api.hooks.run('decor:canTake', true, { entity: e, actor })) return false
+      // a table with something on it: take that first
+      if (layerOf(e) === 'floor' && placedAt(Math.floor(e.transform!.x), Math.floor(e.transform!.z)).some((p) => p.layer === 'top')) {
+        api.ui.toast('Сначала заберите то, что стоит сверху.')
+        return false
+      }
       const id = variantItemId(e.decor.piece, e.decor.variant)
       if (inventory().add(actor, id, 1) > 0) return false // pockets full: the service says so
       api.entities.despawn(e)
@@ -171,6 +236,12 @@ export default definePlugin({
       },
     })
 
+    /** The piece the action key reaches in the target cell (what's on top of the stack). */
+    const reach = (ctx: { x: number; z: number; entities: Entity[] }) => {
+      const here = placedAt(ctx.x, ctx.z)
+      for (const e of ctx.entities) if (e.decor && !here.some((p) => p.ref === e)) here.push({ layer: layerOf(e), surface: 0, y: e.transform?.y ?? 0, ref: e })
+      return topmost(here)?.ref
+    }
     const interactions = api.registry('interactions')
     interactions.register({
       id: 'decor:place',
@@ -179,10 +250,13 @@ export default definePlugin({
       label: (ctx) => `Поставить: ${api.registry('items').get(ctx.held ?? '')?.name ?? ''}`,
       sound: 'core:drop',
       anim: 'pickup',
-      when: (ctx) => !api.interiors.current && !!ctx.held && byItem.has(ctx.held) && freeCell(ctx.x, ctx.z) !== null,
+      when: (ctx) => {
+        const what = ctx.held ? byItem.get(ctx.held) : undefined
+        return !!what && spotFor(what.piece, ctx.x, ctx.z, ctx.actor.transform!.y) !== null
+      },
       run: (ctx) => {
         const what = byItem.get(ctx.held!)
-        const y = freeCell(ctx.x, ctx.z)
+        const y = what ? spotFor(what.piece, ctx.x, ctx.z, ctx.actor.transform!.y) : null
         if (!what || y === null || inventory().remove(ctx.actor, ctx.held!, 1) < 1) return false
         const t = ctx.actor.transform!
         // face the actor, snapped to the grid
@@ -198,7 +272,10 @@ export default definePlugin({
       label: 'Забрать',
       sound: 'core:pickup',
       anim: 'pickup',
-      run: (ctx) => take(ctx.actor, ctx.target!),
+      run: (ctx) => {
+        const e = reach(ctx)
+        return !!e && take(ctx.actor, e)
+      },
     })
     interactions.register({
       id: 'decor:rotate',
@@ -209,7 +286,8 @@ export default definePlugin({
       anim: 'none',
       sound: 'core:drop',
       run: (ctx) => {
-        const t = ctx.target!.transform!
+        const t = reach(ctx)?.transform
+        if (!t) return false
         t.rotY = Math.round(t.rotY / (Math.PI / 2) + 1) * (Math.PI / 2)
       },
     })
@@ -240,7 +318,7 @@ export default definePlugin({
 })
 
 /** Soft halos over glowing pieces at night (sprites, pooled per entity). */
-function setupGlow(api: PluginApi, cfg: { glow: number }, piece: (id: string) => PieceDef | undefined) {
+function setupGlow(api: PluginApi, cfg: { glow: number; indoorGlow: number }, piece: (id: string) => PieceDef | undefined) {
   const T = api.render.three
   const group = api.render.add(new T.Group())
   const c = document.createElement('canvas')
@@ -269,7 +347,7 @@ function setupGlow(api: PluginApi, cfg: { glow: number }, piece: (id: string) =>
     phase: 'render',
     run: ({ dt }) => {
       time += dt
-      const n = night() * cfg.glow
+      const n = Math.max(night(), api.interiors.current ? cfg.indoorGlow : 0) * cfg.glow
       for (const [e, s] of halos) {
         if (!api.entities.world.has(e) || !e.decor) {
           s.removeFromParent()

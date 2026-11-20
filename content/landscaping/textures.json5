@@ -1,0 +1,6 @@
+[
+  { id: 'landscaping:path_stone', pattern: 'stone', colors: ['#d8d2c8', '#c8c2b8', '#e6e0d6'], seed: 81 },
+  { id: 'landscaping:path_brick', pattern: 'stone', colors: ['#e0957a', '#d0856a', '#eaa58a'], seed: 82 },
+  { id: 'landscaping:path_wood', pattern: 'planks', colors: ['#d9a56c'], params: { boards: 4 }, seed: 83 },
+  { id: 'landscaping:path_dirt', pattern: 'soft', colors: ['#d6ab84', '#c99a72', '#e2b892'], params: { dots: 8 }, seed: 84 },
+]

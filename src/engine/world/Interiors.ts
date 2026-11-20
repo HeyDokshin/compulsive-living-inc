@@ -94,9 +94,28 @@ export class Interiors {
     return !box || (cx === box.x / CHUNK && cz === box.z / CHUNK)
   }
 
-  /** Is a world point shown? (entities outside the current room are hidden while inside) */
+  /** Is a world point shown? Inside: only points in the room. Outside: not the furniture of rooms
+   * (their corners are open sea while nobody is in). */
   pointVisible(x: number, z: number): boolean {
-    return this.chunkVisible(Math.floor(x / CHUNK), Math.floor(z / CHUNK))
+    const cx = Math.floor(x / CHUNK)
+    const cz = Math.floor(z / CHUNK)
+    if (this.inside) return this.chunkVisible(cx, cz)
+    for (const slot of this.slots.values()) {
+      const c = this.corners()[slot]
+      if (c && c.cx === cx && c.cz === cz) return false
+    }
+    return true
+  }
+
+  /** The room a point belongs to, if any. */
+  roomAt(x: number, z: number): string | null {
+    const cx = Math.floor(x / CHUNK)
+    const cz = Math.floor(z / CHUNK)
+    for (const [id, slot] of this.slots) {
+      const c = this.corners()[slot]
+      if (c && c.cx === cx && c.cz === cz) return id
+    }
+    return null
   }
 
   save(): SavedInteriors {

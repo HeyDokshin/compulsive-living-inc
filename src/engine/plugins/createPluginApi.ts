@@ -212,6 +212,7 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
     },
     interiors: {
       area: (id) => game.interiors.area(id),
+      roomAt: (x, z) => game.interiors.roomAt(x, z),
       get current() {
         return game.interiors.current
       },

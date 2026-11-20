@@ -1,0 +1,17 @@
+// Wallpapers and floors. Each is an item (same id) that changes your room when used inside.
+// `block` is what the walls or the floor are built of (content/house/blocks.json5).
+{
+  entries: [
+    { id: 'house:wall_cream', kind: 'wall', name: 'Обои «Сливки»', block: 'house:wall_cream', price: 400 },
+    { id: 'house:wall_mint', kind: 'wall', name: 'Обои «Мята»', block: 'house:wall_mint', price: 600 },
+    { id: 'house:wall_rose', kind: 'wall', name: 'Обои «Роза»', block: 'house:wall_rose', price: 600 },
+    { id: 'house:wall_sky', kind: 'wall', name: 'Обои «Небо»', block: 'house:wall_sky', price: 600 },
+    { id: 'house:wall_logs', kind: 'wall', name: 'Бревенчатые стены', block: 'house:wall_logs', price: 800 },
+    { id: 'house:wall_brick', kind: 'wall', name: 'Кирпичная стена', block: 'house:wall_brick', price: 900 },
+    { id: 'house:floor_planks', kind: 'floor', name: 'Пол «Светлые доски»', block: 'house:floor_planks', price: 400 },
+    { id: 'house:floor_dark', kind: 'floor', name: 'Пол «Тёмный паркет»', block: 'house:floor_dark', price: 700 },
+    { id: 'house:floor_tiles', kind: 'floor', name: 'Пол «Плитка»', block: 'house:floor_tiles', price: 700 },
+    { id: 'house:floor_carpet', kind: 'floor', name: 'Ковролин «Персик»', block: 'house:floor_carpet', price: 600 },
+    { id: 'house:floor_grass', kind: 'floor', name: 'Пол «Лужайка»', block: 'house:floor_grass', price: 900 },
+  ],
+}

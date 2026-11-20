@@ -1,0 +1,9 @@
+// The house grows: each level has its own look outside and a bigger room inside (cells, walls
+// included). `cost` is the loan you take to build it; the builders finish it overnight.
+{
+  entries: [
+    { id: 'house:level_1', level: 1, name: 'Хижина', model: 'house:house_1', room: { w: 8, d: 8 }, cost: 0 },
+    { id: 'house:level_2', level: 2, name: 'Домик', model: 'house:house_2', room: { w: 10, d: 10 }, cost: 39800 },
+    { id: 'house:level_3', level: 3, name: 'Дом с мансардой', model: 'house:house_3', room: { w: 12, d: 12 }, cost: 98000 },
+  ],
+}

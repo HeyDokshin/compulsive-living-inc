@@ -220,6 +220,8 @@ export interface PluginApi {
     area(id: string): { x: number; z: number; w: number; d: number }
     /** Room the player is in, or null outside. */
     readonly current: string | null
+    /** The room a world point belongs to (furniture placed inside), or null. */
+    roomAt(x: number, z: number): string | null
     /** Put the actor inside at `at`; remembers where it stood to come back. Only that room is drawn. */
     enter(id: string, actor: Entity, at: { x: number; y: number; z: number; rotY: number }): void
     /** Back outside where the actor entered. */

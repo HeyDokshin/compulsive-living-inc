@@ -1,6 +1,8 @@
 // Things you can put anywhere on the island. Each variant becomes an item: decor:<piece>_<variant>
 // (tagged #decor:pieces). `palette` recolors the model ('p' = the paint, 'P' its shade).
 //   blocker  characters walk around it        glow  a soft light after dark { color, size, y, flicker }
+//   layer    floor (furniture) · rug (under furniture) · top (on a table) · wall (hangs on a wall, indoors)
+//   surface  tables: height of the top in blocks       indoor  only inside your house
 {
   entries: [
     {
@@ -83,5 +85,99 @@
         { id: 'dark', name: 'тёмный', palette: { p: '#8f5e3c', P: '#7a4e30' } },
       ],
     },
+    // --- indoors ------------------------------------------------------------------------------
+    {
+      id: 'decor:bed', name: 'Кровать', description: 'Мягкая и уютная.', model: 'decor:bed', price: 1200, blocker: true,
+      variants: [
+        { id: 'mint', name: 'мятное одеяло', palette: { p: '#9fd8c4', P: '#8cc8b2' } },
+        { id: 'pink', name: 'розовое одеяло', palette: { p: '#f6bccb', P: '#e8a8b8' } },
+        { id: 'blue', name: 'голубое одеяло', palette: { p: '#a6cbea', P: '#90b8da' } },
+        { id: 'yellow', name: 'жёлтое одеяло', palette: { p: '#ffe08a', P: '#f2cf72' } },
+      ],
+    },
+    {
+      id: 'decor:table', name: 'Стол', description: 'На него можно что-нибудь поставить.', model: 'decor:table', price: 600, blocker: true, surface: 0.69,
+      variants: [
+        { id: 'natural', name: 'светлый', palette: { p: '#d9a56c', P: '#c99560' } },
+        { id: 'dark', name: 'тёмный', palette: { p: '#8f5e3c', P: '#7a4e30' } },
+        { id: 'white', name: 'белый', palette: { p: '#f6f1e8', P: '#e6ded0' } },
+      ],
+    },
+    {
+      id: 'decor:chair', name: 'Стул', model: 'decor:chair', price: 360, blocker: true,
+      variants: [
+        { id: 'natural', name: 'светлый', palette: { p: '#d9a56c' } },
+        { id: 'white', name: 'белый', palette: { p: '#f6f1e8' } },
+        { id: 'mint', name: 'мятный', palette: { p: '#a8dcc8' } },
+      ],
+    },
+    {
+      id: 'decor:armchair', name: 'Кресло', description: 'Чтобы читать по вечерам.', model: 'decor:armchair', price: 980, blocker: true,
+      variants: [
+        { id: 'pink', name: 'розовое', palette: { p: '#f6bccb', P: '#e8a8b8' } },
+        { id: 'green', name: 'зелёное', palette: { p: '#a9d48e', P: '#94c278' } },
+        { id: 'blue', name: 'синее', palette: { p: '#8fb6e0', P: '#7aa2cc' } },
+      ],
+    },
+    {
+      id: 'decor:bookshelf', name: 'Книжный шкаф', model: 'decor:bookshelf', price: 1100, blocker: true,
+      variants: [
+        { id: 'natural', name: 'светлый', palette: { p: '#c99560' } },
+        { id: 'dark', name: 'тёмный', palette: { p: '#7a4e30' } },
+      ],
+    },
+    {
+      id: 'decor:floor_lamp', name: 'Торшер', model: 'decor:floor_lamp', price: 800, blocker: true, glow: { color: '#ffe0a0', size: 2.4, y: 1.4 },
+      variants: [
+        { id: 'cream', name: 'кремовый', palette: { p: '#fff1c8' } },
+        { id: 'pink', name: 'розовый', palette: { p: '#ffd0dc' } },
+        { id: 'mint', name: 'мятный', palette: { p: '#cdeee0' } },
+      ],
+    },
+    {
+      id: 'decor:rug_round', name: 'Круглый коврик', model: 'decor:rug_round', price: 420, blocker: false, layer: 'rug', stack: 5,
+      variants: [
+        { id: 'pink', name: 'розовый', palette: { p: '#f6bccb', P: '#e8879e' } },
+        { id: 'mint', name: 'мятный', palette: { p: '#a8dcc8', P: '#7fbfa8' } },
+        { id: 'sun', name: 'солнечный', palette: { p: '#ffe08a', P: '#f2b84e' } },
+      ],
+    },
+    {
+      id: 'decor:rug_square', name: 'Клетчатый коврик', model: 'decor:rug_square', price: 420, blocker: false, layer: 'rug', stack: 5,
+      variants: [
+        { id: 'blue', name: 'голубой', palette: { p: '#a6cbea', P: '#90b8da' } },
+        { id: 'red', name: 'красный', palette: { p: '#f2a090', P: '#e8645a' } },
+        { id: 'green', name: 'зелёный', palette: { p: '#b5d995', P: '#9cc77c' } },
+      ],
+    },
+    {
+      id: 'decor:vase', name: 'Ваза с цветами', model: 'decor:vase', price: 300, blocker: false, layer: 'top',
+      variants: [
+        { id: 'blue', name: 'синяя', palette: { p: '#6aa0d8' } },
+        { id: 'white', name: 'белая', palette: { p: '#f6f1e8' } },
+        { id: 'pink', name: 'розовая', palette: { p: '#f6bccb' } },
+      ],
+    },
+    {
+      id: 'decor:table_lamp', name: 'Настольная лампа', model: 'decor:table_lamp', price: 450, blocker: false, layer: 'top', glow: { color: '#ffe0a0', size: 1.4, y: 0.5 },
+      variants: [{ id: 'cream', name: '', palette: {} }],
+    },
+    { id: 'decor:books', name: 'Стопка книг', model: 'decor:books', price: 160, blocker: false, layer: 'top', variants: [{ id: 'default', name: '', palette: {} }] },
+    {
+      id: 'decor:teapot', name: 'Чайник', description: 'Пахнет мятным чаем.', model: 'decor:teapot', price: 240, blocker: false, layer: 'top',
+      variants: [
+        { id: 'white', name: 'белый', palette: { p: '#fffaf0' } },
+        { id: 'mint', name: 'мятный', palette: { p: '#a8dcc8' } },
+      ],
+    },
+    {
+      id: 'decor:painting', name: 'Картина', description: 'Пейзаж с холмом и солнцем.', model: 'decor:painting', price: 700, blocker: false, layer: 'wall', indoor: true,
+      variants: [
+        { id: 'oak', name: 'в дубовой раме', palette: { f: '#c99560' } },
+        { id: 'gold', name: 'в золотой раме', palette: { f: '#f2c14e' } },
+      ],
+    },
+    { id: 'decor:wall_clock', name: 'Часы на стену', model: 'decor:wall_clock', price: 560, blocker: false, layer: 'wall', indoor: true, variants: [{ id: 'default', name: '', palette: {} }] },
+    { id: 'decor:wall_shelf', name: 'Полочка', model: 'decor:wall_shelf', price: 380, blocker: false, layer: 'wall', indoor: true, variants: [{ id: 'default', name: '', palette: {} }] },
   ],
 }

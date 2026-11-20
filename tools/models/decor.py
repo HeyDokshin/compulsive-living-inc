@@ -37,8 +37,13 @@ class G:
 
 models = []
 
-def add(mid, g, pal):
-    models.append({'id': mid, 'scale': 0.0625, 'palette': pal, 'layers': g.layers()})
+def add(mid, g, pal, wall=False):
+    m = {'id': mid, 'scale': 0.0625, 'palette': pal, 'layers': g.layers()}
+    if wall:
+        # hangs on the face of a wall cell: the art sits against the +z edge of the cell
+        sx, sz = len(m['layers'][0][0]), len(m['layers'][0])
+        m['pivot'] = [sx / 2, 0, sz - 9]  # one voxel proud of the wall face
+    models.append(m)
 
 
 # bench: seat, backrest, legs
@@ -142,10 +147,159 @@ ch.box(6, 7, 4, 7, 10, 10, 'k')
 ch.set(6, 5, 11, 'K').set(7, 5, 11, 'K')
 add('decor:chest', ch, {'p': '#c99560', 'P': '#b58450', 'm': '#9a9aa4', 'k': '#f2c14e', 'K': '#6e4630'})
 
+# ===== indoor furniture =====================================================================
+# bed: frame q, blanket p, pillow w (head at the back, -z)
+bd = G()
+for (x, z) in [(0, 0), (13, 0), (0, 15), (13, 15)]:
+    bd.box(x, x + 1, 0, 3, z, z, 'q')
+bd.box(0, 13, 2, 3, 0, 15, 'q')
+bd.box(0, 13, 4, 5, 0, 15, 'w')
+bd.box(0, 13, 6, 6, 5, 15, lambda x, y, z: 'p' if (x + z) % 4 else 'P')
+bd.box(0, 13, 5, 5, 5, 15, 'p')
+bd.box(2, 11, 6, 7, 1, 3, 'W')
+bd.box(0, 13, 4, 11, 0, 0, 'q')
+add('decor:bed', bd, {'p': '#9fd8c4', 'P': '#8cc8b2', 'q': '#c99560', 'w': '#fffaf0', 'W': '#f4ede0'})
+
+# table with a top other pieces stand on (surface 11/16)
+tb = G()
+for (x, z) in [(1, 1), (13, 1), (1, 13), (13, 13)]:
+    tb.box(x, x + 1, 0, 9, z, z + 1, 'q')
+tb.box(0, 15, 10, 10, 0, 15, lambda x, y, z: 'p' if x % 4 else 'P')
+add('decor:table', tb, {'p': '#d9a56c', 'P': '#c99560', 'q': '#b07a50'})
+
+# chair (back at -z)
+chr_ = G()
+for (x, z) in [(3, 3), (11, 3), (3, 11), (11, 11)]:
+    chr_.box(x, x + 1, 0, 5, z, z + 1, 'q')
+chr_.box(3, 12, 6, 6, 3, 12, 'p')
+chr_.box(3, 12, 7, 14, 3, 3, lambda x, y, z: 'p' if y % 3 else 'q')
+add('decor:chair', chr_, {'p': '#d9a56c', 'q': '#b07a50'})
+
+# armchair: soft, with arms
+ac = G()
+ac.box(1, 14, 0, 1, 1, 14, 'q')
+ac.box(1, 14, 2, 6, 1, 14, 'p')
+ac.box(1, 14, 7, 13, 1, 3, 'p')
+ac.box(1, 2, 7, 9, 4, 14, 'P').box(13, 14, 7, 9, 4, 14, 'P')
+ac.box(3, 12, 7, 7, 4, 13, 'w')
+add('decor:armchair', ac, {'p': '#f6bccb', 'P': '#e8a8b8', 'q': '#8a5a3a', 'w': '#fffaf0'})
+
+# bookshelf (open towards +z)
+bs = G()
+bs.box(0, 15, 0, 25, 2, 3, 'q')
+bs.box(0, 0, 0, 25, 2, 13, 'p').box(15, 15, 0, 25, 2, 13, 'p')
+for y in (0, 8, 16, 25):
+    bs.box(0, 15, y, y, 2, 13, 'p')
+import random
+rnd = random.Random(3)
+for shelf in (1, 9, 17):
+    x = 1
+    while x < 15:
+        w = rnd.choice((1, 1, 2))
+        h = rnd.randint(4, 6)
+        col = rnd.choice('rgbyk')
+        bs.box(x, min(14, x + w - 1), shelf, shelf + h - 1, 4, 12, col)
+        x += w
+add('decor:bookshelf', bs, {'p': '#c99560', 'q': '#a87a50', 'r': '#e8645a', 'g': '#7cc45e', 'b': '#6aa0d8', 'y': '#f2c14e', 'k': '#b58ad8'})
+
+# floor lamp with a shade
+fl = G()
+fl.box(5, 10, 0, 0, 5, 10, 'q')
+fl.box(7, 8, 1, 18, 7, 8, 'q')
+for y in range(19, 25):
+    r = 2 + (24 - y) * 0.6
+    for x in range(16):
+        for z in range(16):
+            d = math.hypot(x + 0.5 - 8, z + 0.5 - 8)
+            if r - 1 < d <= r:
+                fl.set(x, y, z, 'p')
+fl.box(7, 8, 19, 21, 7, 8, 'g')
+add('decor:floor_lamp', fl, {'p': '#fff1c8', 'q': '#8a7a6a', 'g': '#ffe9a8'})
+
+# rugs: one voxel thick
+rr = G()
+for x in range(16):
+    for z in range(16):
+        d = math.hypot(x + 0.5 - 8, z + 0.5 - 8)
+        if d <= 7.8:
+            rr.set(x, 0, z, 'P' if 4.5 < d < 6 else ('w' if d < 2 else 'p'))
+add('decor:rug_round', rr, {'p': '#f6bccb', 'P': '#e8879e', 'w': '#fffaf0'})
+rs = G()
+for x in range(16):
+    for z in range(16):
+        edge = x in (0, 15) or z in (0, 15)
+        rs.set(x, 0, z, 'q' if edge else ('P' if (x // 3 + z // 3) % 2 else 'p'))
+add('decor:rug_square', rs, {'p': '#a6cbea', 'P': '#90b8da', 'q': '#fffaf0'})
+
+# tabletop things
+va = G()
+for y in range(0, 7):
+    r = 2.2 - abs(y - 3) * 0.3
+    for x in range(8):
+        for z in range(8):
+            if math.hypot(x + 0.5 - 4, z + 0.5 - 4) <= r:
+                va.set(x, y, z, 'p')
+for (x, z, c) in [(3, 3, 'r'), (4, 4, 'y'), (4, 3, 'r'), (3, 4, 'w')]:
+    va.set(x, 7, z, 'l').set(x, 8, z, c)
+add('decor:vase', va, {'p': '#6aa0d8', 'l': '#7cc45e', 'r': '#ff8fa8', 'y': '#ffe08a', 'w': '#fffaf0'})
+tl = G()
+tl.box(2, 5, 0, 0, 2, 5, 'q').box(3, 4, 1, 5, 3, 4, 'q')
+for y in range(6, 10):
+    r = 1.5 + (9 - y) * 0.5
+    for x in range(8):
+        for z in range(8):
+            d = math.hypot(x + 0.5 - 3.5, z + 0.5 - 3.5)
+            if r - 1 < d <= r:
+                tl.set(x, y, z, 'p')
+add('decor:table_lamp', tl, {'p': '#fff1c8', 'q': '#c99560'})
+bk = G()
+for i, (c, w) in enumerate([('r', 9), ('b', 8), ('g', 9)]):
+    bk.box(0, w - 1, i * 2, i * 2 + 1, i % 2, 5 + i % 2, c)
+    bk.box(1, w - 1, i * 2, i * 2 + 1, 1 + i % 2, 4 + i % 2, 'w')
+add('decor:books', bk, {'r': '#e8645a', 'b': '#6aa0d8', 'g': '#7cc45e', 'w': '#fffaf0'})
+tp = G()
+for y in range(0, 5):
+    r = 2.6 - abs(y - 2) * 0.45
+    for x in range(10):
+        for z in range(8):
+            if math.hypot(x + 0.5 - 4, z + 0.5 - 4) <= r:
+                tp.set(x, y, z, 'p')
+tp.set(4, 5, 4, 'p').set(4, 6, 4, 'k')
+tp.set(7, 2, 4, 'p').set(8, 3, 4, 'p').set(9, 4, 4, 'p')
+tp.set(0, 3, 4, 'p').set(0, 2, 4, 'p').set(1, 4, 4, 'p').set(1, 1, 4, 'p')
+add('decor:teapot', tp, {'p': '#fffaf0', 'k': '#6aa0d8'})
+
+# wall pieces: 16 deep, the art on the +z face (they hang on the side facing you)
+pa = G()
+for x in range(2, 14):
+    for y in range(0, 10):
+        edge = x in (2, 13) or y in (0, 9)
+        c = 'f' if edge else ('s' if y > 5 else ('h' if y > 3 and (x - y) % 5 < 3 else 'g'))
+        if not edge and y in (6, 7) and 8 <= x <= 10:
+            c = 'u'
+        pa.set(x, y, 15, c)
+add('decor:painting', pa, {'f': '#c99560', 's': '#a6d8f0', 'g': '#9bd67a', 'h': '#7cc45e', 'u': '#fff2b8'}, wall=True)
+ck = G()
+for x in range(3, 13):
+    for y in range(0, 10):
+        d = math.hypot(x + 0.5 - 8, y + 0.5 - 5)
+        if d <= 4.9:
+            ck.set(x, y, 15, 'f' if d > 3.9 else 'w')
+for (x, y) in [(8, 5), (8, 6), (8, 7), (9, 5), (10, 5)]:
+    ck.set(x, y, 15, 'k')
+add('decor:wall_clock', ck, {'f': '#b07a50', 'w': '#fffaf0', 'k': '#3a2a2a'}, wall=True)
+sh = G()
+sh.box(1, 14, 0, 0, 12, 15, 'p')
+sh.box(2, 2, 1, 2, 15, 15, 'q').box(13, 13, 1, 2, 15, 15, 'q')
+sh.box(4, 5, 1, 4, 13, 14, 'l').box(4, 5, 5, 5, 13, 14, 'L')
+sh.box(9, 11, 1, 3, 13, 14, 'c')
+add('decor:wall_shelf', sh, {'p': '#d9a56c', 'q': '#b07a50', 'l': '#e08a5a', 'L': '#7cc45e', 'c': '#a6cbea'}, wall=True)
+
 with open(OUT, 'w') as fo:
     fo.write('// Generated by tools/models/decor.py\n[\n')
     for m in models:
-        fo.write(f"  {{\n    id: '{m['id']}',\n    scale: {m['scale']},\n    palette: {json.dumps(m['palette'])},\n    layers: [\n")
+        pivot = f"    pivot: {json.dumps(m['pivot'])},\n" if 'pivot' in m else ''
+        fo.write(f"  {{\n    id: '{m['id']}',\n    scale: {m['scale']},\n{pivot}    palette: {json.dumps(m['palette'])},\n    layers: [\n")
         for layer in m['layers']:
             fo.write('      [' + ', '.join(f"'{r}'" for r in layer) + '],\n')
         fo.write('    ],\n  },\n')
