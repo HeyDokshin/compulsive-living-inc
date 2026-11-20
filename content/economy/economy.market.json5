@@ -1,0 +1,14 @@
+// What the island market buys and how much the price swings over the week (amplitude: 0.3 → ±30%).
+// An item belongs to the first category whose tag it has; items with no category sell at their price.
+{
+  entries: [
+    { id: 'economy:fish', name: 'Рыба', icon: '🐟', tag: '#collection:fish', amplitude: 0.35 },
+    { id: 'economy:bugs', name: 'Насекомые', icon: '🦋', tag: '#collection:bugs', amplitude: 0.35 },
+    { id: 'economy:fossils', name: 'Окаменелости', icon: '🦴', tag: '#collection:fossils', amplitude: 0.15 },
+    { id: 'economy:fruit', name: 'Фрукты', icon: '🍎', tag: '#core:fruits', amplitude: 0.3 },
+    { id: 'economy:flowers', name: 'Цветы', icon: '🌷', tag: '#garden:flowers', amplitude: 0.3 },
+    { id: 'economy:materials', name: 'Материалы', icon: '🪵', tag: '#core:materials', amplitude: 0.25 },
+    { id: 'economy:beach', name: 'Находки с пляжа', icon: '🐚', tag: '#core:beach_finds', amplitude: 0.3 },
+    { id: 'economy:decor', name: 'Поделки', icon: '🪑', tag: '#decor:pieces', amplitude: 0.2 },
+  ],
+}

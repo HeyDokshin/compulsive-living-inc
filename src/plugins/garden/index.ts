@@ -96,9 +96,8 @@ export default definePlugin({
       const f = e.flower!
       const s = species.get(f.species)
       if (!s) return
-      e.model = { shape: 'voxel', ref: s.model, palette: { p: s.colors[f.color] ?? '#ff00ff', ...s.palette?.[f.color] }, size: [1, 1, 1], color: '#ccc', anchor: 'bottom' }
+      api.render.setModel(e, { shape: 'voxel', ref: s.model, palette: { p: s.colors[f.color] ?? '#ff00ff', ...s.palette?.[f.color] }, size: [1, 1, 1], color: '#ccc', anchor: 'bottom' })
       e.name = `${s.name}, ${COLOR_NAMES[f.color] ?? f.color}`
-      api.render.refreshView(e)
     }
     const spawnFlower = (speciesId: string, color: string, x: number, y: number, z: number) => {
       const e = api.entities.spawn({

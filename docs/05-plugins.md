@@ -70,6 +70,9 @@ export default definePlugin({
 | `api.interiors.area(id)` / `enter(id, actor, at)` / `exit(actor)` / `current` | помещения (музей, позже дома): комната 16 × 16 в углу мира, где всегда море; постройте её на `interior:changed`, на выходе движок вернёт морю; внутри рисуется только она — спрячьте свои уличные объекты |
 | реестр `daily:sections` | строка в сводке дня: `{ id, order, line(api) → { icon, text } \| null }` |
 | сервис `economy:wallet` | колокольчики: `bells` (сигнал), `add(n)`, `spend(n)` |
+| сервис `economy:market` | цены дня: `demand(category)`, `sellPrice(item)`; категории — реестр `economy:market` (тег, размах колебаний) |
+| `ui.Dialogue` / `ui.Choices` / `voiceBlip(api, pitch)` | персонаж говорит: текст печатается, «голос», варианты ответа |
+| `api.render.setModel(entity, model)` | выдать или сменить модель сущности (не присваивайте `e.model` новой сущности напрямую — её не нарисуют) |
 | `api.render.rigModel(id)` / `api.render.shake(amplitude, seconds)` | риг как объект three.js (части — дочерние группы по имени, их можно вращать) / лёгкая тряска камеры |
 | `api.onDispose(fn)` | своя очистка |
 
@@ -194,6 +197,14 @@ api.save.register({
 - **Смотрительница** — реплики в `content/museum/museum.dialogue.json5` (темы `museum:greet`, `museum:thanks`…, подстановки `{name}`, `{description}`, `{count}`, `{total}`); скорость текста и высота «голоса» — в настройках плагина.
 - **Зал музея** — реестр `museum:layouts` (`content/museum/museum.layouts.json5`): план 16 × 16 символами (`F` аквариум, `B` террариум, `O` пьедестал, `R` стойка, `C` смотрительница, `S` вход, `D` дверь, `p`/`L` растение и лампа, `a`/`b`/`c` ковры). Экспонаты встают в слоты по порядку видов.
 - Команды: `now fish river` (кто клюёт сейчас), `catch collection:carp` / `catch fish` / `catch all`, `fish`, `bugs`, `museum` (`museum place` — найти место заново).
+
+## Магазин, крафт, поделки
+
+- **Поделки** — реестр `decor:pieces` (`content/decor/decor.pieces.json5`): модель, цена, `variants` (палитры — символ `p` перекрашивается), `blocker`, `glow`. Каждый цвет — предмет `decor:<поделка>_<цвет>` с тегом `#decor:pieces`. Сервис `decor:pieces`: `of(item)`, `itemId`, `freeCell`, `place`.
+- **Рецепты** — реестр `crafting:recipes`: `piece` (поделка, цвет выбирают при крафте) или `item`, `ingredients` (`item` или `tag`), `learned: start | card`. Для `card` создаётся открытка `crafting:card_<имя>`. Верстак — поделка `decor:workbench`.
+- **Лавка** — реестр `shop:shelves`: полка берёт товары по тегу или списку, `count` в день, `stock` на день, `markup`. Реплики Тоши — `shop:dialogue`.
+- Модели: `python3 tools/models/decor.py` (поделки), `tools/models/shop.py` (лавка, Тоша, открытка, краска, наживка), `tools/models/economy.py` (ящик).
+- Команды: `shop`, `market`, `bells 5000`, `recipes [all]`, `decor [all]`.
 
 ## Модели и персонажи
 

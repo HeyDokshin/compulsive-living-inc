@@ -1,0 +1,78 @@
+// Things you can put anywhere on the island. Each variant becomes an item: decor:<piece>_<variant>
+// (tagged #decor:pieces). `palette` recolors the model ('p' = the paint, 'P' its shade).
+//   blocker  characters walk around it        glow  a soft light after dark { color, size, y, flicker }
+{
+  entries: [
+    {
+      id: 'decor:bench', name: 'Скамейка', description: 'Посидеть и посмотреть на море.', model: 'decor:bench', price: 360, blocker: true,
+      variants: [
+        { id: 'natural', name: 'натуральная', palette: { p: '#d9a56c', P: '#c99560' } },
+        { id: 'white', name: 'белая', palette: { p: '#f6f1e8', P: '#e6ded0' } },
+        { id: 'mint', name: 'мятная', palette: { p: '#a8dcc8', P: '#92ccb6' } },
+        { id: 'pink', name: 'розовая', palette: { p: '#f6bccb', P: '#e8a8b8' } },
+        { id: 'blue', name: 'голубая', palette: { p: '#a6cbea', P: '#90b8da' } },
+      ],
+    },
+    {
+      id: 'decor:crate', name: 'Ящик', description: 'Деревянный ящик. В нём ничего нет, но выглядит хозяйственно.', model: 'decor:crate', price: 240, blocker: true,
+      variants: [
+        { id: 'natural', name: 'светлый', palette: { p: '#c99560', P: '#b58450' } },
+        { id: 'dark', name: 'тёмный', palette: { p: '#8f5e3c', P: '#7a4e30' } },
+        { id: 'green', name: 'зелёный', palette: { p: '#9cc77c', P: '#88b66a' } },
+      ],
+    },
+    {
+      id: 'decor:sign', name: 'Табличка', description: 'Указатель. Куда — решать вам.', model: 'decor:sign', price: 120, blocker: true,
+      variants: [
+        { id: 'natural', name: 'деревянная', palette: { p: '#e2b27f' } },
+        { id: 'white', name: 'белая', palette: { p: '#f6f1e8' } },
+        { id: 'blue', name: 'голубая', palette: { p: '#a6cbea' } },
+      ],
+    },
+    {
+      id: 'decor:fence', name: 'Забор', description: 'Секция забора. Поставьте несколько в ряд.', model: 'decor:fence', price: 120, blocker: true, stack: 10,
+      variants: [
+        { id: 'natural', name: 'деревянный', palette: { p: '#e2b27f', q: '#c99560' } },
+        { id: 'white', name: 'белый', palette: { p: '#f6f1e8', q: '#e6ded0' } },
+        { id: 'dark', name: 'тёмный', palette: { p: '#8f5e3c', q: '#7a4e30' } },
+      ],
+    },
+    {
+      id: 'decor:lamp', name: 'Фонарь', description: 'Светит по вечерам.', model: 'decor:lamp', price: 900, blocker: true,
+      glow: { color: '#ffe9a8', size: 2.2, y: 1.5 },
+      variants: [
+        { id: 'black', name: 'чёрный', palette: { p: '#4a4a52' } },
+        { id: 'white', name: 'белый', palette: { p: '#f0ece4' } },
+        { id: 'mint', name: 'мятный', palette: { p: '#7fbfa8' } },
+      ],
+    },
+    {
+      id: 'decor:bonfire', name: 'Костёр', description: 'Тёплый и уютный. Особенно ночью.', model: 'decor:bonfire', price: 600, blocker: true,
+      glow: { color: '#ffb86a', size: 2.8, y: 0.5, flicker: true },
+      variants: [{ id: 'default', name: '', palette: {} }],
+    },
+    {
+      id: 'decor:birdhouse', name: 'Скворечник', description: 'Вдруг кто-нибудь поселится.', model: 'decor:birdhouse', price: 480, blocker: true,
+      variants: [
+        { id: 'red', name: 'красный', palette: { p: '#e8645a' } },
+        { id: 'blue', name: 'синий', palette: { p: '#6aa0d8' } },
+        { id: 'green', name: 'зелёный', palette: { p: '#7cc45e' } },
+      ],
+    },
+    {
+      id: 'decor:flower_pot', name: 'Цветочный горшок', description: 'Цветок, который не надо поливать.', model: 'decor:flower_pot', price: 300, blocker: true,
+      variants: [
+        { id: 'clay', name: 'глиняный', palette: { p: '#e08a5a' } },
+        { id: 'white', name: 'белый', palette: { p: '#f6f1e8' } },
+        { id: 'blue', name: 'синий', palette: { p: '#6aa0d8' } },
+      ],
+    },
+    {
+      id: 'decor:workbench', name: 'Верстак', description: 'Здесь мастерят поделки по рецептам.', model: 'decor:workbench', price: 600, blocker: true,
+      variants: [
+        { id: 'natural', name: 'светлый', palette: { p: '#d9a56c', P: '#c99560' } },
+        { id: 'dark', name: 'тёмный', palette: { p: '#8f5e3c', P: '#7a4e30' } },
+      ],
+    },
+  ],
+}

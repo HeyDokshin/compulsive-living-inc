@@ -1,0 +1,11 @@
+[
+  // three taps of a little hammer
+  { id: 'crafting:hammer', volume: 0.8, pitchJitter: 0.06, layers: [
+    { wave: 'noise', duration: 0.05, gain: 0.3, filter: { type: 'bandpass', freq: 2400, q: 2 } },
+    { wave: 'triangle', freq: 880, freqEnd: 660, duration: 0.06, gain: 0.12 },
+    { wave: 'noise', duration: 0.05, gain: 0.3, delay: 0.18, filter: { type: 'bandpass', freq: 2600, q: 2 } },
+    { wave: 'triangle', freq: 920, freqEnd: 700, duration: 0.06, gain: 0.12, delay: 0.18 },
+    { wave: 'noise', duration: 0.06, gain: 0.34, delay: 0.36, filter: { type: 'bandpass', freq: 2200, q: 2 } },
+    { wave: 'triangle', freq: 990, freqEnd: 620, duration: 0.08, gain: 0.14, delay: 0.36 },
+  ] },
+]

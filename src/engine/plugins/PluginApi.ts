@@ -112,6 +112,8 @@ export interface PluginApi {
     shake(amplitude: number, seconds: number): void
     /** Smoothly zoom the camera (clamped to the configured range). */
     setZoom(zoom: number): void
+    /** Give an entity a model or change it (adds the component properly so it gets drawn, rebuilds the view). */
+    setModel(entity: Entity, model: NonNullable<Entity['model']>): void
     /** Rebuild an entity's 3D view after changing its `model` (e.g. recolored clothes, another rig). */
     refreshView(entity: Entity): void
     /** Camera smoothly follows this entity (null = free camera). */

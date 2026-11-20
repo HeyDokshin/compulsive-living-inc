@@ -68,3 +68,70 @@ export function Grid({ columns, children }: { columns: number; children: Compone
     </div>
   )
 }
+
+/**
+ * A character speaking: the text types itself out (click to show it all), `onBlip` is called every
+ * couple of letters (play a voice note there), `onTyping` while it types (nod the speaker).
+ * `children` — the answers — appear once the text is done.
+ */
+export function Dialogue(props: {
+  speaker: string
+  text: string
+  /** Seconds per character. */
+  typeSpeed?: number
+  onBlip?: () => void
+  onTyping?: (typing: boolean) => void
+  children?: ComponentChildren
+}) {
+  const { text, typeSpeed = 0.028 } = props
+  const [shown, setShown] = useState(0)
+  const [skipped, setSkipped] = useState(false)
+  useEffect(() => {
+    setShown(0)
+    setSkipped(false)
+    props.onTyping?.(true)
+    let i = 0
+    const timer = window.setInterval(() => {
+      i++
+      setShown(i)
+      if (i % 2 === 0 && /\p{L}/u.test(text[i - 1] ?? '')) props.onBlip?.()
+      if (i >= text.length) {
+        window.clearInterval(timer)
+        props.onTyping?.(false)
+      }
+    }, typeSpeed * 1000)
+    return () => {
+      window.clearInterval(timer)
+      props.onTyping?.(false)
+    }
+  }, [text])
+  const typing = !skipped && shown < text.length
+  const skip = () => {
+    setSkipped(true)
+    props.onTyping?.(false)
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div class="cl-dialogue" onClick={skip} style={{ cursor: typing ? 'pointer' : 'default' }}>
+        <div class="cl-dialogue-speaker">{props.speaker}</div>
+        {typing ? text.slice(0, shown) : text}
+        {typing && <span style={{ opacity: 0.4 }}>▍</span>}
+      </div>
+      {!typing && props.children}
+    </div>
+  )
+}
+
+/** Answer buttons under a `Dialogue`: the first is the main one. */
+export function Choices({ items }: { items: Array<[string, () => void] | false | null | undefined> }) {
+  const list = items.filter(Boolean) as Array<[string, () => void]>
+  return (
+    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+      {list.map(([label, run], i) => (
+        <Button key={label} secondary={i > 0} onClick={run}>
+          {label}
+        </Button>
+      ))}
+    </div>
+  )
+}

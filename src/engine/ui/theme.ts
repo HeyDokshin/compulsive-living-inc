@@ -54,6 +54,9 @@ export const UI_CSS = /* css */ `
 .cl-btn:disabled { opacity: .45; cursor: default; transform: none; }
 
 .cl-grid { display: grid; gap: 8px; }
+.cl-dialogue { background: #fffaf0; border-radius: 18px; padding: 14px 16px; min-height: 84px; font-size: 15px; line-height: 1.45;
+  box-shadow: inset 0 0 0 2px rgba(201, 150, 106, .25); }
+.cl-dialogue-speaker { font-weight: 800; font-size: 12px; color: var(--ui-accent); margin-bottom: 4px; }
 .cl-slotbox { position: relative; width: 64px; height: 64px; border-radius: 18px; background: var(--ui-bg-2);
   border: 3px solid transparent; display: flex; align-items: center; justify-content: center; cursor: pointer;
   transition: transform .1s, border-color .1s; }

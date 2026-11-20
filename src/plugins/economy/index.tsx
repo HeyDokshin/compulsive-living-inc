@@ -1,9 +1,11 @@
 /**
- * Bells (the island's money) and the sell box. The wallet is a service other plugins pay into or
- * take from (`economy:wallet`); the box near the middle of the island buys anything with a price
- * except tools. Shops and the market come with stage 7 — they will use the same wallet.
+ * Bells (the island's money), the market and the sell box. The wallet is a service other plugins pay
+ * into or take from (`economy:wallet`). The market (`economy:market`, categories in
+ * content/economy/economy.market.json5) sets today's price for each kind of goods; the box near the
+ * middle of the island buys anything with a price except tools, at today's market price.
  */
-import { definePlugin, signal, ui, useState, z, type Entity, type PluginApi, type ReadonlySignal } from '@sdk'
+import { definePlugin, signal, ui, useState, z, type Entity, type PluginApi, type ReadonlySignal, type RegistryEntry } from '@sdk'
+import { categoryOf, demand, formatDemand } from './market'
 
 export interface Wallet {
   readonly bells: ReadonlySignal<number>
@@ -12,12 +14,33 @@ export interface Wallet {
   spend(amount: number): boolean
 }
 
+export interface MarketCategoryDef extends RegistryEntry {
+  name: string
+  icon: string
+  tag: string
+  amplitude: number
+}
+
+export interface Market {
+  categories(): MarketCategoryDef[]
+  /** Today's multiplier of a category (or of a day `daysAgo` back). */
+  demand(cat: MarketCategoryDef, daysAgo?: number): number
+  /** Category of an item, if any. */
+  categoryOf(itemId: string): MarketCategoryDef | undefined
+  /** What the box pays for one item today. */
+  sellPrice(itemId: string): number
+}
+
 declare module '@sdk' {
   interface Components {
     sellBox?: Record<string, never>
   }
+  interface Registries {
+    'economy:market': MarketCategoryDef
+  }
   interface Services {
     'economy:wallet': Wallet
+    'economy:market': Market
   }
   interface GameEvents {
     'economy:sold': { actor: Entity; id: string; count: number; bells: number }
@@ -26,8 +49,10 @@ declare module '@sdk' {
 
 const Config = z.object({
   startBells: z.number().int().min(0).max(1_000_000).default(0).meta({ label: 'bells on a new island', step: 100 }),
-  /** Share of the item price the box pays. */
+  /** Share of the item price the box pays (before the market). */
   sellRate: z.number().min(0).max(2).default(1).meta({ label: 'sell rate', step: 0.05 }),
+  /** Days in one market wave. */
+  marketPeriod: z.number().min(2).max(60).default(7).meta({ label: 'market period (days)', step: 1 }),
   /** Items with these tags are never offered to the box. */
   keepTags: z.array(z.string()).default(['#core:tools']),
   /** Keep species the museum doesn't have yet out of "sell all". */
@@ -63,9 +88,41 @@ export default definePlugin({
     api.services.provide('economy:wallet', wallet)
     api.save.register<{ bells: number }>({ version: 1, save: () => ({ bells: bells.value }), load: (d) => void (bells.value = d.bells) })
 
+    // --- market ------------------------------------------------------------------------------
+    const cats = api.createRegistry<MarketCategoryDef>(
+      'economy:market',
+      z.looseObject({ id: z.string(), name: z.string(), icon: z.string().default('•'), tag: z.string(), amplitude: z.number().min(0).max(0.95).default(0.3) }) as never,
+    )
+    const items = api.registry('items')
+    const market: Market = {
+      categories: () => cats.all(),
+      demand: (cat, daysAgo = 0) => demand(api.world.seed, api.time.dayIndex - daysAgo, cat, cfg.marketPeriod),
+      categoryOf: (id) => categoryOf(cats.all(), (c) => items.isTagged(id, c.tag)),
+      sellPrice: (id) => {
+        const cat = market.categoryOf(id)
+        return Math.round((items.get(id)?.price ?? 0) * cfg.sellRate * (cat ? market.demand(cat) : 1))
+      },
+    }
+    api.services.provide('economy:market', market)
+    api.ui.window({ id: 'economy:market', title: 'Цены дня', component: () => <MarketBoard market={market} period={cfg.marketPeriod} /> })
+
     api.ui.slot('hud.topRight', () => <WalletPill bells={bells} />, { order: 20 })
     try {
       api.registry('daily:sections').register({ id: 'economy:wallet', order: 50, line: () => ({ icon: '🔔', text: `В кошельке ${formatBells(bells.value)} колокольчиков.` }) })
+      api.registry('daily:sections').register({
+        id: 'economy:market',
+        order: 45,
+        line: () => {
+          const hot = cats
+            .all()
+            .map((c) => [c, market.demand(c)] as const)
+            .filter(([, m]) => m > 1.05)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+          if (!hot.length) return { icon: '📉', text: 'Сегодня на рынке всё дёшево — может, лучше подождать.' }
+          return { icon: '📈', text: `Сегодня в цене: ${hot.map(([c, m]) => `${c.name.toLowerCase()} ${formatDemand(m)}`).join(', ')}.` }
+        },
+      })
     } catch {
       // no daily notes
     }
@@ -121,8 +178,13 @@ export default definePlugin({
       sound: 'ui:open',
       run: () => void api.ui.open('economy:sell'),
     })
-    api.ui.window({ id: 'economy:sell', title: 'Ящик для продажи', component: () => <SellBox api={api} cfg={cfg} wallet={wallet} /> })
+    api.ui.window({ id: 'economy:sell', title: 'Ящик для продажи', component: () => <SellBox api={api} cfg={cfg} wallet={wallet} market={market} /> })
 
+    api.commands.register({
+      name: 'market',
+      description: 'Цены дня по категориям',
+      run: () => cats.all().map((c) => `${c.icon} ${c.name.padEnd(16)} ${formatDemand(market.demand(c))}`).join('\n'),
+    })
     api.commands.register({
       name: 'bells',
       description: 'Кошелёк: bells (сколько) · bells 5000 (добавить)',
@@ -146,7 +208,7 @@ function WalletPill({ bells }: { bells: ReadonlySignal<number> }) {
   )
 }
 
-function SellBox({ api, cfg, wallet }: { api: PluginApi; cfg: Config; wallet: Wallet }) {
+function SellBox({ api, cfg, wallet, market }: { api: PluginApi; cfg: Config; wallet: Wallet; market: Market }) {
   const inv = api.services.get('items:inventory')
   inv.version.value // re-render on pocket changes
   wallet.bells.value
@@ -157,7 +219,12 @@ function SellBox({ api, cfg, wallet }: { api: PluginApi; cfg: Config; wallet: Wa
   const museum = api.services.has('museum:donations') ? api.services.get('museum:donations') : null
   const catalog = api.services.has('collection:catalog') ? api.services.get('collection:catalog') : null
   const missing = (id: string) => !!museum && !!catalog?.get(id) && !museum.has(id)
-  const price = (id: string) => Math.round((items.get(id)?.price ?? 0) * cfg.sellRate)
+  const price = (id: string) => market.sellPrice(id)
+  const trend = (id: string) => {
+    const c = market.categoryOf(id)
+    const m = c ? market.demand(c) : 1
+    return Math.abs(m - 1) < 0.01 ? '' : ` · ${m > 1 ? '📈' : '📉'} ${formatDemand(m)}`
+  }
 
   // one row per item id (stacks of the same item are summed)
   const counts = new Map<string, number>()
@@ -195,7 +262,8 @@ function SellBox({ api, cfg, wallet }: { api: PluginApi; cfg: Config; wallet: Wa
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 800 }}>{items.get(id)?.name ?? id}</div>
                 <div style={{ fontSize: '12px', color: 'var(--ui-text-soft)' }}>
-                  {formatBells(price(id))} 🔔 за штуку{missing(id) ? ' · 🏛 этого ещё нет в музее' : ''}
+                  {formatBells(price(id))} 🔔 за штуку{trend(id)}
+                  {missing(id) ? ' · 🏛 этого ещё нет в музее' : ''}
                 </div>
               </div>
               <ui.Button secondary onClick={() => done(sell(id, 1), items.get(id)?.name ?? id)}>
@@ -217,6 +285,32 @@ function SellBox({ api, cfg, wallet }: { api: PluginApi; cfg: Config; wallet: Wa
         {total > 0 && <ui.Button onClick={sellAll}>Продать всё · {formatBells(total)} 🔔</ui.Button>}
       </div>
       {cfg.keepUndonated && museum && <div style={{ fontSize: '12px', color: 'var(--ui-text-soft)' }}>«Продать всё» не трогает то, чего ещё нет в музее.</div>}
+    </div>
+  )
+}
+
+/** Today's prices with the last days as little bars. */
+function MarketBoard({ market, period }: { market: Market; period: number }) {
+  const days = Array.from({ length: period }, (_, i) => period - 1 - i) // oldest first
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: 'min(440px, 86vw)' }}>
+      {market.categories().map((c) => {
+        const today = market.demand(c)
+        return (
+          <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ width: '24px', textAlign: 'center' }}>{c.icon}</span>
+            <span style={{ flex: 1, fontWeight: 700 }}>{c.name}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: '2px', height: '22px' }}>
+              {days.map((d) => {
+                const m = market.demand(c, d)
+                return <span key={d} title={formatDemand(m)} style={{ width: '6px', height: `${Math.round(6 + (m - 0.5) * 16)}px`, borderRadius: '2px', background: d === 0 ? 'var(--ui-accent)' : 'var(--ui-line)' }} />
+              })}
+            </span>
+            <span style={{ width: '56px', textAlign: 'right', fontWeight: 800, color: today >= 1 ? 'var(--ui-accent)' : 'var(--ui-text-soft)' }}>{formatDemand(today)}</span>
+          </div>
+        )
+      })}
+      <div style={{ fontSize: '12px', color: 'var(--ui-text-soft)' }}>Столбики — цены за последние дни. Цены меняются каждое утро.</div>
     </div>
   )
 }

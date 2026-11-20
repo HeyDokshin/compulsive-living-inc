@@ -2,7 +2,7 @@
  * Talking to the curator: her lines (registry `museum:dialogue`) type out with a soft babble, then
  * a few choices — donate, identify a fossil, how's the museum, bye.
  */
-import { ui, useEffect, useRef, useState, type Entity, type PluginApi, type RegistryEntry } from '@sdk'
+import { ui, useState, voiceBlip, type Entity, type PluginApi, type RegistryEntry } from '@sdk'
 
 export interface DialogueDef extends RegistryEntry {
   lines: string[]
@@ -44,40 +44,9 @@ export function Curator({ deps }: { deps: CuratorDeps }) {
     deps.meet()
     return say(first ? 'greet_first' : 'greet')
   })
-  const [shown, setShown] = useState(0)
   const [mode, setMode] = useState<'talk' | 'donate'>('talk')
-  const typing = shown < text.length
-
-  // Type the text out with a little voice.
-  const timer = useRef<number | undefined>(undefined)
-  useEffect(() => {
-    setShown(0)
-    deps.setTalking(true)
-    let i = 0
-    timer.current = window.setInterval(() => {
-      i++
-      setShown(i)
-      const ch = text[i - 1] ?? ''
-      if (i % 2 === 0 && /[\p{L}]/u.test(ch)) {
-        api.audio.note({ wave: 'triangle', freq: deps.voicePitch * (0.85 + Math.random() * 0.35), duration: 0.045, gain: 0.05, attack: 0.004, bus: 'ui' })
-      }
-      if (i >= text.length) {
-        window.clearInterval(timer.current)
-        deps.setTalking(false)
-      }
-    }, deps.typeSpeed * 1000)
-    return () => {
-      window.clearInterval(timer.current)
-      deps.setTalking(false)
-    }
-  }, [text])
 
   if (!actor) return null
-  const skip = () => {
-    window.clearInterval(timer.current)
-    setShown(text.length)
-    deps.setTalking(false)
-  }
   const pocket = inv.of(actor)?.slots ?? []
   const candidates = [...new Set(pocket.filter((s) => s && catalog.get(s.id) && !deps.donated(s.id)).map((s) => s!.id))]
   const unknown = inv.count(actor, deps.unknownFossil)
@@ -121,51 +90,27 @@ export function Curator({ deps }: { deps: CuratorDeps }) {
         ]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: 'min(560px, 88vw)' }}>
-      <div
-        onClick={skip}
-        style={{
-          background: '#fffaf0',
-          borderRadius: '18px',
-          padding: '14px 16px',
-          minHeight: '84px',
-          fontSize: '15px',
-          lineHeight: 1.45,
-          cursor: typing ? 'pointer' : 'default',
-          boxShadow: 'inset 0 0 0 2px rgba(201, 150, 106, .25)',
-        }}
-      >
-        <div style={{ fontWeight: 800, fontSize: '12px', color: 'var(--ui-accent)', marginBottom: '4px' }}>Мира, смотрительница</div>
-        {text.slice(0, shown)}
-        {typing && <span style={{ opacity: 0.4 }}>▍</span>}
-      </div>
-      {!typing && mode === 'donate' && (
-        <ui.Grid columns={7}>
-          {candidates.map((id) => (
-            <ui.ItemSlot
-              key={id}
-              icon={api.ui.itemIcon(id)}
-              title={catalog.get(id)?.name}
-              onClick={() => {
-                const s = catalog.get(id)
-                if (!s || !deps.donate(actor, id)) return
-                const left = candidates.length - 1
-                setText(say('thanks', { name: s.name, description: s.description ?? '' }))
-                if (!left) setMode('talk')
-              }}
-            />
-          ))}
-        </ui.Grid>
-      )}
-      {!typing && (
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          {choices.map(([label, run], i) => (
-            <ui.Button key={label} secondary={i > 0} onClick={run}>
-              {label}
-            </ui.Button>
-          ))}
-        </div>
-      )}
+    <div style={{ width: 'min(560px, 88vw)' }}>
+      <ui.Dialogue speaker="Мира, смотрительница" text={text} typeSpeed={deps.typeSpeed} onBlip={() => voiceBlip(api, deps.voicePitch)} onTyping={deps.setTalking}>
+        {mode === 'donate' && (
+          <ui.Grid columns={7}>
+            {candidates.map((id) => (
+              <ui.ItemSlot
+                key={id}
+                icon={api.ui.itemIcon(id)}
+                title={catalog.get(id)?.name}
+                onClick={() => {
+                  const s = catalog.get(id)
+                  if (!s || !deps.donate(actor, id)) return
+                  setText(say('thanks', { name: s.name, description: s.description ?? '' }))
+                  if (candidates.length <= 1) setMode('talk')
+                }}
+              />
+            ))}
+          </ui.Grid>
+        )}
+        <ui.Choices items={choices} />
+      </ui.Dialogue>
     </div>
   )
 }

@@ -80,6 +80,13 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       voxelModel: (id, opts) => game.modelLibrary.createVoxel(id, opts),
       rigModel: (id, opts) => game.modelLibrary.createRig(id, opts),
       refreshView: (e) => game.renderer.entityRenderer.refresh(e),
+      setModel: (e, model) => {
+        // a plain assignment would not put a new component into the ECS queries (nothing would draw it)
+        if (e.model) {
+          e.model = model
+          game.renderer.entityRenderer.refresh(e)
+        } else game.entities.world.addComponent(e, 'model', model)
+      },
       modelInfo: async (id) => {
         const m = await game.modelLibrary.getModel(id)
         if (!m) return null

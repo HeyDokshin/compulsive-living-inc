@@ -1,0 +1,7 @@
+// Crafted things that are not decor. Recipe cards (crafting:card_<recipe>) are made from the recipes.
+{
+  entries: [
+    { id: 'crafting:paint', name: 'Краска', description: 'Перекрасить поделку на верстаке.', stack: 10, model: 'crafting:paint', price: 100, tags: ['crafting:paints'], held: { tilt: 0, scale: 1 } },
+    { id: 'crafting:bait', name: 'Наживка', description: 'Бросьте в воду — рядом появится рыба.', stack: 10, model: 'crafting:bait', price: 40, tags: ['fishing:baits'], held: { tilt: 0, scale: 1 } },
+  ],
+}

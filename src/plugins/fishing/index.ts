@@ -38,6 +38,8 @@ const Config = z.object({
   /** Seconds a new shadow takes to fade in. */
   fadeIn: z.number().min(0.05).max(5).default(1.2).meta({ label: 'fade in (s)', step: 0.05 }),
   shake: z.number().min(0).max(0.5).default(0.07).meta({ label: 'bite shake', step: 0.01 }),
+  /** A fish lured by bait appears within this many blocks. */
+  baitRadius: z.number().min(1.5).max(8).default(3).meta({ label: 'bait radius', step: 0.5 }),
   shadowOpacity: z.number().min(0).max(1).default(0.36).meta({ label: 'shadow opacity', step: 0.01 }),
   /** Shadow length for size 1 and 6 (blocks). */
   shadowMin: z.number().min(0.1).max(2).default(0.35).meta({ step: 0.05 }),
@@ -330,6 +332,23 @@ export default definePlugin({
       sound: 'core:swing',
       when: (ctx) => !!cast && cast.actor === ctx.actor,
       run: () => reel(),
+    })
+    // Bait (crafted from shells): toss it in and a fish swims up.
+    interactions.register({
+      id: 'fishing:bait',
+      tool: '#fishing:baits',
+      block: '#core:liquid',
+      priority: 15,
+      label: 'Бросить наживку',
+      sound: 'fishing:plop',
+      when: (ctx) => !!water().kindAt(ctx.x, ctx.z),
+      run: (ctx) => {
+        const kind = water().kindAt(ctx.x, ctx.z)!
+        if (api.services.get('items:inventory').remove(ctx.actor, ctx.held!, 1) < 1) return false
+        const y = waterTop(ctx.x, ctx.z)
+        fx.ripple(ctx.x + 0.5, y + 0.9, ctx.z + 0.5, 1.6)
+        if (!spawnNear(ctx.x + 0.5, ctx.z + 0.5, kind, cfg.baitRadius)) api.ui.toast('Никто не приплыл… Попробуйте в другом месте.')
+      },
     })
     interactions.register({
       id: 'fishing:cast',

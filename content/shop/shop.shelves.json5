@@ -1,0 +1,12 @@
+// The stall's shelves. Each shelf takes goods by tag (or a list of items); `count` of them are picked
+// for the day (0 = all, every day), `stock` = how many of each can be bought per day (0 = no limit).
+// Buy price = item price × markup.
+{
+  entries: [
+    { id: 'shop:daily', name: 'Поделки дня', tag: '#decor:pieces', count: 3, stock: 1, markup: 1.3, order: 10 },
+    { id: 'shop:cards', name: 'Открытки с рецептами', tag: '#crafting:cards', count: 2, stock: 1, markup: 1, order: 20 },
+    { id: 'shop:plants', name: 'Саженцы', tag: '#nature:saplings', count: 2, stock: 3, markup: 2, order: 30 },
+    { id: 'shop:seeds', name: 'Семена', tag: '#garden:seeds', count: 0, stock: 0, markup: 1, order: 40 },
+    { id: 'shop:basics', name: 'Каждый день', items: ['crafting:bait', 'crafting:paint', 'core:shovel', 'core:axe', 'core:net', 'core:fishing_rod', 'core:watering_can'], count: 0, stock: 0, markup: 1.5, order: 50 },
+  ],
+}
