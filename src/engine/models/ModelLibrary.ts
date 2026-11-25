@@ -132,6 +132,24 @@ export class ModelLibrary {
     })
   }
 
+  /** Every part of a rig standing still: geometry, scale, key and where it goes (world units) — for instancing. */
+  rigGeometry(
+    id: string,
+    opts: { scale?: number; palette?: Record<string, string>; parts?: Record<string, string> },
+    cb: (geo: BufferGeometry, scale: number, key: string, at: [number, number, number]) => void,
+  ): void {
+    const rig = this.rigs.get(id)
+    if (!rig) return void log.warn(`unknown rig "${id}"`)
+    const scale = opts.scale ?? rig.scale
+    for (const part of rig.parts) {
+      const modelId = opts.parts?.[part.name] ?? part.model
+      this.withModel(modelId, (model, def) => {
+        const { geo, key } = this.geometry(modelId, model, part.pivot, opts.palette, def)
+        if (geo.index!.count) cb(geo, scale, key, [part.at[0] * scale, part.at[1] * scale, part.at[2] * scale])
+      })
+    }
+  }
+
   private geometry(id: string, model: VoxelModel, pivot: [number, number, number], palette: Record<string, string> | undefined, def: ModelDef) {
     const key = `${id}|${pivot.join(',')}|${palette ? JSON.stringify(palette) : ''}`
     let geo = this.geometries.get(key)

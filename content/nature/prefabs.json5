@@ -11,14 +11,14 @@
   { id: 'nature:rock', components: {
       name: 'Камень',
       transform: { x: 0, y: 0, z: 0 },
-      model: { shape: 'voxel', ref: 'nature:rock' },
+      model: { shape: 'voxel', ref: 'nature:rock', instanced: true },
       rock: { hits: 0, day: 0 },
       blocker: {},
   } },
   { id: 'nature:dig_spot', components: {
       name: 'Трещинка в земле',
       transform: { x: 0, y: 0, z: 0 },
-      model: { shape: 'voxel', ref: 'nature:dig_spot' },
+      model: { shape: 'voxel', ref: 'nature:dig_spot', instanced: true },
       digSpot: {},
   } },
 ]

@@ -99,6 +99,12 @@ export default definePlugin({
     const blocked = { has: (k: string) => { const [x, z] = k.split(',').map(Number); return !!api.world.blockerAt(x!, z!) } }
     const cellKey = (x: number, z: number) => `${x},${z}`
 
+    const wobble = new Map<Entity, number>()
+    const startWobble = (e: Entity) => {
+      wobble.set(e, clock)
+      updateTree(e)
+    }
+
     // --- looks ------------------------------------------------------------------------------
     const updateTree = (e: Entity) => {
       const t = e.tree!
@@ -109,7 +115,7 @@ export default definePlugin({
       const show = (n: number) => (t.fruit >= n && season !== 'winter' ? fruit : 'nature:none')
       e.model =
         t.stage === 0
-          ? { shape: 'rig', ref: 'nature:sapling', size: [1, 1, 1], color: '#ccc', anchor: 'bottom' }
+          ? { shape: 'rig', ref: 'nature:sapling', size: [1, 1, 1], color: '#ccc', anchor: 'bottom', instanced: true }
           : {
               shape: 'rig',
               ref: 'nature:tree',
@@ -118,6 +124,8 @@ export default definePlugin({
               anchor: 'bottom',
               scale: cfg.treeScale * (t.stage === 1 ? 0.6 : 1),
               palette,
+              // all still trees in a few draw calls; a shaken one gets a body of its own for a moment
+              instanced: !wobble.has(e),
               parts: { fruitA: show(1), fruitB: show(2), fruitC: show(3) },
             }
       e.name = kind ? (t.stage < 2 ? `${kind.name} (молодое)` : kind.name) : 'Дерево'
@@ -130,20 +138,21 @@ export default definePlugin({
     api.events.on('plugin:loaded', ({ id }) => id === api.id && refreshAll())
 
     // A shaken tree wobbles for a moment.
-    const wobble = new WeakMap<object, number>()
     let clock = 0
     api.systems.add({
       id: 'wobble',
       phase: 'render',
       run: ({ dt }) => {
         clock += dt
-        for (const e of api.entities.world.with('tree', 'view')) {
-          const start = wobble.get(e)
-          if (start === undefined) continue
+        for (const [e, start] of wobble) {
           const age = clock - start
-          const canopy = e.view.getObjectByName('canopy')
-          if (canopy) canopy.rotation.z = age < 0.8 ? Math.sin(age * 38) * 0.07 * (1 - age / 0.8) : 0
-          if (age >= 0.8) wobble.delete(e)
+          if (age < 0.8 && api.entities.world.has(e)) {
+            const canopy = e.view?.getObjectByName('canopy')
+            if (canopy) canopy.rotation.z = Math.sin(age * 38) * 0.07 * (1 - age / 0.8)
+            continue
+          }
+          wobble.delete(e)
+          if (api.entities.world.has(e)) updateTree(e)
         }
       },
     })
@@ -293,7 +302,7 @@ export default definePlugin({
       run: (ctx) => {
         const e = ctx.target!
         if (e.tree!.stage < 2) return false
-        wobble.set(e, clock)
+        startWobble(e)
         api.audio.play('nature:rustle', { at: e.transform })
         leaves(e)
         const kind = kinds.get(e.tree!.kind)
@@ -321,7 +330,7 @@ export default definePlugin({
       particles: 'nature:chips',
       run: (ctx) => {
         const e = ctx.target!
-        wobble.set(e, clock)
+        startWobble(e)
         if (!chop(e.tree!, api.time.dayIndex, rules())) {
           api.ui.toast('Сегодня это дерево уже отдало всю древесину')
           return
@@ -454,7 +463,7 @@ export default definePlugin({
         id: 'nature:tutorial_shake',
         order: 55,
         text: 'Потрясите дерево — вдруг упадёт фрукт.',
-        keys: ['Space'],
+        keys: ['player:use'],
         event: 'interaction:performed',
         when: (p: { id: string }) => p.id === 'nature:shake',
       })

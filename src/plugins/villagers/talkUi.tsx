@@ -84,6 +84,7 @@ export function Talk(props: Props) {
     const taste = giftTaste((t) => items.isTagged(id, t), pers?.likes ?? [], pers?.dislikes ?? [], items.get(id)?.price ?? 0)
     add(cfg.giftPoints[taste])
     api.events.emit('villagers:gifted', { id: v.id, item: id, taste })
+    if (api.services.has('emotes:show')) api.services.get('emotes:show').show(npc, taste === 'love' ? 'emotes:love' : taste === 'dislike' ? 'emotes:question' : 'emotes:gift')
     let reply = say(`gift_${taste}`, { item: name })
     // a best friend's photo, once
     if (hearts(r.points) >= 5 && !r.photo && api.services.has('decor:pieces')) {

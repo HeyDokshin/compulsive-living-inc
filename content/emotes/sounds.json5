@@ -1,0 +1,10 @@
+[
+  { id: 'emotes:hello', volume: 0.5, layers: [{ wave: 'triangle', freq: 660, freqEnd: 880, duration: 0.1, gain: 0.14 }, { wave: 'triangle', freq: 880, freqEnd: 990, delay: 0.1, duration: 0.12, gain: 0.12 }] },
+  { id: 'emotes:joy', volume: 0.5, layers: [{ wave: 'triangle', freq: 780, duration: 0.07, gain: 0.13 }, { wave: 'triangle', freq: 990, delay: 0.07, duration: 0.07, gain: 0.13 }, { wave: 'triangle', freq: 1180, delay: 0.14, duration: 0.12, gain: 0.12 }] },
+  { id: 'emotes:love', volume: 0.5, layers: [{ wave: 'sine', freq: 520, freqEnd: 660, duration: 0.16, gain: 0.14 }, { wave: 'sine', freq: 780, delay: 0.14, duration: 0.2, gain: 0.1 }] },
+  { id: 'emotes:surprise', volume: 0.5, layers: [{ wave: 'triangle', freq: 520, freqEnd: 1250, duration: 0.14, gain: 0.15 }] },
+  { id: 'emotes:question', volume: 0.5, layers: [{ wave: 'sine', freq: 480, duration: 0.08, gain: 0.13 }, { wave: 'sine', freq: 520, freqEnd: 780, delay: 0.1, duration: 0.14, gain: 0.13 }] },
+  { id: 'emotes:sad', volume: 0.45, layers: [{ wave: 'sine', freq: 560, freqEnd: 400, duration: 0.26, gain: 0.13 }] },
+  { id: 'emotes:sleepy', volume: 0.3, layers: [{ wave: 'sine', freq: 300, freqEnd: 220, attack: 0.1, duration: 0.5, gain: 0.12 }] },
+  { id: 'emotes:note', volume: 0.35, layers: [{ wave: 'triangle', freq: 880, duration: 0.1, gain: 0.1 }, { wave: 'triangle', freq: 1046, delay: 0.14, duration: 0.14, gain: 0.1 }] },
+]

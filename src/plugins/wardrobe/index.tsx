@@ -62,7 +62,7 @@ export default definePlugin({
   setup(api) {
     const cfg = api.config.define(Config)
     api.createRegistry<WardrobeOption>('wardrobe:options', OptionSchema as never)
-    const key = api.input.action('open', ['KeyC'])
+    const key = api.input.action('open', ['KeyC'], 'Внешность')
     api.input.on(key, () => !api.ui.modalOpen.value && api.ui.open('wardrobe:editor'))
 
     // A new island starts with the editor: who came to live here?

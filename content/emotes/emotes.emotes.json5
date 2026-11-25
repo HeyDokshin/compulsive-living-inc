@@ -1,0 +1,19 @@
+// Emotes: what pops up over a head. wheel — offered to the player (T); anim — what the body does
+// (wave, cheer, nod, sad, clap); reply — how neighbours who see it answer (one is picked).
+[
+  { id: 'emotes:hello', glyph: '👋', name: 'Привет', wheel: 1, anim: 'wave', sound: 'emotes:hello', reply: ['emotes:hello', 'emotes:joy'] },
+  { id: 'emotes:joy', glyph: '😄', name: 'Радость', wheel: 2, anim: 'cheer', sound: 'emotes:joy', reply: ['emotes:joy', 'emotes:note'] },
+  { id: 'emotes:love', glyph: '❤️', name: 'Люблю', wheel: 3, anim: 'nod', sound: 'emotes:love', reply: ['emotes:love', 'emotes:shy'] },
+  { id: 'emotes:clap', glyph: '👏', name: 'Браво', wheel: 4, anim: 'clap', sound: 'emotes:joy', reply: ['emotes:shy', 'emotes:joy'] },
+  { id: 'emotes:surprise', glyph: '❗', name: 'Ого!', wheel: 5, anim: 'cheer', sound: 'emotes:surprise', reply: ['emotes:question'] },
+  { id: 'emotes:question', glyph: '❓', name: 'Что?', wheel: 6, anim: 'nod', sound: 'emotes:question', reply: ['emotes:question', 'emotes:idea'] },
+  { id: 'emotes:sad', glyph: '😢', name: 'Грустно', wheel: 7, anim: 'sad', sound: 'emotes:sad', reply: ['emotes:love', 'emotes:sad'] },
+  { id: 'emotes:sleepy', glyph: '💤', name: 'Спать…', wheel: 8, anim: 'sad', sound: 'emotes:sleepy', reply: ['emotes:sleepy', 'emotes:joy'] },
+  { id: 'emotes:note', glyph: '🎵', name: 'Песенка', sound: 'emotes:note', anim: 'nod', reply: ['emotes:note'] },
+  { id: 'emotes:idea', glyph: '💡', name: 'Идея', sound: 'emotes:question', anim: 'nod', reply: [] },
+  { id: 'emotes:shy', glyph: '☺️', name: 'Смущение', sound: 'emotes:love', anim: 'nod', reply: [] },
+  { id: 'emotes:flower', glyph: '🌷', name: 'Цветочек', sound: 'emotes:note', anim: 'nod', reply: [] },
+  { id: 'emotes:rain', glyph: '☔', name: 'Дождь', sound: 'emotes:sad', anim: 'nod', reply: [] },
+  { id: 'emotes:cold', glyph: '❄️', name: 'Холодно', sound: 'emotes:sad', anim: 'nod', reply: [] },
+  { id: 'emotes:gift', glyph: '🎁', name: 'Подарок', sound: 'emotes:joy', anim: 'cheer', reply: [] },
+]

@@ -201,7 +201,7 @@ export default definePlugin({
         order: 85,
         day: 2,
         text: 'Смастерите что-нибудь на верстаке — например, скамейку из древесины.',
-        keys: ['Space'],
+        keys: ['player:use'],
         event: 'crafting:crafted',
       })
       api.registry('tutorial:steps').register({
@@ -209,7 +209,7 @@ export default definePlugin({
         order: 94,
         day: 3,
         text: 'Поставьте поделку на острове или дома: возьмите её в руки из карманов.',
-        keys: ['Space'],
+        keys: ['player:use'],
         event: 'interaction:performed',
         when: (p: { id: string }) => p.id === 'decor:place',
       })

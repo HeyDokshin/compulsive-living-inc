@@ -74,11 +74,11 @@ export default definePlugin({
     )
 
     const keys = {
-      up: api.input.action('up', ['KeyW', 'ArrowUp', 'Pad12']),
-      down: api.input.action('down', ['KeyS', 'ArrowDown', 'Pad13']),
-      left: api.input.action('left', ['KeyA', 'ArrowLeft', 'Pad14']),
-      right: api.input.action('right', ['KeyD', 'ArrowRight', 'Pad15']),
-      run: api.input.action('run', ['ShiftLeft', 'ShiftRight', 'Pad1']),
+      up: api.input.action('up', ['KeyW', 'ArrowUp', 'Pad12'], 'Идти вверх'),
+      down: api.input.action('down', ['KeyS', 'ArrowDown', 'Pad13'], 'Идти вниз'),
+      left: api.input.action('left', ['KeyA', 'ArrowLeft', 'Pad14'], 'Идти влево'),
+      right: api.input.action('right', ['KeyD', 'ArrowRight', 'Pad15'], 'Идти вправо'),
+      run: api.input.action('run', ['ShiftLeft', 'ShiftRight', 'Pad1'], 'Бежать'),
     }
 
     const blocks = api.registry('blocks')
@@ -260,10 +260,10 @@ export default definePlugin({
     }
 
     // Use: whatever the interaction matrix says for (held item × cell in front).
-    const useKey = api.input.action('use', ['Space', 'Enter', 'Pad0'])
+    const useKey = api.input.action('use', ['Space', 'Enter', 'Pad0'], 'Действие')
     api.input.on(useKey, () => act(cursor.front.x, cursor.front.z))
     // The second action: rotate, take, put away… (shown next to the main one in the hint).
-    const altKey = api.input.action('useAlt', ['KeyF', 'Pad2'])
+    const altKey = api.input.action('useAlt', ['KeyF', 'Pad2'], 'Второе действие')
     api.input.on(altKey, () => act(cursor.front.x, cursor.front.z, 'secondary'))
 
     // Click: walk next to the clicked cell and act on it (or just walk there).
@@ -332,7 +332,7 @@ type Three = PluginApi['render']['three']
 interface HintState {
   action: string | null
   name: string | null
-  /** Key shown next to the action. */
+  /** Input action whose key is shown next to it. */
   key: string
   /** The second action (F) here, if any. */
   alt: string | null
@@ -348,7 +348,7 @@ class Cursor {
   front = { x: 0, z: 0 }
   /** Cell the marker shows (front, or the mouse-hovered / clicked one). */
   cell = { x: 0, z: 0 }
-  readonly hint = signal<HintState>({ action: null, name: null, key: 'Space', alt: null })
+  readonly hint = signal<HintState>({ action: null, name: null, key: 'player:use', alt: null })
 
   constructor(
     private api: PluginApi,
@@ -407,7 +407,7 @@ class Cursor {
       this.last = key
       this.api.events.emit('player:target', { x: cx, y: ctx.y, z: cz, block: ctx.block })
     }
-    const keyName = pointed ? 'ЛКМ' : 'Space'
+    const keyName = pointed ? 'player:click' : 'player:use'
     const h = this.hint.value
     if (h.action !== action || h.name !== name || h.key !== keyName || h.alt !== alt) this.hint.value = { action, name, key: keyName, alt }
   }
@@ -420,7 +420,7 @@ function Hint({ cursor, cfg, api }: { cursor: Cursor; cfg: Config; api: PluginAp
     <ui.Pill>
       {h.action ? (
         <>
-          <ui.Key>{h.key}</ui.Key>
+          <ui.Key>{api.input.keyLabel(h.key)}</ui.Key>
           <span>{h.action}</span>
         </>
       ) : (
@@ -428,7 +428,7 @@ function Hint({ cursor, cfg, api }: { cursor: Cursor; cfg: Config; api: PluginAp
       )}
       {h.alt && (
         <>
-          <ui.Key>F</ui.Key>
+          <ui.Key>{api.input.keyLabel('player:useAlt')}</ui.Key>
           <span>{h.alt}</span>
         </>
       )}

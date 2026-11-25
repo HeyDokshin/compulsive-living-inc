@@ -59,6 +59,8 @@ export class Renderer {
   ) {
     this.renderer = new WebGLRenderer({ antialias: true, stencil: true })
     this.renderer.shadowMap.type = PCFShadowMap
+    // asking the driver about errors waits for every shader: only while developing
+    this.renderer.debug.checkShaderErrors = import.meta.env?.DEV === true
     container.appendChild(this.renderer.domElement)
     this.iso = new IsoCamera(cfg.camera)
 
@@ -204,6 +206,15 @@ export class Renderer {
       this.postfx.render(ctx.dt)
     }
     else this.renderer.render(this.scene, this.iso.camera)
+  }
+
+  /** Compile every material of the scene now (in the background where the browser can) instead of on first sight. */
+  async warmUp(): Promise<void> {
+    const target = this.renderer.getRenderTarget()
+    if (this.cfg.style.postfx) this.renderer.setRenderTarget(this.postfx.composer.renderTarget1)
+    const done = this.renderer.compileAsync(this.scene, this.iso.camera)
+    this.renderer.setRenderTarget(target)
+    await done
   }
 
   private pickOrigin = new Vector3()

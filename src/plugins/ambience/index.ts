@@ -12,6 +12,8 @@ const Config = z.object({
   surf: z.number().min(0).max(1).default(0.22).meta({ label: 'surf volume', step: 0.01 }),
   birds: z.boolean().default(true),
   crickets: z.boolean().default(true),
+  /** How much of the outside is heard inside rooms. */
+  indoors: z.number().min(0).max(1).default(0.12).meta({ step: 0.01 }),
 })
 type Config = z.infer<typeof Config>
 
@@ -94,6 +96,7 @@ class Nature {
   private time = 0
   private birdIn = 2
   private cricketIn = 1
+  private steerIn = 0
 
   constructor(
     private api: PluginApi,
@@ -108,17 +111,19 @@ class Nature {
     const h = hour(this.api)
     const day = h >= 6 && h < 18.5
     const at = this.api.render.camera.target
+    const inside = this.api.interiors.current !== null
+    const heard = inside ? this.cfg.indoors : 1
     if (this.cfg.birds && day && (this.birdIn -= dt) <= 0) {
       this.birdIn = 2.5 + Math.random() * 5
       const a = Math.random() * Math.PI * 2
       this.api.audio.play(Math.random() < 0.7 ? 'ambience:bird' : 'ambience:bird_whistle', {
         at: { x: at.x + Math.cos(a) * 8, z: at.z + Math.sin(a) * 8 },
-        volume: 0.6 + Math.random() * 0.4,
+        volume: (0.6 + Math.random() * 0.4) * heard,
       })
     }
     if (this.cfg.crickets && isNight(h) && (this.cricketIn -= dt) <= 0) {
       this.cricketIn = 0.4 + Math.random() * 1.1
-      this.api.audio.play('ambience:cricket', { volume: 0.4 + Math.random() * 0.5 })
+      this.api.audio.play('ambience:cricket', { volume: (0.4 + Math.random() * 0.5) * heard })
     }
   }
 
@@ -129,8 +134,11 @@ class Nature {
     this.sample -= dt
     if (this.sample <= 0) {
       this.sample = 1
-      this.shore = waterAround(this.api, 12)
+      this.shore = this.api.interiors.current ? this.cfg.indoors : waterAround(this.api, 12)
     }
+    // steering a few times a second is enough for a swell of seconds
+    if ((this.steerIn -= dt) > 0) return
+    this.steerIn = 0.15
     const swell = 0.65 + 0.35 * Math.sin((this.time * Math.PI * 2) / 7)
     this.surf.setGain(this.cfg.surf * Math.min(1, this.shore * 1.8) * swell, 0.8)
     this.surf.setFilter(380 + 260 * swell, 0.8)

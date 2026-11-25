@@ -74,7 +74,7 @@ export class EntityRenderer {
     this.blobs.begin()
     for (const e of this.models) {
       const spec = e.model
-      const batched = spec.instanced === true && spec.shape === 'voxel' && spec.ref !== undefined
+      const batched = spec.instanced === true && spec.shape !== 'box' && spec.ref !== undefined
       if (!e.view && !batched) {
         const view = this.create(spec)
         this.scene.add(view)

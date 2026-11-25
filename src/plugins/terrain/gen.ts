@@ -52,7 +52,7 @@ export const Config = z.object({
   /** Decoration only: flat sea and sea bed drawn past the world edge so the island doesn't float in the sky. */
   seaBackdrop: z.boolean().default(true).meta({ label: 'sea backdrop' }),
   /** Grid cells per tile of the sea backdrop. */
-  seaTile: z.number().int().min(4).max(128).default(16).meta({ label: 'sea tile', step: 1 }),
+  seaTile: z.number().int().min(4).max(128).default(32).meta({ label: 'sea tile', step: 1 }),
   blocks: z
     .object({
       grass: z.string().default('core:grass'),

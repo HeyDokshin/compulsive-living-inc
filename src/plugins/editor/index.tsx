@@ -47,7 +47,7 @@ export default definePlugin({
         fields: z.record(z.string(), z.string()).default({}),
       }) as never,
     )
-    const key = api.input.action('open', ['F4'])
+    const key = api.input.action('open', ['F4'], 'Редактор контента')
     api.input.on(key, () => api.ui.toggle('editor:main'))
     api.ui.window({ id: 'editor:main', title: 'Редактор контента', wide: true, component: () => <Editor api={api} cfg={cfg} kinds={kinds} /> })
     api.ui.slot('menu', () => (

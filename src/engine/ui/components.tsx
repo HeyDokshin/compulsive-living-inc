@@ -1,6 +1,7 @@
 /** Small UI building blocks shared by all plugins (exported from '@sdk' as `ui`). */
 import type { ComponentChildren } from 'preact'
-import { useEffect, useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
+import { uiPrefs } from './prefs'
 
 export function Pill({ children }: { children: ComponentChildren }) {
   return <div class="cl-pill">{children}</div>
@@ -46,6 +47,8 @@ export function ItemSlot(props: {
   return (
     <div
       class={cls}
+      tabIndex={0}
+      role="button"
       title={props.title}
       onClick={props.onClick}
       onContextMenu={(e) => {
@@ -63,7 +66,8 @@ export function ItemSlot(props: {
 
 export function Grid({ columns, children }: { columns: number; children: ComponentChildren }) {
   return (
-    <div class="cl-grid" style={{ gridTemplateColumns: `repeat(${columns}, 64px)` }}>
+    // as many columns as fit, up to `columns`
+    <div class="cl-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, 64px)', width: `${columns * 72 - 8}px`, maxWidth: '100%' }}>
       {children}
     </div>
   )
@@ -86,12 +90,14 @@ export function Dialogue(props: {
   const { text, typeSpeed = 0.028 } = props
   const [shown, setShown] = useState(0)
   const [skipped, setSkipped] = useState(false)
+  const timerRef = useRef(0)
   useEffect(() => {
     setShown(0)
-    setSkipped(false)
+    setSkipped(uiPrefs.instantText.value)
+    if (uiPrefs.instantText.value) return
     props.onTyping?.(true)
     let i = 0
-    const timer = window.setInterval(() => {
+    const timer = (timerRef.current = window.setInterval(() => {
       i++
       setShown(i)
       if (i % 2 === 0 && /\p{L}/u.test(text[i - 1] ?? '')) props.onBlip?.()
@@ -99,7 +105,7 @@ export function Dialogue(props: {
         window.clearInterval(timer)
         props.onTyping?.(false)
       }
-    }, typeSpeed * 1000)
+    }, typeSpeed * 1000))
     return () => {
       window.clearInterval(timer)
       props.onTyping?.(false)
@@ -107,12 +113,13 @@ export function Dialogue(props: {
   }, [text])
   const typing = !skipped && shown < text.length
   const skip = () => {
+    window.clearInterval(timerRef.current) // the voice stops too
     setSkipped(true)
     props.onTyping?.(false)
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      <div class="cl-dialogue" onClick={skip} style={{ cursor: typing ? 'pointer' : 'default' }}>
+      <div class="cl-dialogue" data-typing={typing || undefined} onClick={skip} style={{ cursor: typing ? 'pointer' : 'default' }}>
         <div class="cl-dialogue-speaker">{props.speaker}</div>
         {typing ? text.slice(0, shown) : text}
         {typing && <span style={{ opacity: 0.4 }}>▍</span>}

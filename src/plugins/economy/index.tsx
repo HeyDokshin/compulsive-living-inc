@@ -198,7 +198,7 @@ export default definePlugin({
         order: 90,
         day: 3,
         text: 'Продайте что-нибудь в лавке или в ящике для продажи — появятся колокольчики.',
-        keys: ['Space'],
+        keys: ['player:use'],
         event: 'economy:sold',
       })
     } catch {

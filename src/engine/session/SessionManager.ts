@@ -151,6 +151,7 @@ export class SessionManager {
       if (!g.camera.follow) g.camera.center()
       this.sinceSave = 0
       g.events.emit('session:started', { loaded: !!save, slot: this.session.slot })
+      void g.renderer.warmUp().catch((e) => log.warn('shader warm-up:', e))
       g.time.flushCatchUp() // days that passed while away (plugins are listening now)
       log.info(save ? `loaded "${save.meta.name}" (${save.meta.slot})` : `new island, seed ${g.worldConfig.seed}`)
     } finally {

@@ -181,6 +181,7 @@ export class Game {
 
     this.ui.mount(document.body)
     this.ui.onSound = (id) => this.sounds.has(id) && this.audio.play(id)
+    this.input.capture = (code) => this.ui.navigate(code)
     this.ui.onWindow = (id, open) => this.events.emit(open ? 'ui:opened' : 'ui:closed', { id })
     this.camera.onZoom = () => this.panel.refresh()
     for (const c of builtinCommands(this)) this.commands.register({ ...c, id: `debug:${c.name}` }, 'engine')
@@ -514,7 +515,7 @@ export class Game {
       if (!this.devConsole.open) this.ui.toggle('engine:menu')
     }
     this.ui.onIdleEscape = toggleMenu
-    this.input.define('engine:menu', ['Pad9'], 'engine')
+    this.input.define('engine:menu', ['Pad9'], 'engine', 'Меню')
     this.input.on('engine:menu', toggleMenu)
     this.ui.window({ id: 'engine:menu', title: 'Меню', component: () => h(GameMenu, { game: this }) }, 'engine')
     this.ui.slot('hud.topRight', () => h(Clock, { game: this }), 'engine', 0)

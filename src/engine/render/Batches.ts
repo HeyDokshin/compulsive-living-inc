@@ -4,6 +4,7 @@ import type { ModelSpec } from '../types'
 import { stylize } from './style'
 
 const START = 32
+const HERE = [0, 0, 0] as const
 
 /** An instanced mesh that grows, and uploads only when something in it really changed. */
 class Instances {
@@ -96,11 +97,21 @@ class Instances {
   }
 }
 
+/** One instanced geometry of a model: a voxel model has one, a rig one per part. */
+interface Piece {
+  batch: Instances
+  scale: number
+  /** Offset from the entity before turning. */
+  x: number
+  y: number
+  z: number
+}
+
 /** Entities whose model says `instanced`: one draw call per model and palette, however many there are. */
 export class ModelBatches {
   private byKey = new Map<string, Instances>()
-  /** Batch and scale per model spec (spec objects are replaced, not edited). Absent while loading. */
-  private bySpec = new WeakMap<ModelSpec, { batch: Instances; scale: number } | 'loading'>()
+  /** What each model spec is made of (specs are replaced, not edited); pieces join as their models load. */
+  private bySpec = new WeakMap<ModelSpec, Piece[]>()
   /** Bumps on clear: models that arrive late from before are dropped. */
   private epoch = 0
 
@@ -114,25 +125,32 @@ export class ModelBatches {
   }
 
   place(spec: ModelSpec, x: number, y: number, z: number, rotY: number): void {
-    let entry = this.bySpec.get(spec)
-    if (!entry) {
-      this.bySpec.set(spec, 'loading')
-      const epoch = this.epoch
-      this.library.voxelGeometry(spec.ref!, spec.palette, (geo, scale, key) => {
-        if (epoch !== this.epoch) return
-        let batch = this.byKey.get(key)
-        if (!batch) {
-          batch = new Instances(this.parent, geo, this.library.material, (mesh) => {
-            mesh.castShadow = true
-            mesh.receiveShadow = true
-          })
-          this.byKey.set(key, batch)
-        }
-        this.bySpec.set(spec, { batch, scale: spec.scale ?? scale })
-      })
-      entry = this.bySpec.get(spec)
+    let pieces = this.bySpec.get(spec)
+    if (!pieces) this.bySpec.set(spec, (pieces = this.load(spec)))
+    if (!pieces.length) return
+    const c = Math.cos(rotY)
+    const s = Math.sin(rotY)
+    for (const p of pieces) p.batch.push(x + c * p.x + s * p.z, y + p.y, z - s * p.x + c * p.z, rotY, p.scale)
+  }
+
+  private load(spec: ModelSpec): Piece[] {
+    const pieces: Piece[] = []
+    const epoch = this.epoch
+    const add = (geo: BufferGeometry, scale: number, key: string, at: readonly [number, number, number]) => {
+      if (epoch !== this.epoch) return
+      let batch = this.byKey.get(key)
+      if (!batch) {
+        batch = new Instances(this.parent, geo, this.library.material, (mesh) => {
+          mesh.castShadow = true
+          mesh.receiveShadow = true
+        })
+        this.byKey.set(key, batch)
+      }
+      pieces.push({ batch, scale, x: at[0], y: at[1], z: at[2] })
     }
-    if (entry && entry !== 'loading') entry.batch.push(x, y, z, rotY, entry.scale)
+    if (spec.shape === 'rig') this.library.rigGeometry(spec.ref!, spec, add)
+    else this.library.voxelGeometry(spec.ref!, spec.palette, (geo, scale, key) => add(geo, spec.scale ?? scale, key, HERE))
+    return pieces
   }
 
   end(): void {

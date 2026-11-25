@@ -78,8 +78,10 @@ export interface PluginApi {
   }
 
   input: {
-    /** Declare an action with default keys (`KeyboardEvent.code`). Id is namespaced automatically. */
-    action(name: string, keys: string[]): string
+    /** Declare an action with default keys (`KeyboardEvent.code`, `Pad0`, `Mouse0`). With a `label` the player can rebind it in the settings. Returns the namespaced id. */
+    action(name: string, keys: string[], label?: string): string
+    /** Text of the key cap for an action, following the player's bindings and device (use in components). */
+    keyLabel(action: string): string
     isDown(action: string): boolean
     wasPressed(action: string): boolean
     on(action: string, fn: () => void): Dispose

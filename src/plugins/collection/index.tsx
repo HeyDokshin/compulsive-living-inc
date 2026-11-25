@@ -212,7 +212,7 @@ export default definePlugin({
     document.head.append(style)
     api.onDispose(() => style.remove())
     api.ui.window({ id: 'collection:book', title: 'Энциклопедия', component: () => <Book api={api} catalog={catalog} /> })
-    const key = api.input.action('book', ['KeyB'])
+    const key = api.input.action('book', ['KeyB', 'Pad8'], 'Энциклопедия')
     api.input.on(key, () => api.ui.toggle('collection:book'))
 
     // Morning note: how many not-yet-found species can turn up today (any hour, any weather).
@@ -243,7 +243,7 @@ export default definePlugin({
         order: 75,
         day: 2,
         text: 'Поймайте рыбу удочкой или насекомое сачком. Всё пойманное — в энциклопедии.',
-        keys: ['B'],
+        keys: ['collection:book'],
         event: 'collection:caught',
       })
     } catch {

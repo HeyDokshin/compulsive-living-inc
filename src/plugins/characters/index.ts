@@ -6,6 +6,11 @@
  */
 import { definePlugin, z, type Entity } from '@sdk'
 
+const ACTIONS = ['swing', 'pickup', 'wave', 'cheer', 'nod', 'sad', 'clap'] as const
+export type BipedAction = (typeof ACTIONS)[number]
+/** Seconds an action lasts. */
+const LASTS: Record<BipedAction, number> = { swing: 0.42, pickup: 0.5, wave: 1.1, cheer: 0.9, nod: 0.7, sad: 1.3, clap: 1 }
+
 declare module '@sdk' {
   interface Components {
     biped?: {
@@ -13,7 +18,7 @@ declare module '@sdk' {
       phase?: number
       blend?: number
       /** One-shot action animation: set `{ name, t: 0 }`, the animation advances `t` and clears it. */
-      action?: { name: 'swing' | 'pickup'; t: number; duration?: number } | null
+      action?: { name: BipedAction; t: number; duration?: number } | null
     }
   }
 }
@@ -53,7 +58,7 @@ export default definePlugin({
         speed: z.number().default(0),
         phase: z.number().optional(),
         blend: z.number().optional(),
-        action: z.object({ name: z.enum(['swing', 'pickup']), t: z.number(), duration: z.number().optional() }).nullable().optional(),
+        action: z.object({ name: z.enum(ACTIONS), t: z.number(), duration: z.number().optional() }).nullable().optional(),
       }),
     )
     const cache = new WeakMap<object, Parts>()
@@ -99,11 +104,13 @@ export default definePlugin({
             p.head.obj.rotation.x = Math.sin(time * 1.3) * 0.02 * (1 - k)
           }
           if (p.body) p.body.obj.rotation.x = 0
+          if (p.armL) p.armL.obj.rotation.z = 0
+          if (p.armR) p.armR.obj.rotation.z = 0
 
           // One-shot actions layered on top.
           const act = b.action
           if (act) {
-            const dur = act.duration ?? (act.name === 'swing' ? 0.42 : 0.5)
+            const dur = act.duration ?? LASTS[act.name]
             act.t += dt
             const f = Math.min(1, act.t / dur)
             const arc = Math.sin(f * Math.PI)
@@ -118,6 +125,27 @@ export default definePlugin({
               if (p.armL) p.armL.obj.rotation.x = -arc * 0.9
               if (p.armR) p.armR.obj.rotation.x = -arc * 0.9
               if (p.head) p.head.obj.rotation.x = arc * 0.2
+            }
+            // in and out smoothly, whatever happens in between
+            const ease = Math.min(1, f / 0.2, (1 - f) / 0.2)
+            if (act.name === 'wave' && p.armR) {
+              p.armR.obj.rotation.x = -2.7 * ease
+              p.armR.obj.rotation.z = Math.sin(act.t * 16) * 0.35 * ease
+            }
+            if (act.name === 'cheer') {
+              if (p.armL) p.armL.obj.rotation.x = -2.8 * ease
+              if (p.armR) p.armR.obj.rotation.x = -2.8 * ease
+              if (p.body) p.body.obj.position.y += Math.abs(Math.sin(f * Math.PI * 2)) * 2.2
+            }
+            if (act.name === 'clap') {
+              const beat = Math.sin(act.t * 22) * 0.3 * ease
+              if (p.armL) (p.armL.obj.rotation.x = -1.3 * ease), (p.armL.obj.rotation.z = beat)
+              if (p.armR) (p.armR.obj.rotation.x = -1.3 * ease), (p.armR.obj.rotation.z = -beat)
+            }
+            if (act.name === 'nod' && p.head) p.head.obj.rotation.x = Math.sin(f * Math.PI * 4) * 0.22 * ease
+            if (act.name === 'sad') {
+              if (p.head) p.head.obj.rotation.x = 0.4 * ease
+              if (p.body) p.body.obj.rotation.x = 0.12 * ease
             }
             if (f >= 1) b.action = null
           }

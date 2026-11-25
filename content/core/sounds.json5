@@ -21,6 +21,17 @@
     { wave: 'noise', duration: 0.035, gain: 0.14, filter: { type: 'bandpass', freq: 3000, q: 2 } },
     { wave: 'sine', freq: 320, freqEnd: 210, duration: 0.04, gain: 0.07 },
   ] },
+  { id: 'core:step_carpet', volume: 0.6, pitchJitter: 0.12, layers: [
+    { wave: 'noise', duration: 0.07, gain: 0.16, filter: { type: 'lowpass', freq: 420, freqEnd: 220 } },
+  ] },
+  { id: 'core:step_gravel', volume: 0.65, pitchJitter: 0.18, layers: [
+    { wave: 'noise', duration: 0.05, gain: 0.16, filter: { type: 'bandpass', freq: 2100, q: 1.2 } },
+    { wave: 'noise', delay: 0.025, duration: 0.04, gain: 0.1, filter: { type: 'bandpass', freq: 3400, q: 1.6 } },
+  ] },
+  { id: 'core:step_tile', volume: 0.6, pitchJitter: 0.08, layers: [
+    { wave: 'triangle', freq: 520, freqEnd: 430, duration: 0.04, gain: 0.1 },
+    { wave: 'noise', duration: 0.02, gain: 0.1, filter: { type: 'bandpass', freq: 4200, q: 2 } },
+  ] },
 
   // Actions
   { id: 'core:dig', volume: 0.9, layers: [

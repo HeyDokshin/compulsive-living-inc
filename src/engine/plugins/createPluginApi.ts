@@ -59,11 +59,12 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
     input: {
       stick: game.input.stick,
       pointer: game.input.pointer,
-      action: (name, keys) => {
+      action: (name, keys, label) => {
         const id = ns(name)
-        track(game.input.define(id, keys, owner))
+        track(game.input.define(id, keys, owner, label))
         return id
       },
+      keyLabel: (a) => game.input.keyLabel(a),
       isDown: (a) => game.input.isDown(a),
       wasPressed: (a) => game.input.wasPressed(a),
       on: (a, fn) => track(game.input.on(a, fn)),

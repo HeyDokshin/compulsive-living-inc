@@ -399,7 +399,7 @@ export default definePlugin({
         id: 'house:tutorial_home',
         order: 78,
         text: 'Найдите свой домик и загляните внутрь.',
-        keys: ['Space'],
+        keys: ['player:use'],
         event: 'interior:changed',
         when: (p: { id: string | null }) => p.id === HOME,
       })
@@ -413,7 +413,7 @@ export default definePlugin({
         order: 96,
         day: 3,
         text: 'У почтового ящика рядом с домом можно взять кредит и расширить дом.',
-        keys: ['Space'],
+        keys: ['player:use'],
         event: 'ui:opened',
         when: (p: { id: string }) => p.id === 'house:mailbox',
       })

@@ -199,7 +199,7 @@ export default definePlugin({
         order: 80,
         day: 2,
         text: 'Загляните в музей в центре острова: находки дарят у стойки.',
-        keys: ['Space'],
+        keys: ['player:use'],
         event: 'interior:changed',
         when: (p: { id: string | null }) => p.id === HALL_ID,
       })

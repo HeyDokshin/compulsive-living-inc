@@ -11,8 +11,8 @@
     { id: 'house:wall_brick', name: 'Кирпич', color: '#d88a70', textures: { all: 'house:wall_brick', top: 'house:wall_top' } },
     { id: 'house:floor_planks', name: 'Пол', color: '#e2b27f', textures: { all: 'house:floor_planks' }, sounds: { step: 'core:step_wood' }, tags: ['house:floors'] },
     { id: 'house:floor_dark', name: 'Пол', color: '#8f5e3c', textures: { all: 'house:floor_dark' }, sounds: { step: 'core:step_wood' }, tags: ['house:floors'] },
-    { id: 'house:floor_tiles', name: 'Пол', color: '#eef0f2', textures: { all: 'house:floor_tiles' }, sounds: { step: 'core:step_stone' }, tags: ['house:floors'] },
-    { id: 'house:floor_carpet', name: 'Ковролин', color: '#f6c8a8', textures: { all: 'house:floor_carpet' }, sounds: { step: 'core:step_sand' }, tags: ['house:floors'] },
+    { id: 'house:floor_tiles', name: 'Пол', color: '#eef0f2', textures: { all: 'house:floor_tiles' }, sounds: { step: 'core:step_tile' }, tags: ['house:floors'] },
+    { id: 'house:floor_carpet', name: 'Ковролин', color: '#f6c8a8', textures: { all: 'house:floor_carpet' }, sounds: { step: 'core:step_carpet' }, tags: ['house:floors'] },
     { id: 'house:floor_grass', name: 'Лужайка', color: '#9bd67a', textures: { all: 'house:floor_grass' }, sounds: { step: 'core:step_grass' }, tags: ['house:floors'] },
   ],
 }

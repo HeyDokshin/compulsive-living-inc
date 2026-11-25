@@ -5,9 +5,9 @@
  * things, become friends (5 hearts → a photo), move in every few days and sometimes think about
  * moving away.
  */
-import { definePlugin, findPath, signal, z, type Cell, type Entity, type RegistryEntry, type Signal } from '@sdk'
+import { definePlugin, findPath, signal, voiceBlip, z, type Cell, type Entity, type RegistryEntry, type Signal } from '@sdk'
 import { Talk } from './talkUi'
-import { activityAt, hearts, MAX_POINTS, type LineDef } from './talk'
+import { activityAt, fill, hearts, MAX_POINTS, pickLine, type LineDef } from './talk'
 
 export interface PersonalityDef extends RegistryEntry {
   name: string
@@ -41,6 +41,8 @@ export interface Resident {
   since: number
   /** Day they move out (-1 = staying). */
   leaving: number
+  /** Day they last came up to say hello. */
+  hailDay?: number
 }
 
 export interface VillagerState {
@@ -96,6 +98,16 @@ const Config = z.object({
       { tag: '#core:materials', label: 'немного материалов' },
       { tag: '#core:beach_finds', label: 'что-нибудь с пляжа' },
     ]),
+  /** Neighbours come up to say hello once a day: from this close (cells), not more often than every so many seconds. */
+  hailRadius: z.number().min(0).max(20).default(8).meta({ label: 'hail radius', step: 0.5 }),
+  hailEvery: z.number().min(1).max(600).default(35).meta({ label: 'hail every (s)', step: 1 }),
+  /** Seconds between a neighbour's little emotes (average). */
+  emoteEvery: z.number().min(3).max(600).default(26).meta({ label: 'emote every (s)', step: 1 }),
+  /** Neighbours within this many cells answer the player's emotes. */
+  emoteRadius: z.number().min(0).max(20).default(6).meta({ label: 'answer radius', step: 0.5 }),
+  /** Blocks between footsteps and how loud they are (next to the player's). */
+  stride: z.number().min(0.2).max(3).default(0.9).meta({ step: 0.05 }),
+  stepVolume: z.number().min(0).max(1).default(0.35).meta({ label: 'step volume', step: 0.05 }),
   /** What villagers call a player without a name. */
   playerName: z.string().default('сосед'),
   /** Watering can villagers carry (they water flowers through the interaction matrix). */
@@ -111,6 +123,10 @@ interface Brain {
   water?: { x: number; z: number }
   face?: { x: number; z: number }
   asleep: boolean
+  /** On the way to say hello to the player. */
+  hail?: boolean
+  emoteIn: number
+  steps: number
 }
 
 export default definePlugin({
@@ -119,7 +135,7 @@ export default definePlugin({
   description: 'Жители: характеры, распорядок, диалоги, дружба, подарки, просьбы, переезды',
   dependsOn: ['items', 'characters'],
   // homes go up after the big buildings; photos are decor pieces
-  optionalDependsOn: ['decor', 'museum', 'shop', 'house', 'economy', 'garden', 'terrain', 'weather', 'daily', 'tutorial'],
+  optionalDependsOn: ['decor', 'museum', 'shop', 'house', 'economy', 'garden', 'terrain', 'weather', 'daily', 'tutorial', 'emotes'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -449,6 +465,47 @@ export default definePlugin({
     }
 
     let talkingTo: Entity | null = null
+    let hailIn = 4
+    const emotes = () => (api.services.has('emotes:show') ? api.services.get('emotes:show') : null)
+    const raining = () => (api.services.has('weather:forecast') ? api.services.get('weather:forecast').current()?.precipitation === 'rain' : false)
+    /** A line for a moment outside a conversation. */
+    const line = (v: VillagerDef, r: Resident, topic: string) => {
+      const text = pickLine(lines.all(), topic, { personality: v.personality, hour: api.time.hour, raining: raining(), hearts: hearts(r.points), season: api.time.season }, Math.random)
+      return fill(text ?? '', { name: v.name, phrase: v.phrase, animal: v.animal, player: api.session.player || cfg.playerName, a: v.she ? 'а' : '' })
+    }
+    const moodOf = (b: Brain): string => {
+      if (raining() && Math.random() < 0.6) return 'emotes:rain'
+      if (api.time.season === 'winter' && Math.random() < 0.3) return 'emotes:cold'
+      if (b.activity === 'garden') return 'emotes:flower'
+      return ['emotes:note', 'emotes:joy', 'emotes:idea', 'emotes:note'][Math.floor(Math.random() * 4)]!
+    }
+    // Neighbours who see the player's emote turn and answer a moment later.
+    const answers: Array<{ npc: Entity; id: string; in: number }> = []
+    api.events.on('emotes:shown', ({ entity, id }) => {
+      const reply = entity.player && api.services.has('emotes:show') ? api.registry('emotes:emotes').get(id)?.reply : undefined
+      if (!reply?.length) return
+      for (const npc of npcs) {
+        const b = brains.get(npc)
+        if (!b || b.asleep || Math.hypot(npc.transform.x - entity.transform!.x, npc.transform.z - entity.transform!.z) > cfg.emoteRadius) continue
+        npc.transform.rotY = Math.atan2(entity.transform!.x - npc.transform.x, entity.transform!.z - npc.transform.z)
+        b.path = []
+        b.wait = 2.5
+        b.hail = false
+        answers.push({ npc, id: reply[Math.floor(Math.random() * reply.length)]!, in: 0.5 + Math.random() * 0.7 })
+      }
+    })
+    api.systems.add({
+      id: 'answers',
+      phase: 'update',
+      run: ({ dt }) => {
+        for (let i = answers.length - 1; i >= 0; i--) {
+          const a = answers[i]!
+          if ((a.in -= dt) > 0) continue
+          answers.splice(i, 1)
+          if (api.entities.world.has(a.npc)) emotes()?.show(a.npc, a.id)
+        }
+      },
+    })
     const player = () => {
       for (const e of api.entities.world.with('player', 'transform')) return e
       return undefined
@@ -458,6 +515,7 @@ export default definePlugin({
       phase: 'update',
       run: ({ dt }) => {
         searchesThisTick = 0
+        hailIn -= dt
         const pl = player()
         const hour = api.time.hour
         for (const npc of npcs) {
@@ -470,7 +528,7 @@ export default definePlugin({
           if (!b) {
             // in the house (a save made at night): asleep there until the morning wakes them
             const asleep = Math.abs(t.x - home.transform.x) < 1.5 && Math.abs(t.z - home.transform.z) < 1.5
-            brains.set(npc, (b = { path: [], wait: Math.random() * 2, activity: asleep ? 'sleep' : '', asleep }))
+            brains.set(npc, (b = { path: [], wait: Math.random() * 2, activity: asleep ? 'sleep' : '', asleep, emoteIn: Math.random() * cfg.emoteEvery, steps: 0 }))
           }
           const activity = activityAt(pers?.schedule ?? [], hour)
           if (activity !== b.activity) {
@@ -488,7 +546,31 @@ export default definePlugin({
           }
           if (b.asleep) {
             npc.biped!.speed = 0
+            if ((b.emoteIn -= dt) <= 0) {
+              b.emoteIn = cfg.emoteEvery * 0.3
+              emotes()?.show(home, 'emotes:sleepy', { height: 3.4, silent: true })
+            }
             continue
+          }
+          if ((b.emoteIn -= dt) <= 0) {
+            b.emoteIn = cfg.emoteEvery * (0.5 + Math.random())
+            if (!b.hail && talkingTo !== npc) emotes()?.show(npc, moodOf(b), { silent: !pl || Math.hypot(pl.transform.x - t.x, pl.transform.z - t.z) > 8 })
+          }
+          // a neighbour nearby who hasn't said hello today comes up
+          if (pl && !b.hail && talkingTo !== npc && hailIn <= 0 && emotes() && !api.interiors.current) {
+            const r = resident(npc.villager.id)
+            const far = Math.hypot(pl.transform.x - t.x, pl.transform.z - t.z)
+            if (r && r.hailDay !== api.time.dayIndex && far < cfg.hailRadius) {
+              const p = far < 1.8 ? [] : pathTo(npc, { x: Math.floor(pl.transform.x), z: Math.floor(pl.transform.z) }, true)
+              hailIn = p ? cfg.hailEvery : 2 // no way there: don't search again every tick
+              if (p) {
+                b.hail = true
+                b.path = p
+                b.wait = 0
+                b.water = undefined
+                emotes()?.show(npc, 'emotes:surprise', { silent: true, seconds: 0.9 })
+              }
+            }
           }
           // in a conversation: stand and look at the player
           if (talkingTo === npc && pl) {
@@ -499,6 +581,19 @@ export default definePlugin({
           const next = b.path[0]
           if (!next) {
             npc.biped!.speed = 0
+            if (b.hail) {
+              b.hail = false
+              b.wait = 4
+              const r = resident(npc.villager.id)
+              if (pl && r && Math.hypot(pl.transform.x - t.x, pl.transform.z - t.z) < 4) {
+                t.rotY = Math.atan2(pl.transform.x - t.x, pl.transform.z - t.z)
+                r.hailDay = api.time.dayIndex
+                emotes()?.say(npc, line(v, r, 'hail'))
+                npc.biped!.action = { name: 'wave', t: 0 }
+                voiceBlip(api, pers?.voice ?? 320)
+              }
+              continue
+            }
             if ((b.wait -= dt) > 0) continue
             if (b.water) {
               // water the flower through the interaction matrix, like the player would
@@ -545,6 +640,11 @@ export default definePlugin({
           const gy = api.world.surfaceY(t.x, t.z)
           t.y += (gy - t.y) * Math.min(1, dt * 12)
           npc.biped!.speed = cfg.walkSpeed / 3.1
+          if ((b.steps += step) >= cfg.stride) {
+            b.steps = 0
+            const sound = blocks.get(api.world.getBlock(Math.floor(t.x), Math.round(t.y) - 1, Math.floor(t.z)))?.sounds?.step
+            if (sound) api.audio.play(sound, { at: t, volume: cfg.stepVolume })
+          }
           if (!b.path.length) b.wait = 2 + Math.random() * 6
         }
       },
@@ -618,7 +718,7 @@ export default definePlugin({
         id: 'villagers:tutorial_talk',
         order: 72,
         text: 'Поговорите с кем-нибудь из соседей.',
-        keys: ['Space'],
+        keys: ['player:use'],
         event: 'ui:opened',
         when: (p: { id: string }) => p.id === 'villagers:talk',
       })

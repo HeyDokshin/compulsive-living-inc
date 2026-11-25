@@ -1,7 +1,9 @@
 import { render, type ComponentType } from 'preact'
 import { signal, computed } from '@preact/signals'
 import { useEffect } from 'preact/hooks'
+import { keyCodeOf } from '../input/Input'
 import type { Dispose } from '../util/disposables'
+import { focusFirst, focusables, moveFocus, nudgeSlider, typingIn, type Dir } from './focus'
 import { UI_CSS } from './theme'
 
 /** Places on screen where plugins can put UI. */
@@ -31,6 +33,12 @@ export interface WindowDef {
   wide?: boolean
 }
 
+const NAV: Record<string, Dir> = {
+  ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+  Pad12: 'up', Pad13: 'down', Pad14: 'left', Pad15: 'right',
+  StickUp: 'up', StickDown: 'down', StickLeft: 'left', StickRight: 'right',
+}
+
 interface ToastEntry {
   key: number
   text: string
@@ -47,6 +55,8 @@ export class UiHost {
   readonly openId = signal<string | null>(null)
   /** Covers the whole screen (title): the HUD is hidden, windows don't open, game input is paused. */
   readonly cover = signal<{ component: ComponentType; onEscape?: () => void } | null>(null)
+  /** The settings are waiting for a key to bind: keys do nothing else. */
+  readonly keyCapture = signal(false)
   readonly toasts = signal<ToastEntry[]>([])
   /** True while a modal window is open — gameplay input should pause. */
   readonly modalOpen = computed(() => {
@@ -62,6 +72,58 @@ export class UiHost {
   /** Window opened / closed (the engine turns these into events). */
   onWindow?: (id: string, open: boolean) => void
 
+  private root: HTMLElement | null = null
+
+  /**
+   * Menus without a mouse: arrows or the d-pad move between things, Enter / Space / A choose, B goes
+   * back, X is the second choice (a right click). True = the key was for the menu.
+   */
+  navigate(code: string): boolean {
+    const root = this.root
+    if (!root || !this.modalOpen.value) return false
+    const area = root.querySelector('.cl-window') ?? root.querySelector('.cl-title')
+    if (!area) return false
+    const now = document.activeElement as HTMLElement | null
+    const inside = !!now && area.contains(now)
+    const typing = inside && typingIn(now)
+    const dir = NAV[code]
+    if (dir) {
+      const pad = code.startsWith('Pad') || code.startsWith('Stick')
+      if (typing && !pad) return false // the caret moves
+      if (inside && now instanceof HTMLInputElement && now.type === 'range' && (dir === 'left' || dir === 'right')) nudgeSlider(now, dir === 'right' ? 1 : -1)
+      else moveFocus(area, dir)
+      return true
+    }
+    if (code === 'Enter' || code === 'Space' || code === 'NumpadEnter' || code === 'Pad0') {
+      if (typing && code !== 'Pad0') return false // types, or sends its form
+      const text = area.querySelector<HTMLElement>('.cl-dialogue[data-typing]')
+      if (text) text.click() // the whole line at once
+      else if (inside && focusables(area).includes(now!)) now!.click()
+      else focusFirst(area)
+      return true
+    }
+    if (code === 'Pad1') {
+      this.back()
+      return true
+    }
+    if (code === 'Pad2' && inside) {
+      now!.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+      return true
+    }
+    if (code === 'Pad9' && !this.cover.value) {
+      this.close()
+      return true
+    }
+    return code.startsWith('Pad') // nothing else of the pad gets through to the game
+  }
+
+  /** Esc or B: out of the window, or the title's own way back. */
+  back(): void {
+    if (this.cover.value) this.cover.value.onEscape?.()
+    else if (this.openId.value) this.close()
+    else this.onIdleEscape?.()
+  }
+
   mount(parent: HTMLElement): void {
     if (!document.getElementById('cl-ui-style')) {
       const style = document.createElement('style')
@@ -71,6 +133,7 @@ export class UiHost {
     }
     const root = document.createElement('div')
     root.className = 'cl-ui'
+    this.root = root
     parent.appendChild(root)
     render(<Root host={this} />, root)
   }
@@ -147,22 +210,31 @@ function Root({ host }: { host: UiHost }) {
   const cover = host.cover.value
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || e.repeat) return
+      if (e.key !== 'Escape' || e.repeat || host.keyCapture.value) return
       const t = e.target as HTMLElement | null
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return
       // One owner for Esc: close the open window, or (nothing open) ask for the menu.
-      if (host.cover.value) host.cover.value.onEscape?.()
-      else if (host.openId.value) host.close()
-      else host.onIdleEscape?.()
+      host.back()
+      e.stopImmediatePropagation()
+    }
+    const onNav = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || host.keyCapture.value) return
+      const code = keyCodeOf(e)
+      if (code === 'Tab' && host.cover.value) return e.stopImmediatePropagation() // the browser's own way around
+      if (e.repeat && !(code in NAV)) return
+      if (!host.navigate(code)) return
+      e.preventDefault()
       e.stopImmediatePropagation()
     }
     const onClick = (e: PointerEvent) => {
       if ((e.target as HTMLElement | null)?.closest?.('.cl-ui button, .cl-ui .cl-slotbox')) host.onSound?.('ui:click')
     }
     window.addEventListener('keydown', onKey, true)
+    window.addEventListener('keydown', onNav, true)
     window.addEventListener('pointerdown', onClick, true)
     return () => {
       window.removeEventListener('keydown', onKey, true)
+      window.removeEventListener('keydown', onNav, true)
       window.removeEventListener('pointerdown', onClick, true)
     }
   }, [host])

@@ -256,7 +256,7 @@ export default definePlugin({
         order: 92,
         day: 3,
         text: 'Загляните на доску острова: задания дня приносят листики.',
-        keys: ['Space'],
+        keys: ['player:use'],
         event: 'ui:opened',
         when: (p: { id: string }) => p.id === 'quests:board',
       })

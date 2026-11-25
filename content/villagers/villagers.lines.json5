@@ -70,6 +70,13 @@
     { id: 'villagers:stay', topic: 'stay', lines: ['Правда? Ты хочешь, чтобы я остался{a}? Тогда остаюсь, {phrase}!'] },
     { id: 'villagers:farewell', topic: 'farewell', lines: ['Спасибо, что понимаешь. Буду скучать, {phrase}…'] },
 
+    // --- said in passing, over the head ---------------------------------------------------------
+    { id: 'villagers:hail', topic: 'hail', lines: ['Привет, {player}!', 'О, {player}! {phrase}!', 'Рад{a} встрече, {phrase}!'] },
+    { id: 'villagers:hail_morning', topic: 'hail', when: { hours: [5, 11] }, lines: ['Доброе утро, {player}!', 'Уже на ногах? {phrase}!'] },
+    { id: 'villagers:hail_evening', topic: 'hail', when: { hours: [18, 23] }, lines: ['Добрый вечер, {player}!', 'Тихий вечер, {phrase}.'] },
+    { id: 'villagers:hail_rain', topic: 'hail', when: { weather: 'rain' }, lines: ['Ну и дождик, {phrase}!', 'Не промокни, {player}!'] },
+    { id: 'villagers:hail_friend', topic: 'hail', when: { minHearts: 3 }, lines: ['{player}! Как я рад{a}!', 'А я тебя искал{a}, {phrase}!'] },
+
     { id: 'villagers:bye', topic: 'bye', lines: ['Пока-пока, {phrase}!', 'Увидимся, {phrase}!', 'Заходи ещё, {phrase}!'] },
   ],
 }

@@ -74,7 +74,26 @@ export default definePlugin({
     })
 
     const view = new FloraView(api, cfg)
-    api.events.on('world:generated', () => view.build(tufts, flowers))
+    /** Columns with plants on them: most block edits (rooms are built out of thousands) touch none. */
+    const planted = new Set<number>()
+    const cell = (x: number, z: number) => Math.floor(x) * 65536 + Math.floor(z)
+    const rebuild = () => {
+      planted.clear()
+      for (const p of tufts) planted.add(cell(p.x, p.z))
+      for (const p of flowers) planted.add(cell(p.x, p.z))
+      view.build(tufts, flowers)
+    }
+    let dirty = false
+    api.systems.add({
+      id: 'rebuild',
+      phase: 'render',
+      run: () => {
+        if (!dirty) return
+        dirty = false
+        rebuild()
+      },
+    })
+    api.events.on('world:generated', rebuild)
     api.events.on('interior:changed', ({ id }) => view.setVisible(!id))
     // Plants are generated with the island; saves keep them (so dug/removed ones stay gone).
     api.save.register<{ tufts: Plant[]; flowers: Plant[] }>({
@@ -83,18 +102,18 @@ export default definePlugin({
       load: (data) => {
         tufts = data.tufts
         flowers = data.flowers
-        view.build(tufts, flowers)
+        rebuild()
       },
     })
     api.config.onChange(() => api.world.regenerateSoon())
 
     // Digging or building on a column removes the plants there.
     api.events.on('world:blockChanged', ({ x, z }) => {
+      if (!planted.delete(cell(x, z))) return
       const keep = (p: Plant) => Math.floor(p.x) !== x || Math.floor(p.z) !== z
-      const before = tufts.length + flowers.length
       tufts = tufts.filter(keep)
       flowers = flowers.filter(keep)
-      if (tufts.length + flowers.length !== before) view.build(tufts, flowers)
+      dirty = true // however many edits this frame: one rebuild
     })
 
     api.commands.register({

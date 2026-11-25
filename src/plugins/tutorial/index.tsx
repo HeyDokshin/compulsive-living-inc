@@ -12,7 +12,7 @@ export interface TutorialStep extends RegistryEntry {
   /** Island day the step appears on (1 = the first, default). */
   day?: number
   text: string
-  /** Key caps shown on the card. */
+  /** Key caps on the card: input actions (`player:use` — follows the player's bindings) or plain text. */
   keys?: string[]
   /** Completes when this event fires (and `when` agrees, if given). */
   event?: keyof GameEvents
@@ -80,7 +80,7 @@ export default definePlugin({
         id: 'tutorial:walk',
         order: 10,
         text: 'Прогуляйтесь по острову — клавишами или кликом мыши по клетке.',
-        keys: ['W', 'A', 'S', 'D', 'ЛКМ'],
+        keys: ['player:up', 'player:left', 'player:down', 'player:right', 'player:click'],
         check: () => {
           const t = player()?.transform
           if (!t) return false
@@ -92,7 +92,7 @@ export default definePlugin({
         id: 'tutorial:pockets',
         order: 30,
         text: 'Загляните в карманы — там ваши инструменты.',
-        keys: ['I'],
+        keys: ['items:pockets'],
         event: 'ui:opened',
         when: (p: GameEvents['ui:opened']) => p.id === 'items:pockets',
       },
@@ -100,14 +100,14 @@ export default definePlugin({
         id: 'tutorial:shovel',
         order: 40,
         text: 'Возьмите в руки лопату.',
-        keys: ['R'],
+        keys: ['items:cycleTool'],
         check: () => heldIs('#core:shovels'),
       },
       {
         id: 'tutorial:dig',
         order: 50,
         text: 'Выкопайте ямку на траве или песке.',
-        keys: ['Space'],
+        keys: ['player:use'],
         event: 'interaction:performed',
         when: (p: GameEvents['interaction:performed']) => p.id === 'tools:dig',
       },
@@ -115,7 +115,7 @@ export default definePlugin({
         id: 'tutorial:pickup',
         order: 60,
         text: 'Найдите на пляже ракушку и подберите её.',
-        keys: ['Space'],
+        keys: ['player:use'],
         event: 'items:picked' as keyof GameEvents,
       },
       {
@@ -230,7 +230,7 @@ function Card({ api, progress, today, stepsVersion }: { api: PluginApi; progress
       {current.keys?.length ? (
         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
           {current.keys.map((k) => (
-            <ui.Key key={k}>{k}</ui.Key>
+            <ui.Key key={k}>{k.includes(':') ? api.input.keyLabel(k) : k}</ui.Key>
           ))}
         </div>
       ) : null}

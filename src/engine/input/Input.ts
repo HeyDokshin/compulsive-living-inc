@@ -1,4 +1,6 @@
+import { signal } from '@preact/signals'
 import type { Dispose } from '../util/disposables'
+import { isPadCode, keyName, shownKey, type Device } from './keyNames'
 
 const KEY_TO_CODE: Record<string, string> = {
   '`': 'Backquote', '~': 'Backquote', 'ё': 'Backquote', 'Ё': 'Backquote',
@@ -22,6 +24,8 @@ export interface ActionDef {
   owner: string
   /** `KeyboardEvent.code` values (`KeyW`, `ArrowUp`, `Space`) or `Mouse0`/`Mouse1`/`Mouse2`. */
   keys: string[]
+  /** Shown in the settings, where the player can change the key (none = not offered). */
+  label?: string
 }
 
 /**
@@ -44,8 +48,15 @@ export class Input {
   readonly stick = { x: 0, y: 0 }
   deadzone = 0.22
 
-  define(id: string, keys: string[], owner: string): Dispose {
-    this.actions.set(id, { id, owner, keys })
+  /** Bumps when bindings or the device in use change (key caps on screen follow). */
+  private shown = signal(0)
+  /** What the player touched last. */
+  private device: Device = 'keyboard'
+  /** Asked first about gamepad presses: true = taken (menus). */
+  capture?: (code: string) => boolean
+
+  define(id: string, keys: string[], owner: string, label?: string): Dispose {
+    this.actions.set(id, { id, owner, keys, label })
     return () => {
       if (this.actions.get(id)?.owner === owner) this.actions.delete(id)
     }
@@ -54,6 +65,26 @@ export class Input {
   /** User/config rebinding. */
   rebind(id: string, keys: string[]): void {
     this.overrides.set(id, keys)
+    this.shown.value++
+  }
+
+  /** All user bindings at once. */
+  setBindings(bindings: Record<string, string[]>): void {
+    this.overrides = new Map(Object.entries(bindings))
+    this.shown.value++
+  }
+
+  /** Key cap text of an action for the device in use (read in a component, it stays current). */
+  keyLabel(action: string): string {
+    this.shown.value
+    const code = shownKey(this.keysOf(action), this.device)
+    return code ? keyName(code) : '—'
+  }
+
+  private setDevice(device: Device): void {
+    if (device === this.device) return
+    this.device = device
+    this.shown.value++
   }
 
   keysOf(id: string): string[] {
@@ -111,6 +142,11 @@ export class Input {
       }
       pad.buttons.forEach((b, i) => b.pressed && now.add(`Pad${i}`))
     }
+    // The stick also works as a d-pad in menus: one press each time it is pushed.
+    if (this.stick.x > 0.6) now.add('StickRight')
+    if (this.stick.x < -0.6) now.add('StickLeft')
+    if (this.stick.y > 0.6) now.add('StickDown')
+    if (this.stick.y < -0.6) now.add('StickUp')
     for (const code of now) if (!this.padDown.has(code)) this.pressFn?.(code)
     for (const code of this.padDown) if (!now.has(code)) this.down.delete(code)
     this.padDown = now
@@ -122,6 +158,9 @@ export class Input {
       return !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
     }
     const press = (code: string, e?: Event) => {
+      const pad = isPadCode(code)
+      this.setDevice(pad ? 'gamepad' : 'keyboard')
+      if (pad && this.capture?.(code)) return
       if (!this.down.has(code)) {
         this.pressed.add(code)
         for (const [action, fns] of this.listeners) {

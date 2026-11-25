@@ -15,7 +15,7 @@ declare module '@sdk' {
   interface Components {
     inventory?: Inventory
     /** An item stack lying on the ground. */
-    item?: Stack
+    item?: Stack & { dropped?: boolean }
   }
   interface Services {
     'items:inventory': InventoryService
@@ -29,8 +29,8 @@ declare module '@sdk' {
 
 export interface InventoryService {
   of(actor: Entity): Inventory | undefined
-  /** Returns how many did NOT fit. Shows a toast unless `quiet`. */
-  add(actor: Entity, id: string, count?: number, opts?: { quiet?: boolean }): number
+  /** Returns how many did NOT fit. Shows a toast unless `quiet`; `moved` = it was theirs already (not a find). */
+  add(actor: Entity, id: string, count?: number, opts?: { quiet?: boolean; moved?: boolean }): number
   remove(actor: Entity, id: string, count?: number): number
   count(actor: Entity, id: string): number
   held(actor: Entity): string | null
@@ -92,7 +92,7 @@ export default definePlugin({
         equipped: z.number().int().nullable().default(null),
       }),
     )
-    api.components.define('item', z.object({ id: z.string(), count: z.number().int().min(1).default(1) }))
+    api.components.define('item', z.object({ id: z.string(), count: z.number().int().min(1).default(1), dropped: z.boolean().optional() }))
 
     // Pockets + starting kit for the configured component (the player).
     api.hooks.tap('entity:beforeSpawn', (comps) => {
@@ -120,7 +120,7 @@ export default definePlugin({
         if (got > 0) {
           changed(actor)
           // quiet = moved around (a chest, a shop, a reward), not found or gathered
-          if (!opts?.quiet) api.events.emit('items:picked', { actor, id, count: got })
+          if (!opts?.quiet && !opts?.moved) api.events.emit('items:picked', { actor, id, count: got })
           if (!opts?.quiet && cfg.pickupToasts) {
             void api.ui.itemIcon(id).then((icon) => api.ui.toast(`${nameOf(id)}${got > 1 ? ` ×${got}` : ''}`, { icon }))
           }
@@ -172,7 +172,9 @@ export default definePlugin({
         changed(actor)
         api.audio.play('core:drop', { at: { x: x + 0.5, z: z + 0.5 } })
         api.fx.burst('core:dust', { x: x + 0.5, y, z: z + 0.5 }, { amount: 0.75 })
-        return service.spawnDrop(taken.id, taken.count, x + 0.5, y, z + 0.5)
+        const e = service.spawnDrop(taken.id, taken.count, x + 0.5, y, z + 0.5)
+        e.item!.dropped = true
+        return e
       },
       spawnDrop(id, count, x, y, z) {
         const def = items.get(id)
@@ -199,7 +201,7 @@ export default definePlugin({
       run: (ctx) => {
         const target = ctx.target!
         const it = target.item!
-        const left = service.add(ctx.actor, it.id, it.count)
+        const left = service.add(ctx.actor, it.id, it.count, { moved: it.dropped })
         if (left === it.count) {
           api.ui.toast('Карманы полны')
           return false
@@ -227,10 +229,10 @@ export default definePlugin({
       for (const e of api.entities.world.with('inventory', cfg.giveTo as 'inventory')) return e
       return undefined
     }
-    const pocketsKey = api.input.action('pockets', ['KeyI', 'Tab', 'Pad3'])
-    const cycleKey = api.input.action('cycleTool', ['KeyR', 'Pad5'])
+    const pocketsKey = api.input.action('pockets', ['KeyI', 'Tab', 'Pad3'], 'Карманы')
+    const cycleKey = api.input.action('cycleTool', ['KeyR', 'Pad5'], 'Сменить инструмент')
     const cycleBackKey = api.input.action('cycleToolBack', ['Pad4'])
-    const dropKey = api.input.action('drop', ['KeyG'])
+    const dropKey = api.input.action('drop', ['KeyG'], 'Выбросить из рук')
     api.input.on(pocketsKey, () => api.ui.toggle('items:pockets'))
     api.input.on(cycleKey, () => !api.ui.modalOpen.value && withOwner((a) => service.cycleTools(a, 1)))
     api.input.on(cycleBackKey, () => !api.ui.modalOpen.value && withOwner((a) => service.cycleTools(a, -1)))
@@ -419,8 +421,8 @@ function HeldHud({ api, service, owner }: Props) {
       {id ? <ui.AsyncIcon src={api.ui.itemIcon(id)} size={30} /> : <span style={{ fontSize: '20px' }}>✋</span>}
       <span>{name}</span>
       <span style={{ display: 'inline-flex', gap: '4px', marginLeft: '6px' }}>
-        <ui.Key>R</ui.Key>
-        <ui.Key>I</ui.Key>
+        <ui.Key>{api.input.keyLabel('items:cycleTool')}</ui.Key>
+        <ui.Key>{api.input.keyLabel('items:pockets')}</ui.Key>
       </span>
     </ui.Pill>
   )

@@ -301,7 +301,7 @@ export default definePlugin({
         order: 82,
         day: 2,
         text: 'Познакомьтесь с Тошей: красная панда держит лавку в центре острова.',
-        keys: ['Space'],
+        keys: ['player:use'],
         event: 'ui:opened',
         when: (p: { id: string }) => p.id === 'shop:counter',
       })
