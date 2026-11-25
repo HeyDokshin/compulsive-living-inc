@@ -31,6 +31,7 @@ import { Interactions, type InteractionDef } from './interact/Interactions'
 import { UiHost } from './ui/UiHost'
 import { IconService } from './ui/IconService'
 import { FpsMeter } from './ui/FpsMeter'
+import { ModManager } from './mods/ModManager'
 import { Title } from './session/Title'
 import { SessionManager } from './session/SessionManager'
 import { GameMenu } from './session/GameMenu'
@@ -45,7 +46,7 @@ import { TimeService, type SavedTime } from './time/TimeService'
 import { Clock } from './time/Clock'
 import { Blockers } from './world/Blockers'
 import { Interiors, type Place, type SavedInteriors } from './world/Interiors'
-import { isPlainObject } from './util/objects'
+import { isPlainObject, type PlainObject } from './util/objects'
 
 export type GamePlugin = PluginDefinition<PluginApi>
 
@@ -56,7 +57,12 @@ export interface BootOptions {
   /** `{ '/config/<id>.json5': rawText }` */
   configFiles: Record<string, string>
   /** `{ '/content/<pack>/textures/<name>.png': url }` and `.vox` models */
-  assetFiles?: Record<string, string>
+  assetFiles: Record<string, string>
+  /** `{ '/mods/<id>/<file>': rawText }` and binary files as URLs */
+  modFiles: Record<string, string>
+  modAssets: Record<string, string>
+  /** Everything `@sdk` exports — mods import it. */
+  sdk: object
 }
 
 const log = createLogger('engine')
@@ -108,8 +114,17 @@ export class Game {
   readonly blockers: Blockers
   readonly interiors: Interiors
   readonly plugins: PluginManager<PluginApi>
+  readonly mods: ModManager
   readonly panel: DebugPanel
   readonly devConsole: DevConsole
+
+  /** Ids mods can't take. */
+  private builtIn = new Set<string>(['engine', 'world', 'core', 'mods'])
+  /** What `@sdk` is for mods (handed over at boot: the SDK sits above the engine). */
+  private sdk: Record<string, unknown> = {}
+  private files: Pick<BootOptions, 'contentFiles' | 'configFiles' | 'assetFiles'> = { contentFiles: {}, configFiles: {}, assetFiles: {} }
+  /** Plugins that came from mods. */
+  private modPlugins: string[] = []
 
   constructor(container: HTMLElement) {
     const reg = <T extends { id: string }>(name: string, schema?: ZodType<T>) => this.registries.create<T>(name, schema, 'engine')
@@ -139,6 +154,12 @@ export class Game {
     this.icons = new IconService(this.items, this.blocks, this.modelLibrary, this.renderer.atlas)
     this.audio = new Audio(this.sounds, this.engineConfig.audio)
     this.particles = new Particles(this.renderer.scene, this.particleDefs)
+    this.mods = new ModManager({
+      isBuiltIn: (id) => this.builtIn.has(id),
+      sdk: this.sdk,
+      maxBytes: () => this.engineConfig.mods.maxMegabytes * 1024 * 1024,
+    })
+    this.content.onError = (pack, message) => this.mods.report(pack, message)
     this.sessions = new SessionManager(this)
     this.title = new Title(this)
     this.time = new TimeService(this.engineConfig.time, this.events)
@@ -217,13 +238,21 @@ export class Game {
   }
 
   async boot(opts: BootOptions): Promise<void> {
-    this.setConfigFiles(opts.configFiles)
+    this.files = { contentFiles: opts.contentFiles, configFiles: opts.configFiles, assetFiles: opts.assetFiles }
+    Object.assign(this.sdk, opts.sdk)
+    for (const p of opts.plugins) this.builtIn.add(p.id)
+    for (const path of Object.keys(opts.contentFiles)) {
+      const pack = /content\/([a-z0-9_-]+)\//.exec(path)?.[1]
+      if (pack) this.builtIn.add(pack)
+    }
+    for (const p of opts.plugins) this.plugins.register(p)
+    await this.mods.init(opts.modFiles, opts.modAssets)
+    this.mods.guard(true)
+    await this.loadMods()
+    this.setConfigFiles()
     applyUserSettings(this) // per-device preferences (quality, volume) over the config files
     // Registered after the initial file load so it only reacts to later edits.
     this.config.onChange('world', () => this.world.regenerateSoon())
-    this.content.setFiles(opts.contentFiles, opts.assetFiles)
-    for (const p of opts.plugins) this.plugins.register(p)
-
     const latest = await this.sessions.latest()
     const title = this.engineConfig.title.enabled
     if (title) this.title.show() // before the island: plugins shouldn't open windows over it
@@ -231,6 +260,8 @@ export class Game {
     this.sessions.installSaveOnHide()
     this.installMenu()
     this.loop.start()
+    this.reportModPlugins()
+    this.mods.guard(false)
     this.events.emit('engine:started', {})
     log.info(`ready: ${this.plugins.loadedIds().length} plugins, ${this.entities.world.entities.length} entities`)
   }
@@ -265,10 +296,77 @@ export class Game {
   }
 
   /** Hot reload: content or config files changed. */
-  reloadData(contentFiles: Record<string, string>, configFiles: Record<string, string>, assetFiles?: Record<string, string>): void {
-    this.content.setFiles(contentFiles, assetFiles)
+  reloadData(contentFiles: Record<string, string>, configFiles: Record<string, string>, assetFiles: Record<string, string>): void {
+    this.files = { contentFiles, configFiles, assetFiles }
+    this.setContentFiles()
     this.reloadContent()
-    this.setConfigFiles(configFiles)
+    this.setConfigFiles()
+  }
+
+  /** Content of the game and of the active mods. */
+  private setContentFiles(): void {
+    this.content.setFiles({ ...this.files.contentFiles, ...this.mods.contentFiles() }, { ...this.files.assetFiles, ...this.mods.assetFiles() })
+  }
+
+  /** (Re)load the code of the enabled mods and take their files into the content. */
+  private async loadMods(): Promise<void> {
+    this.plugins.unload(this.modPlugins)
+    for (const id of this.modPlugins) this.plugins.unregister(id)
+    const defs = await this.mods.activate()
+    for (const def of defs) this.plugins.register(def)
+    this.modPlugins = defs.map((d) => d.id)
+    this.setContentFiles()
+  }
+
+  /** Tell the mods which of their plugins did not start. */
+  private reportModPlugins(): void {
+    for (const id of this.modPlugins) {
+      const s = this.plugins.states.get(id)
+      if (s && s.state !== 'loaded') this.mods.reportPlugin(id, s.reason ?? s.state)
+    }
+  }
+
+  /** Mods were switched, added or removed: start the latest island again with them (title screen only). */
+  async applyMods(): Promise<void> {
+    this.mods.safeMode = false
+    this.mods.guard(true)
+    const touched = this.mods.configIds()
+    await this.serial(async () => {
+      this.plugins.unloadAll()
+      await this.loadMods()
+    })
+    this.setConfigFiles([...new Set([...touched, ...this.mods.configIds()])])
+    applyUserSettings(this)
+    await this.sessions.start(await this.sessions.latest(), { demo: true })
+    this.reportModPlugins()
+    this.mods.guard(false)
+  }
+
+  /** Hot reload: files of mods/ changed. */
+  async reloadModFolder(text: Record<string, string>, assets: Record<string, string>): Promise<void> {
+    this.mods.setFolder(text, assets)
+    const defs = await this.mods.activate()
+    const gone = this.modPlugins.filter((id) => !defs.some((d) => d.id === id))
+    this.plugins.unload(gone)
+    for (const id of gone) this.plugins.unregister(id)
+    this.modPlugins = defs.map((d) => d.id)
+    this.setContentFiles()
+    await this.reloadPlugins(defs) // keeps what the old code saved
+    this.reportModPlugins()
+  }
+
+  /**
+   * A file of an installed mod was edited in the game: take it over now. Registries of plugins need
+   * their plugin restarted (it makes items out of its entries); engine ones just reload the pack.
+   */
+  async editMod(id: string, path: string, text: string | null): Promise<void> {
+    await this.mods.write(id, path, text)
+    this.setContentFiles()
+    const registry = /^content\/([a-z0-9_]+)\.([a-z0-9_]+)\.json5$/.exec(path)
+    const owner = registry && this.registries.has(`${registry[1]}:${registry[2]}`) ? this.plugins.get(this.registries.get(`${registry[1]}:${registry[2]}`).owner) : undefined
+    if (owner) return void (await this.reloadPlugins([owner]))
+    this.content.reloadPack(id)
+    this.events.emit('content:loaded', { packs: [id] })
   }
 
   reloadContent(): string[] {
@@ -306,17 +404,20 @@ export class Game {
     })
   }
 
-  private setConfigFiles(files: Record<string, string>): void {
-    for (const [path, raw] of Object.entries(files)) {
+  /** `config/<id>.json5` of the game with the active mods' values over them (all, or just some ids). */
+  private setConfigFiles(only?: string[]): void {
+    const base = new Map<string, PlainObject>()
+    for (const [path, raw] of Object.entries(this.files.configFiles)) {
       const id = /config\/([a-z0-9_-]+)\.json5$/.exec(path)?.[1]
       if (!id) continue
       try {
         const data: unknown = JSON5.parse(raw)
-        this.config.setFileData(id, isPlainObject(data) ? data : {})
+        base.set(id, isPlainObject(data) ? data : {})
       } catch (e) {
         log.error(`${path}:`, e)
       }
     }
+    for (const id of only ?? new Set([...base.keys(), ...this.mods.configIds()])) this.config.setFileData(id, this.mods.mergeConfig(id, base.get(id) ?? {}))
   }
 
   private applyEngineConfig(): void {

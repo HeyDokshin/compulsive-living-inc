@@ -17,6 +17,7 @@ import type { Dispose } from '../util/disposables'
 import type { Logger } from '../util/log'
 import type { IsoCamera } from '../render/IsoCamera'
 import type { EngineConfig } from '../engineConfig'
+import type { ModInfo } from '../mods/ModManager'
 import type { PlainObject } from '../util/objects'
 import type { VoxelWorld } from '../world/VoxelWorld'
 import type { PatternFn } from '../render/textures'
@@ -249,6 +250,34 @@ export interface PluginApi {
      */
     readonly hasData: boolean
     saveNow(): Promise<void>
+  }
+
+  /** Content as data: for tools that show or edit any registry. */
+  content: {
+    /** Registries described by a schema, with how many entries they have. */
+    registries(): Array<{ name: string; owner: string; size: number }>
+    /** JSON Schema of a registry's entries (null: it has none). */
+    schema(registry: string): Record<string, unknown> | null
+    ids(registry: string): string[]
+    /** The entry with all changes applied. */
+    get(registry: string, id: string): RegistryEntry | undefined
+    /** The entry as it is without one mod's changes. */
+    without(registry: string, id: string, modId: string): RegistryEntry | undefined
+    /** Who registered it: 'content:<pack>' or a plugin id. */
+    ownerOf(registry: string, id: string): string | undefined
+    /** What is wrong with an entry (empty = fine). */
+    check(registry: string, entry: RegistryEntry): string[]
+  }
+
+  /** Mods of the player. Only installed ones can be edited. */
+  mods: {
+    list(): ModInfo[]
+    create(m: { id: string; name: string; author?: string; description?: string }): Promise<void>
+    read(id: string, path: string): string | undefined
+    /** Save a text file of a mod (null removes it); content takes effect at once. */
+    write(id: string, path: string, text: string | null): Promise<void>
+    /** The mod as a .zip. */
+    exportZip(id: string): Promise<Uint8Array>
   }
 
   /** APIs that plugins offer each other. Add the provider to `dependsOn`. */

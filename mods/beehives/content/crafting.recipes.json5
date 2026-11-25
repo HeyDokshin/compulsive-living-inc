@@ -1,0 +1,1 @@
+[{ id: 'beehives:hive', piece: 'beehives:hive', ingredients: [{ item: 'core:wood', count: 5 }, { tag: '#garden:flowers', count: 1 }], learned: 'start' }]

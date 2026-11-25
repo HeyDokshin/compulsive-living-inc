@@ -60,6 +60,9 @@ export default definePlugin({
 | `api.fx.burst(id, at, { color, amount, scale })` | частицы из реестра `particles` |
 | `api.time.now()` / `hour` / `season` / `dayIndex` / `shift(ms)` | часы игры; события `time:hour`, `time:day` (`catchUp` для пропущенных дней), `time:season` |
 | хук `light:adjust` | поправить свет каждый кадр (погода) |
+| `api.content` | контент как данные: `registries()`, `schema(name)`, `get`, `without(name, id, mod)`, `check(name, entry)` — для редакторов |
+| `api.mods` | моды игрока: `list`, `create`, `read`, `write` (сразу в игре), `exportZip` |
+| слот `menu` | кнопка в Esc-меню (`api.ui.slot('menu', …)`) |
 | `api.session` | имя острова и игрока (`name`, `player`), `rename(...)`; событие `session:created` — новый остров показан, пора создавать персонажа |
 | `api.save.hasData` | в сейве есть данные этого плагина (нет — новый остров или плагин появился позже: пора засеять) |
 | `api.render.refreshView(entity)` / `api.render.setZoom(z)` | пересобрать модель сущности после смены `model` / плавный зум |
@@ -253,6 +256,7 @@ blobShadow: { radius: 0.36 }                     // мягкая круглая 
 | `R` / `Pad5` (`Pad4` — назад) | сменить инструмент в руках |
 | `G` | выбросить предмет из рук |
 | `C` | внешность персонажа |
+| `F4` | редактор контента |
 | `B` | энциклопедия (рыбы, насекомые, окаменелости) |
 | `Esc` / `Pad9` | закрыть окно, а если окон нет — меню (сохранения, новый остров) |
 | `Q` / `E` | повернуть камеру на 90° |

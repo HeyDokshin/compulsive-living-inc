@@ -15,6 +15,16 @@ export interface TreeKind extends RegistryEntry {
   seasons?: Partial<Record<Season, Record<string, string>>>
 }
 
+const Canopy = z.record(z.string(), z.string()).optional()
+const TreeSchema = z.looseObject({
+  id: z.string(),
+  name: z.string(),
+  fruitItem: z.string().optional(),
+  fruitModel: z.string().optional(),
+  sapling: z.string().optional(),
+  seasons: z.object({ spring: Canopy, summer: Canopy, autumn: Canopy, winter: Canopy }).optional(),
+})
+
 declare module '@sdk' {
   interface Components {
     tree?: TreeState
@@ -66,7 +76,7 @@ export default definePlugin({
     const cfg = api.config.define(Config)
     api.config.onChange(() => refreshAll())
     const rules = (): GrowthRules => ({ daysPerStage: cfg.daysPerStage, fruitDays: cfg.fruitDays, fruitCount: 3, woodPerDay: cfg.woodPerDay })
-    const kinds = api.createRegistry<TreeKind>('nature:trees')
+    const kinds = api.createRegistry<TreeKind>('nature:trees', TreeSchema as never)
     const items = () => api.services.get('items:inventory')
 
     const obj = z.object({}).strict()

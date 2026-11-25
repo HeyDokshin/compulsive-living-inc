@@ -41,6 +41,7 @@ export type { ItemDef } from '../engine/items/defs'
 export type { InteractionDef, InteractionContext } from '../engine/interact/Interactions'
 export type { UiSlot, WindowDef } from '../engine/ui/UiHost'
 export type { ModelDef, RigDef } from '../engine/models/defs'
+export type { ModInfo } from '../engine/mods/ModManager'
 export type { SaverDef } from '../engine/save/SaveService'
 export type { SoundDef, SynthLayer } from '../engine/audio/defs'
 export type { LoopHandle, NoteOptions } from '../engine/audio/Audio'
@@ -73,4 +74,8 @@ export function voiceBlip(api: PluginApi, pitch: number): void {
 }
 
 // Pure helpers plugins share.
+export { downloadFile } from '../engine/ui/files'
+export { deepMerge } from '../engine/util/objects'
+export { default as JSON5 } from 'json5'
+export { SDK_VERSION } from '../engine/version'
 export { findPath, type Cell, type PathOptions } from '../engine/world/path'

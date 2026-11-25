@@ -18,6 +18,18 @@ export interface Species extends RegistryEntry {
   breeding: BreedRule[]
 }
 
+const Palette = z.record(z.string(), z.string())
+const SpeciesSchema = z.looseObject({
+  id: z.string(),
+  name: z.string(),
+  short: z.string(),
+  model: z.string(),
+  colors: Palette,
+  palette: z.record(z.string(), Palette).optional(),
+  base: z.array(z.string()).min(1),
+  breeding: z.array(z.object({ a: z.string(), b: z.string(), child: z.string(), chance: z.number().min(0).max(1) })).default([]),
+})
+
 declare module '@sdk' {
   interface Components {
     flower?: { species: string; color: string; watered: number; planted: number }
@@ -58,7 +70,7 @@ export default definePlugin({
 
   setup(api) {
     const cfg = api.config.define(Config)
-    const species = api.createRegistry<Species>('garden:species')
+    const species = api.createRegistry<Species>('garden:species', SpeciesSchema as never)
     const items = () => api.services.get('items:inventory')
     api.components.define(
       'flower',

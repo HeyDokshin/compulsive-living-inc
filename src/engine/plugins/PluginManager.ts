@@ -44,6 +44,12 @@ export class PluginManager<Api> {
     this.defs.set(def.id, def)
   }
 
+  /** Forget a plugin (unload it first). */
+  unregister(id: string): void {
+    this.defs.delete(id)
+    this.states.delete(id)
+  }
+
   get(id: string): PluginDefinition<Api> | undefined {
     return this.defs.get(id)
   }

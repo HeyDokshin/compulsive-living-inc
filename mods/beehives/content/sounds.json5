@@ -1,0 +1,6 @@
+[
+  { id: 'beehives:buzz', volume: 0.6, pitchJitter: 0.1, layers: [
+    { wave: 'sawtooth', freq: 210, freqEnd: 250, attack: 0.05, duration: 0.35, gain: 0.12, filter: { type: 'lowpass', freq: 900 } },
+    { wave: 'sawtooth', freq: 217, freqEnd: 190, attack: 0.05, duration: 0.4, gain: 0.1, filter: { type: 'lowpass', freq: 700 } },
+  ] },
+]

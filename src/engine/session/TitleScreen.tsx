@@ -5,9 +5,12 @@ import type { SaveMeta } from '../save/format'
 import { Button } from '../ui/components'
 import { GAME_VERSION } from '../version'
 import { MAX_NAME, cleanName, parseSeed } from './names'
+import { ModsTab } from './ModsTab'
 import { SavesTab, fmtTime } from './SavesTab'
 import { DEFAULT_ISLAND } from './SessionManager'
 import { SettingsTab } from './SettingsTab'
+
+const TITLES = { main: '', new: 'Новый остров', islands: 'Острова', mods: 'Моды', settings: 'Настройки' }
 
 /** The title screen: logo and menu on the left, the chosen page as a panel beside it. */
 export function TitleScreen({ game }: { game: Game }) {
@@ -53,23 +56,30 @@ export function TitleScreen({ game }: { game: Game }) {
             <button class={`cl-title-btn${view === 'islands' ? ' on' : ''}`} onClick={go('islands')}>
               Острова
             </button>
+            <button class={`cl-title-btn${view === 'mods' ? ' on' : ''}`} onClick={go('mods')}>
+              Моды{game.mods.list().some((m) => m.enabled && m.errors.length) ? ' ⚠️' : ''}
+            </button>
             <button class={`cl-title-btn${view === 'settings' ? ' on' : ''}`} onClick={go('settings')}>
               Настройки
             </button>
           </div>
         )}
+        {game.mods.safeMode && <div class="cl-pill">Прошлый запуск с модами не завершился — сейчас они выключены. Проверьте раздел «Моды».</div>}
         {t.note.value && <div class="cl-pill">{t.note.value}</div>}
       </div>
       {!t.busy.value && view !== 'main' && (
         <div class="cl-window cl-title-panel" role="dialog">
           <div class="cl-window-title">
-            <span>{view === 'new' ? 'Новый остров' : view === 'islands' ? 'Острова' : 'Настройки'}</span>
+            <span>{TITLES[view]}</span>
             <button class="cl-close" aria-label="Закрыть" onClick={() => (t.view.value = 'main')}>
               ×
             </button>
           </div>
           <div class="cl-window-body">
-            {view === 'new' ? <NewIsland game={game} metas={metas ?? []} /> : view === 'islands' ? <SavesTab game={game} onTitle /> : <SettingsTab game={game} />}
+            {view === 'new' && <NewIsland game={game} metas={metas ?? []} />}
+            {view === 'islands' && <SavesTab game={game} onTitle />}
+            {view === 'mods' && <ModsTab game={game} />}
+            {view === 'settings' && <SettingsTab game={game} />}
           </div>
         </div>
       )}

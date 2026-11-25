@@ -1,0 +1,6 @@
+[
+  {
+    id: 'beehives:honey', name: 'Баночка мёда', description: 'Пахнет всем лугом сразу.', stack: 10, price: 220,
+    model: 'beehives:honey', tags: ['beehives:honey'], held: { tilt: 0, scale: 0.9 },
+  },
+]

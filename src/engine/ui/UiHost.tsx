@@ -5,7 +5,8 @@ import type { Dispose } from '../util/disposables'
 import { UI_CSS } from './theme'
 
 /** Places on screen where plugins can put UI. */
-export type UiSlot = 'hud.topLeft' | 'hud.topRight' | 'hud.bottomLeft' | 'hud.bottom' | 'hud.bottomRight' | 'hud.center'
+export type UiSlot = 'hud.topLeft' | 'hud.topRight' | 'hud.bottomLeft' | 'hud.bottom' | 'hud.bottomRight' | 'hud.center' | 'menu'
+/** Slots of the HUD ('menu' is drawn by the Esc menu). */
 export const UI_SLOTS: UiSlot[] = ['hud.topLeft', 'hud.topRight', 'hud.bottomLeft', 'hud.bottom', 'hud.bottomRight', 'hud.center']
 
 interface SlotEntry {
@@ -26,6 +27,8 @@ export interface WindowDef {
   backdrop?: 'dim' | 'clear'
   /** Where the window sits (default center). */
   align?: 'center' | 'left' | 'right' | 'bottom'
+  /** Room for a tool with several columns. */
+  wide?: boolean
 }
 
 interface ToastEntry {
@@ -123,6 +126,11 @@ export class UiHost {
     }, opts.ms ?? 2200)
   }
 
+  /** Components put into a slot. */
+  inSlot(slot: UiSlot): SlotEntry[] {
+    return this.entries.value.filter((e) => e.slot === slot)
+  }
+
   /** For rendering. */
   get allEntries() {
     return this.entries.value
@@ -175,7 +183,7 @@ function Root({ host }: { host: UiHost }) {
           class={`cl-backdrop${win.backdrop === 'clear' ? ' clear' : ''}${win.align && win.align !== 'center' ? ' ' + win.align : ''}`}
           onPointerDown={(e) => e.target === e.currentTarget && host.close()}
         >
-          <div class="cl-window" role="dialog" aria-label={win.title}>
+          <div class={`cl-window${win.wide ? ' wide' : ''}`} role="dialog" aria-label={win.title}>
             <div class="cl-window-title">
               <span>{win.title}</span>
               <button class="cl-close" aria-label="Закрыть" onClick={() => host.close()}>

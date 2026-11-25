@@ -11,6 +11,8 @@ export interface SaveMeta {
   /** Seconds of play. */
   playTime: number
   seed: number
+  /** Mods that were on (saves before 0.12 have none). */
+  mods?: Array<{ id: string; name: string; version: string }>
   /** Game build that wrote it (package version). */
   gameVersion: string
 }

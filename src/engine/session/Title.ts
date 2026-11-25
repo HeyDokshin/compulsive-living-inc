@@ -7,7 +7,7 @@ import type { NewSessionOptions } from './SessionManager'
 
 const log = createLogger('title')
 
-export type TitleView = 'main' | 'new' | 'islands' | 'settings'
+export type TitleView = 'main' | 'new' | 'islands' | 'mods' | 'settings'
 
 /**
  * The title screen: the latest island (or an unsaved one) as a living backdrop, seen by a drifting
@@ -60,6 +60,11 @@ export class Title {
       await this.game.sessions.load(slot)
       if (!this.game.sessions.session.demo) this.play()
     })
+  }
+
+  /** Mods were switched: rebuild the backdrop with them. */
+  applyMods(): Promise<void> {
+    return this.work('Подключаем моды…', () => this.game.applyMods())
   }
 
   create(opts: NewSessionOptions): Promise<void> {

@@ -1,0 +1,32 @@
+// Voxel models drawn with letters: layers go from the ground up, rows from back to front.
+[
+  {
+    id: 'beehives:hive', scale: 0.0625,
+    palette: { p: '#f2cf7e', P: '#d9a85a', k: '#4a3638', w: '#8f5e3c' },
+    layers: [
+      ['w........w', '..........', '..........', '..........', '..........', '..........', '..........', '..........', '..........', 'w........w'],
+      ['w........w', '..........', '..........', '..........', '..........', '..........', '..........', '..........', '..........', 'w........w'],
+      ['wwwwwwwwww', 'wwwwwwwwww', 'wwwwwwwwww', 'wwwwwwwwww', 'wwwwwwwwww', 'wwwwwwwwww', 'wwwwwwwwww', 'wwwwwwwwww', 'wwwwwwwwww', 'wwwwwwwwww'],
+      ['..........', '.PPPPPPPP.', '.PPPPPPPP.', '.PPPPPPPP.', '.PPPPPPPP.', '.PPPPPPPP.', '.PPPPPPPP.', '.PPPPPPPP.', '.PPPkkPPP.', '..........'],
+      ['..........', '.pppppppp.', '.pppppppp.', '.pppppppp.', '.pppppppp.', '.pppppppp.', '.pppppppp.', '.pppppppp.', '.pppkkppp.', '..........'],
+      ['..........', '.pppppppp.', '.pppppppp.', '.pppppppp.', '.pppppppp.', '.pppppppp.', '.pppppppp.', '.pppppppp.', '.pppppppp.', '..........'],
+      ['..........', '.PPPPPPPP.', '.PPPPPPPP.', '.PPPPPPPP.', '.PPPPPPPP.', '.PPPPPPPP.', '.PPPPPPPP.', '.PPPPPPPP.', '.PPPPPPPP.', '..........'],
+      ['..........', '.pppppppp.', '.pppppppp.', '.pppppppp.', '.pppppppp.', '.pppppppp.', '.pppppppp.', '.pppppppp.', '.pppppppp.', '..........'],
+      ['..........', '..........', '..pppppp..', '..pppppp..', '..pppppp..', '..pppppp..', '..pppppp..', '..pppppp..', '..........', '..........'],
+      ['..........', '..........', '..PPPPPP..', '..PPPPPP..', '..PPPPPP..', '..PPPPPP..', '..PPPPPP..', '..PPPPPP..', '..........', '..........'],
+      ['..........', '..........', '..........', '...pppp...', '...pppp...', '...pppp...', '...pppp...', '..........', '..........', '..........'],
+    ],
+  },
+  {
+    id: 'beehives:honey', scale: 0.0625,
+    palette: { h: '#f0a83a', H: '#f8c86a', c: '#fffaf0', l: '#e8dcc4' },
+    layers: [
+      ['.hhhh.', 'hhhhhh', 'hhhhhh', 'hhhhhh', 'hhhhhh', '.hhhh.'],
+      ['.hhhh.', 'hhhhhh', 'hhhhhh', 'hhhhhh', 'hccccH', '.cccc.'],
+      ['.hhhh.', 'hhhhhh', 'hhhhhh', 'hhhhhh', 'hccccH', '.cccc.'],
+      ['.HHHH.', 'HHHHHH', 'HHHHHH', 'HHHHHH', 'HHHHHH', '.HHHH.'],
+      ['......', '.llll.', '.llll.', '.llll.', '.llll.', '......'],
+      ['.llll.', 'llllll', 'llllll', 'llllll', 'llllll', '.llll.'],
+    ],
+  },
+]

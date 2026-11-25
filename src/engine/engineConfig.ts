@@ -156,6 +156,12 @@ export const EngineConfigSchema = z.object({
       glide: z.number().min(0).max(6).default(2).meta({ label: 'glide-in (s)', step: 0.1 }),
     })
     .prefault({}),
+  mods: z
+    .object({
+      /** A mod may unpack to this much. */
+      maxMegabytes: z.number().min(1).max(512).default(64).meta({ label: 'max size (MB)', step: 1 }),
+    })
+    .prefault({}),
   save: z
     .object({
       /** Minutes between autosaves into the current slot (0 = off). Also saves when the tab is hidden. */

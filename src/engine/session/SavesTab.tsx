@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks'
 import { Button } from '../ui/components'
+import { downloadFile, pickFile } from '../ui/files'
 import type { Game } from '../Game'
 import type { SaveMeta } from '../save/format'
 
@@ -39,24 +40,11 @@ export function SavesTab({ game, onTitle = false }: { game: Game; onTitle?: bool
   }
 
   const exportSlot = (slot: string) =>
-    run('Файл сохранения скачан', async () => {
-      const text = await sm.exportSlot(slot)
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
-      a.download = `compulsive-living-${slot}.json`
-      a.click()
-      URL.revokeObjectURL(a.href)
-    })
+    run('Файл сохранения скачан', async () => downloadFile(`compulsive-living-${slot}.json`, await sm.exportSlot(slot), 'application/json'))
 
-  const importInto = (slot: string) => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.json,application/json'
-    input.onchange = () => {
-      const file = input.files?.[0]
-      if (file) void run('Сохранение импортировано', async () => sm.importInto(await file.text(), slot))
-    }
-    input.click()
+  const importInto = async (slot: string) => {
+    const file = await pickFile('.json,application/json')
+    if (file) void run('Сохранение импортировано', async () => sm.importInto(await file.text(), slot))
   }
 
   const s = sm.session
@@ -112,6 +100,7 @@ export function SavesTab({ game, onTitle = false }: { game: Game; onTitle?: bool
                   {m ? ` · ${m.name}` : ''}
                 </div>
                 <div style={{ color: 'var(--ui-text-soft)', fontSize: '12px' }}>
+                  {m && sm.missingMods(m).length > 0 && <div style={{ color: '#c96f4a' }}>нет модов: {sm.missingMods(m).join(', ')}</div>}
                   {m ? `${m.player ? `${m.player} · ` : ''}${fmtDate(m.savedAt)} · ${fmtTime(m.playTime)} · сид ${m.seed}` : 'пусто'}
                 </div>
               </div>

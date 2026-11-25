@@ -39,6 +39,7 @@ export const UI_CSS = /* css */ `
 .cl-window { background: var(--ui-bg); border-radius: 26px; box-shadow: 0 14px 40px rgba(110, 80, 70, .28);
   border: 3px solid #fff; min-width: 300px; max-width: min(92vw, 720px); max-height: 86vh; overflow: auto;
   animation: cl-pop .22s cubic-bezier(.3, 1.4, .5, 1); }
+.cl-window.wide { max-width: min(96vw, 1040px); }
 .cl-window-title { display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 14px 18px 6px 22px; font-size: 20px; font-weight: 800; }
 .cl-window-body { padding: 8px 20px 20px; }
@@ -79,6 +80,11 @@ export const UI_CSS = /* css */ `
 @keyframes cl-float { 0% { transform: translateY(6px); opacity: 0 } 15% { transform: translateY(0); opacity: 1 } 100% { transform: translateY(-34px); opacity: 0 } }
 .cl-input { border: 2px solid var(--ui-line); border-radius: 14px; padding: 9px 14px; font: 700 15px var(--ui-font); color: var(--ui-text);
   background: #fff; outline: none; width: 100%; }
+.cl-code { font: 500 12px ui-monospace, Menlo, monospace; resize: vertical; }
+.cl-row { display: flex; align-items: center; gap: 8px; border: 0; border-radius: 12px; padding: 6px 10px; background: none; text-align: left; cursor: pointer;
+  font: 700 14px var(--ui-font); color: var(--ui-text); flex: none; }
+.cl-row:hover { background: var(--ui-bg-2); }
+.cl-row[aria-pressed='true'] { background: #eef9f3; box-shadow: inset 0 0 0 2px var(--ui-accent); }
 .cl-input:focus { border-color: var(--ui-accent); }
 .cl-input::placeholder { color: var(--ui-text-soft); opacity: .7; }
 
@@ -101,7 +107,7 @@ export const UI_CSS = /* css */ `
 .cl-title-dots { display: inline-flex; gap: 5px; }
 .cl-title-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--ui-accent); }
 .cl-title .cl-pill { white-space: normal; max-width: min(420px, 88vw); }
-.cl-title-panel form { max-width: 100%; }
+.cl-title-panel .cl-window-body > * { max-width: 100%; }
 .cl-title-version { position: fixed; left: 16px; bottom: 12px; font-size: 12px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(90, 70, 60, .6); }
 @keyframes cl-bob { 50% { transform: translateY(-6px) } }
 @media (max-width: 760px) {

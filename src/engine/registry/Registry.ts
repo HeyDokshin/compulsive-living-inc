@@ -96,7 +96,14 @@ export class Registry<T extends RegistryEntry> {
         console.error(`[${this.name}] patch by "${p.owner}" on "${id}" failed`, e)
       }
     }
-    if (this.patches.has(id) && this.schema) entry = this.validate(entry)
+    if (this.patches.has(id) && this.schema) {
+      try {
+        entry = this.validate(entry)
+      } catch (e) {
+        console.error(`[${this.name}] changes to "${id}" are not valid, keeping the original:`, e)
+        entry = b.entry
+      }
+    }
     this.cache.set(id, entry)
     return entry
   }
@@ -109,6 +116,33 @@ export class Registry<T extends RegistryEntry> {
 
   has(id: string): boolean {
     return this.base.has(id)
+  }
+
+  /** Who registered an entry. */
+  ownerOf(id: string): string | undefined {
+    return this.base.get(id)?.owner
+  }
+
+  /** The entry as it would be without one owner's changes. */
+  without(id: string, owner: string): T | undefined {
+    let entry = this.base.get(id)?.entry
+    if (!entry) return undefined
+    for (const p of this.patches.get(id) ?? []) if (p.owner !== owner) entry = p.fn({ ...entry })
+    return entry
+  }
+
+  /** What is wrong with an entry (empty = fine). */
+  check(entry: T): string[] {
+    const out: string[] = []
+    if (!ID_PATTERN.test(entry.id)) out.push('id: нужен вид «пространство:имя» (a-z, 0-9, _)')
+    const r = this.schema?.safeParse(entry)
+    if (r && !r.success) out.push(...r.error.issues.map((i) => `${i.path.join('.') || 'запись'}: ${i.message}`))
+    return out
+  }
+
+  /** Entries are plain data described by a schema (not code). */
+  get schemaOf(): ZodType<T> | undefined {
+    return this.schema
   }
 
   ids(): string[] {

@@ -47,7 +47,7 @@ describe('ContentLoader + prefabs', () => {
 
 describe('shipped content', () => {
   it('has only valid ids, and every model a rig asks for exists', () => {
-    const files = import.meta.glob<string>('../content/**/*.json5', { query: '?raw', import: 'default', eager: true })
+    const files = import.meta.glob<string>(['../content/**/*.json5', '../mods/*/content/*.json5'], { query: '?raw', import: 'default', eager: true })
     const bad: string[] = []
     const ids = new Set<string>()
     const wanted: string[] = []

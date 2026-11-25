@@ -1,0 +1,11 @@
+// A piece to craft and place; every variant becomes an item (beehives:hive_yellow…).
+[
+  {
+    id: 'beehives:hive', name: 'Улей', description: 'Поставьте среди цветов — пчёлы прилетят сами.', model: 'beehives:hive', price: 640, blocker: true,
+    variants: [
+      { id: 'yellow', name: 'жёлтый', palette: { p: '#f2cf7e', P: '#d9a85a' } },
+      { id: 'mint', name: 'мятный', palette: { p: '#a8dcc8', P: '#86c2ac' } },
+      { id: 'pink', name: 'розовый', palette: { p: '#f6bccb', P: '#e29cb0' } },
+    ],
+  },
+]

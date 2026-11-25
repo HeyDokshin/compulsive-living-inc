@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { ZodType } from 'zod'
+import { z, type ZodType } from 'zod'
 import type { Game, GamePlugin } from '../Game'
 import type { RegistryEntry } from '../registry/Registry'
 import type { SaverDef } from '../save/SaveService'
@@ -247,6 +247,30 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
         return game.sessions.saves.loadedKeys.has(owner)
       },
       saveNow: () => game.sessions.save().then(() => undefined),
+    },
+    content: {
+      registries: () =>
+        game.registries
+          .names()
+          .map((name) => game.registries.get(name))
+          .filter((r) => r.schemaOf)
+          .map((r) => ({ name: r.name, owner: r.owner, size: r.size })),
+      schema: (name) => {
+        const schema = game.registries.get(name).schemaOf
+        return schema ? (z.toJSONSchema(schema, { io: 'input', unrepresentable: 'any' }) as Record<string, unknown>) : null
+      },
+      ids: (name) => game.registries.get(name).ids(),
+      get: (name, id) => game.registries.get(name).get(id),
+      without: (name, id, modId) => game.registries.get(name).without(id, `content:${modId}`),
+      ownerOf: (name, id) => game.registries.get(name).ownerOf(id),
+      check: (name, entry) => game.registries.get(name).check(entry),
+    },
+    mods: {
+      list: () => game.mods.list(),
+      create: (m) => game.mods.create(m),
+      read: (id, path) => game.mods.read(id, path),
+      write: (id, path, text) => game.editMod(id, path, text),
+      exportZip: (id) => game.mods.exportZip(id),
     },
     services: {
       provide: (name, impl) => void track(game.services.provide(name, impl, owner)),

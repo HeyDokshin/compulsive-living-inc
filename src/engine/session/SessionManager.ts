@@ -152,6 +152,12 @@ export class SessionManager {
     }
   }
 
+  /** Mods a save was made with that are not working now. */
+  missingMods(meta: SaveMeta): string[] {
+    const active = new Set(this.game.mods.active().map((m) => m.id))
+    return (meta.mods ?? []).filter((m) => !active.has(m.id)).map((m) => m.name)
+  }
+
   /** Save the current island into a slot (default: the session's slot). */
   async save(slot = this.session.slot): Promise<SaveMeta | null> {
     if (this.switching || this.session.demo) return null
@@ -164,6 +170,7 @@ export class SessionManager {
       savedAt: Date.now(),
       playTime: Math.round(this.session.playTime),
       seed: g.worldConfig.seed,
+      mods: g.mods.active(),
       gameVersion: GAME_VERSION,
     }
     const data = this.saves.collect(meta, g.world.voxels, g.worldConfig, g.entities)

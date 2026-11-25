@@ -27,9 +27,14 @@ export function GameMenu({ game }: { game: Game }) {
           </button>
         ))}
       </div>
-        <Button secondary onClick={() => void game.title.leaveGame()}>
-          Главное меню
-        </Button>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {game.ui.inSlot('menu').map((e) => (
+            <e.component key={e.key} />
+          ))}
+          <Button secondary onClick={() => void game.title.leaveGame()}>
+            Главное меню
+          </Button>
+        </div>
       </div>
       {tab === 'saves' ? <SavesTab game={game} /> : <SettingsTab game={game} />}
     </div>

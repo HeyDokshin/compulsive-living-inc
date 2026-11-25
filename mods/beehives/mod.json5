@@ -1,0 +1,12 @@
+// An example mod made from scratch: data (content/) and code (main.js). See docs/06-modding.md.
+{
+  id: 'beehives',
+  name: 'Ульи и мёд',
+  version: '1.0.0',
+  author: 'Compulsive Living',
+  description: 'Пример мода: улей можно смастерить и поставить среди цветов — каждое утро в нём появляется мёд.',
+  sdk: 1,
+  main: 'main.js',
+  dependsOn: ['items', 'decor', 'crafting', 'garden'],
+  enabled: false, // an example: switch it on in «Моды»
+}
