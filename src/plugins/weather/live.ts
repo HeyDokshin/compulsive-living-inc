@@ -35,6 +35,8 @@ export interface Moment {
 }
 
 const HOUR = 3_600_000
+/** Never ask again sooner than this, even if the hour turned meanwhile. */
+const PAUSE = HOUR / 3
 
 const num = (v: unknown): number => (typeof v === 'number' || (typeof v === 'string' && v.trim() !== '') ? Number(v) : NaN)
 const obj = (v: unknown): Record<string, unknown> => (typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : {})
@@ -154,7 +156,8 @@ export class LiveWeather {
   due(now: number): boolean {
     if (this.busy || now < this.retryAt) return false
     const at = this.cache.hourlyAt
-    return at === undefined || Math.floor((now - this.late) / HOUR) > Math.floor((at - this.late) / HOUR)
+    if (at === undefined) return true
+    return now - at >= PAUSE && Math.floor((now - this.late) / HOUR) > Math.floor((at - this.late) / HOUR)
   }
 
   async update(now: number): Promise<boolean> {
