@@ -43,7 +43,7 @@ export function describeSchema(schema: ZodType): FieldInfo {
     }
     case 'number': {
       const n = s as unknown as { minValue: number | null; maxValue: number | null; isInt: boolean }
-      const finite = (v: number | null) => (v != null && Number.isFinite(v) && Math.abs(v) < 1e15 ? v : undefined)
+      const finite = (v: number | null) => (v !== null && Number.isFinite(v) && Math.abs(v) < 1e15 ? v : undefined)
       return { kind: 'number', meta, min: finite(n.minValue), max: finite(n.maxValue), int: !!n.isInt }
     }
     case 'boolean':

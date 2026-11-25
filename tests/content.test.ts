@@ -57,8 +57,8 @@ describe('shipped content', () => {
       for (const e of entries) {
         if (!e.id) continue
         if (!ID_PATTERN.test(e.id)) bad.push(`${path}: ${e.id}`)
-        if (/\/models\.json5$/.test(path)) ids.add(e.id)
-        if (/\/rigs\.json5$/.test(path)) for (const p of e.parts ?? []) if (p.model) wanted.push(p.model)
+        if (path.endsWith('/models.json5')) ids.add(e.id)
+        if (path.endsWith('/rigs.json5')) for (const p of e.parts ?? []) if (p.model) wanted.push(p.model)
       }
     }
     expect(Object.keys(files).length).toBeGreaterThan(20)

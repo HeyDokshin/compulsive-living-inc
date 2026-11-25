@@ -8,6 +8,5 @@ export interface HmrBridge {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var __CL_HMR__: HmrBridge | undefined
 }

@@ -40,7 +40,7 @@ export function parseManifest(raw: string): ModManifest {
   try {
     data = JSON5.parse(raw)
   } catch (e) {
-    throw new Error(`mod.json5: ${e instanceof Error ? e.message : String(e)}`)
+    throw new Error(`mod.json5: ${e instanceof Error ? e.message : String(e)}`, { cause: e })
   }
   const r = ModManifestSchema.safeParse(data)
   if (!r.success) throw new Error(`mod.json5: ${r.error.issues.map((i) => `${i.path.join('.') || 'файл'} — ${i.message}`).join('; ')}`)

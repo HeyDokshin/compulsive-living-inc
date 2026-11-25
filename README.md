@@ -19,6 +19,8 @@ npm run play       # = npm run build && open dist/index.html
 npm run dev        # http://localhost:5173
 npm test           # юнит-тесты
 npm run typecheck
+npm run lint       # oxlint: ошибки, слои, циклы импортов
+npm run check      # всё сразу: линтер, типы, тесты
 ```
 
 ## Документы

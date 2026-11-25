@@ -16,7 +16,10 @@ describe('house room', () => {
   it('bigger rooms contain smaller ones (furniture stays inside after upgrades)', () => {
     const a = planRoom(8, 8)
     const b = planRoom(12, 12)
-    for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) if (a.kindAt(x, z) === 'floor') expect(b.kindAt(x, z)).toBe('floor')
+    const floor: string[] = []
+    for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) if (a.kindAt(x, z) === 'floor') floor.push(b.kindAt(x, z))
+    expect(floor).toHaveLength(36)
+    expect(new Set(floor)).toEqual(new Set(['floor']))
   })
   it('knows which walls face the camera', () => {
     const r = planRoom(8, 8)

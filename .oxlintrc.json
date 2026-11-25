@@ -1,0 +1,92 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import", "react", "vitest"],
+  "categories": { "correctness": "error", "suspicious": "error" },
+  "env": { "browser": true, "es2024": true },
+  "ignorePatterns": ["dist", "node_modules"],
+  "rules": {
+    "eqeqeq": "error",
+    "no-var": "error",
+    "prefer-const": "error",
+    "no-debugger": "error",
+    "no-self-compare": "error",
+    "no-else-return": "off",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
+    "typescript/no-explicit-any": "error",
+    "typescript/consistent-type-imports": "error",
+    "import/no-cycle": "error",
+    "import/no-duplicates": "error",
+
+    // Wrong here: `with(…)` of the ECS is a live query, and lists are copied on purpose before entities,
+    // listeners or handlers are added or removed inside the loop.
+    "unicorn/no-useless-spread": "off",
+    // Reading a signal's `.value` subscribes a component; short comma bodies are used in arrow functions.
+    "no-unused-expressions": "off",
+    // Preact + signals: JSX needs no import, signals are changed in place, components may roll dice.
+    "react/react-in-jsx-scope": "off",
+    "react/immutability": "off",
+    "react/purity": "off",
+    "react/exhaustive-deps": "off",
+    // x, y, z and short names repeat all over a voxel game.
+    "no-shadow": "off",
+    "unicorn/consistent-function-scoping": "off",
+    // Sorting copies in place is fine.
+    "unicorn/no-array-sort": "off",
+    "unicorn/no-array-reverse": "off",
+    "unicorn/prefer-add-event-listener": "off",
+    "no-underscore-dangle": "off",
+    "import/no-unassigned-import": "off"
+  },
+  "overrides": [
+    {
+      // Layers: engine → sdk → plugins → content. The engine knows nothing above it.
+      "files": ["src/engine/**"],
+      "rules": {
+        "no-restricted-imports": ["error", { "patterns": [{ "group": ["@sdk", "**/sdk", "**/sdk/**", "**/plugins/*/**", "!**/engine/plugins/**", "!./plugins/*", "!../plugins/*"], "message": "The engine must not depend on the SDK or on plugins." }] }]
+      }
+    },
+    {
+      // Simulation works without three.js (and is tested without it).
+      "files": ["src/engine/{config,content,ecs,events,input,interact,loop,mods,registry,save,time,util,world}/**"],
+      "rules": {
+        "no-restricted-imports": ["error", {
+          "paths": [{ "name": "three", "message": "Simulation must not depend on three.js." }],
+          "patterns": [{ "group": ["three/*", "@sdk", "**/sdk", "**/sdk/**", "**/plugins/*/**", "!**/engine/plugins/**"], "message": "Simulation must not depend on three.js, the SDK or plugins." }]
+        }]
+      }
+    },
+    {
+      "files": ["src/plugins/**"],
+      "rules": {
+        "no-restricted-imports": ["error", {
+          "paths": ["three", "preact", "preact/hooks", "@preact/signals", "zod", "json5", "miniplex"],
+          "patterns": [{ "group": ["**/engine/**", "@engine/*", "three/*", "../../*", "../*/**"], "message": "Plugins import only '@sdk' and their own files." }]
+        }]
+      }
+    },
+    {
+      "files": ["mods/**"],
+      "rules": {
+        "no-restricted-imports": ["error", {
+          "paths": ["three", "preact", "@preact/signals", "zod", "json5", "miniplex"],
+          "patterns": [{ "group": ["**/src/**", "@engine/*", "three/*"], "message": "Mods import only '@sdk' and their own files." }]
+        }]
+      }
+    },
+    {
+      // A worker module has its default export made by Vite.
+      "files": ["src/engine/world/mesher/**"],
+      "rules": { "import/default": "off", "unicorn/require-post-message-target-origin": "off" }
+    },
+    {
+      "files": ["tests/**"],
+      "rules": {
+        "vitest/no-conditional-expect": "off",
+        "vitest/require-to-throw-message": "off",
+        "vitest/require-mock-type-parameters": "off",
+        "vitest/valid-expect": "off"
+      }
+    },
+    { "files": ["tools/**"], "env": { "node": true, "browser": false } }
+  ]
+}

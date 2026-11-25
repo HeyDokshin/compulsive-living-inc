@@ -78,7 +78,7 @@ export async function generateWorld(
     height: opts.height,
     world,
     heightMap: new Int16Array(sizeX * sizeZ),
-    surface: new Array<string>(sizeX * sizeZ).fill(''),
+    surface: Array.from({ length: sizeX * sizeZ }, () => ''),
     waterMap: new Int16Array(sizeX * sizeZ),
     data: {},
     rng: (salt) => mulberry32(opts.seed ^ hashString(salt)),

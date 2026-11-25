@@ -1,10 +1,9 @@
 import { World } from 'miniplex'
 import type { ZodType } from 'zod'
-import { BlobShadowSchema, BlockerSchema, ModelSchema, SilhouetteSchema, TransformSchema, type Components, type Entity, type PrefabDef } from '../types'
+import { BlobShadowSchema, BlockerSchema, ModelSchema, SilhouetteSchema, TransformSchema, type Components, type Entity, type GameEvents, type GameHooks, type PrefabDef } from '../types'
 import type { Registry } from '../registry/Registry'
 import type { EventBus } from '../events/EventBus'
 import type { Hooks } from '../events/Hooks'
-import type { GameEvents, GameHooks } from '../types'
 import { deepMerge } from '../util/objects'
 import type { Dispose } from '../util/disposables'
 

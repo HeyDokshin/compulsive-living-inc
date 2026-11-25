@@ -9,7 +9,7 @@
 ## Этап 0 · Фундамент ✅
 **Результат:** изо-сцена, отладочная панель, консоль, работающая система плагинов с горячей перезагрузкой.
 - [x] Vite + TypeScript strict + Prettier + Vitest
-- [ ] ESLint (отложено: typescript-eslint пока не поддерживает TypeScript 7)
+- [x] Линтер: oxlint вместо ESLint (typescript-eslint 8.74 не поддерживает TypeScript 7), `npm run lint`; проверяет и слои (движок без SDK и плагинов, симуляция без three.js, плагины и моды — только `@sdk`), и циклы импортов
 - [x] Игровой цикл: фиксированный шаг 20 Гц + интерполяция рендера
 - [x] ECS (miniplex) + схемы компонентов (zod) + префабы с `extends`
 - [x] `Registry<T>` с namespaced id, тегами, `modify`, валидацией

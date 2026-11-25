@@ -448,7 +448,8 @@ export default definePlugin({
         }
         case 'shore': {
           const water = api.services.has('terrain:water') ? api.services.get('terrain:water') : null
-          for (let i = 0; i < 20 && water; i++) {
+          if (!water) break
+          for (let i = 0; i < 20; i++) {
             const c = randomNear(t.x, t.z, 14)
             if (!c) continue
             const wet = [[1, 0], [-1, 0], [0, 1], [0, -1]].find(([dx, dz]) => water.kindAt(c.x + dx!, c.z + dz!))
