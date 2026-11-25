@@ -142,7 +142,8 @@ export class Renderer {
     this.renderer.toneMappingExposure = style.exposure
     this.sun.shadow.intensity = style.shadowStrength
     styleUniforms.uWaterSpeed.value = style.waterSpeed
-    this.postfx.setSamples(render.msaa)
+    const ratio = Math.min(window.devicePixelRatio, render.maxPixelRatio)
+    this.postfx.setSamples(ratio > 1.5 ? Math.min(render.msaa, render.msaaDense) : render.msaa)
     this.postfx.apply(style)
 
     if (debug.showGrid && !this.grid) this.scene.add((this.grid = new GridHelper(256, 256, 0x335566, 0x557788)))
@@ -151,7 +152,6 @@ export class Renderer {
     if (!debug.showAxes && this.axes) (this.axes.removeFromParent(), (this.axes = undefined))
 
     // Resizing reallocates render targets: only when the pixel ratio really changed.
-    const ratio = Math.min(window.devicePixelRatio, render.maxPixelRatio)
     if (ratio !== this.last.ratio) {
       this.last.ratio = ratio
       this.renderer.setPixelRatio(ratio)
@@ -217,7 +217,7 @@ export class Renderer {
   /** Compile every material of the scene now (in the background where the browser can) instead of on first sight. */
   async warmUp(): Promise<void> {
     const target = this.renderer.getRenderTarget()
-    if (this.cfg.style.postfx) this.renderer.setRenderTarget(this.postfx.composer.renderTarget1)
+    if (this.cfg.style.postfx) this.renderer.setRenderTarget(this.postfx.sceneTarget)
     const done = this.renderer.compileAsync(this.scene, this.iso.camera)
     this.renderer.setRenderTarget(target)
     await done

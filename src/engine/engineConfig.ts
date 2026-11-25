@@ -55,6 +55,8 @@ export const EngineConfigSchema = z.object({
       shadowMapSize: z.number().int().min(256).max(4096).default(2048).meta({ label: 'shadow map size', step: 256 }),
       /** Antialiasing samples of the post-processing target (0 = off). */
       msaa: z.number().int().min(0).max(8).default(4).meta({ label: 'MSAA samples', step: 1 }),
+      /** At most this many on dense (retina) screens: their pixels are small enough already. */
+      msaaDense: z.number().int().min(0).max(8).default(2).meta({ label: 'MSAA on dense screens', step: 1 }),
       ao: z.number().min(0).max(1).default(0.4).meta({ label: 'ambient occlusion', step: 0.05 }),
       waterOpacity: z.number().min(0).max(1).default(0.72).meta({ step: 0.01 }),
       /** Soft color patches on blocks with `tint: true` (lawns). */
