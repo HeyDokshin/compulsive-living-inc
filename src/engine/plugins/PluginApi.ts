@@ -111,6 +111,8 @@ export interface PluginApi {
     rigModel(id: string, opts?: { scale?: number; palette?: Record<string, string>; parts?: Record<string, string> }): THREE.Object3D
     /** Size (voxels), origin and scale of a voxel model — to hold, lay down or attach it precisely. */
     modelInfo(id: string): Promise<{ size: [number, number, number]; pivot: [number, number, number]; scale: number } | null>
+    /** How hard plants sway (1 = a light breeze). */
+    setWind(strength: number): void
     /** Shake the camera a little (amplitude in blocks, fading out over `seconds`). Respects the player's setting. */
     shake(amplitude: number, seconds: number): void
     /** Smoothly zoom the camera (clamped to the configured range). */
@@ -232,6 +234,12 @@ export interface PluginApi {
     /** Back outside where the actor entered. */
     exit(actor: Entity): void
   }
+  /** Settings a plugin adds (registry `options`), as the player chose them on this device. */
+  options: {
+    /** Current value (read in a component or `effect`, it stays current). */
+    get(id: string): string | boolean
+  }
+
   /** The island being played. */
   session: {
     /** The island's name. */

@@ -17,6 +17,7 @@ const PAGES = [
   ['sound', 'Звук'],
   ['interface', 'Интерфейс'],
   ['keys', 'Управление'],
+  ['island', 'Остров'],
 ] as const
 
 function Row({ label, children }: { label: string; children: ComponentChildren }) {
@@ -103,6 +104,28 @@ export function SettingsTab({ game }: { game: Game }) {
           <Row label="Реплики сразу целиком">{check('instantText', 'Реплики сразу целиком')}</Row>
         </>
       )}
+      {page === 'island' &&
+        game.optionDefs
+          .all()
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+          .map((o) => {
+            const value = s.options[o.id] ?? o.default
+            const hint = typeof o.hint === 'function' ? o.hint() : o.hint
+            return (
+              <div key={o.id}>
+                <Row label={o.label}>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {o.choices.map(([v, label]) => (
+                      <Button key={label} secondary={v !== value} onClick={() => set({ options: { ...s.options, [o.id]: v } })}>
+                        {label}
+                      </Button>
+                    ))}
+                  </div>
+                </Row>
+                {hint && <div style={{ color: 'var(--ui-text-soft)', fontSize: '12px', lineHeight: 1.45 }}>{hint}</div>}
+              </div>
+            )
+          })}
       {page === 'keys' && <Keys game={game} bindings={s.bindings} set={(bindings) => set({ bindings })} />}
       <div style={{ color: 'var(--ui-text-soft)', fontSize: '12px', marginTop: '6px' }}>Настройки хранятся в этом браузере и не зависят от сохранений.</div>
     </div>

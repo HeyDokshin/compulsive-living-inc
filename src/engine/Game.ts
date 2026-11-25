@@ -32,6 +32,7 @@ import { UiHost } from './ui/UiHost'
 import { IconService } from './ui/IconService'
 import { FpsMeter } from './ui/FpsMeter'
 import { ModManager } from './mods/ModManager'
+import { Options, type OptionDef } from './session/options'
 import { Title } from './session/Title'
 import { SessionManager } from './session/SessionManager'
 import { GameMenu } from './session/GameMenu'
@@ -80,11 +81,14 @@ export class Game {
   readonly input = new Input()
   readonly ui = new UiHost()
   readonly services = new ServiceRegistry()
+  /** Settings plugins added, as the player chose them. */
+  readonly options = new Options()
 
   // registries
   readonly blocks: Registry<BlockDef>
   readonly prefabs: Registry<PrefabDef>
   readonly commands: Registry<CommandDef>
+  readonly optionDefs: Registry<OptionDef>
   readonly textures: Registry<TextureDef>
   readonly worldgen: Registry<WorldGenStep>
   readonly models: Registry<ModelDef>
@@ -131,6 +135,7 @@ export class Game {
     this.blocks = reg('blocks', BlockSchema as ZodType<BlockDef>)
     this.prefabs = reg('prefabs', PrefabSchema as ZodType<PrefabDef>)
     this.commands = reg<CommandDef>('commands')
+    this.optionDefs = reg<OptionDef>('options')
     this.textures = reg('textures', TextureSchema as ZodType<TextureDef>)
     this.worldgen = reg<WorldGenStep>('worldgen')
     this.models = reg('models', ModelDefSchema as ZodType<ModelDef>)

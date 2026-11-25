@@ -1,13 +1,39 @@
-// Weather types. Chosen every 6 game hours from these weights (per season), deterministically per
-// island seed and day. light: multipliers for sun and ambient light, plus a tint mixed into the sky.
-// precipitation: none | rain | snow. waters: counts as watering the flowers that day.
+// Weather types. Real weather picks one by its WMO code (`codes`); without it the island makes its
+// own: every hour, by the season's weight, more at the times of day in `hours` ([from, to, times]).
+// light: multipliers for sun and ambient light, plus a tint mixed into the sky. precipitation: none |
+// rain | snow, with its `intensity`. waters: counts as watering the flowers. mist 0–1, lightning, wind 0–1.
 [
-  { id: 'weather:clear', name: 'Ясно', icon: '☀️', weights: { spring: 4, summer: 6, autumn: 3, winter: 3 },
+  { id: 'weather:clear', name: 'Ясно', icon: '☀️', night: { name: 'Ясная ночь', icon: '🌙' }, codes: [0], wind: 0.15,
+    weights: { spring: 4, summer: 6, autumn: 2.5, winter: 2.5 }, hours: [[21, 5, 1.4]],
     light: { sun: 1, ambient: 1 } },
-  { id: 'weather:cloudy', name: 'Облачно', icon: '☁️', weights: { spring: 3, summer: 2, autumn: 3.5, winter: 3 },
+  { id: 'weather:fair', name: 'Малооблачно', icon: '🌤️', night: { name: 'Малооблачно', icon: '🌙' }, codes: [1, 2], wind: 0.25,
+    weights: { spring: 3, summer: 4, autumn: 2, winter: 2 }, hours: [[10, 18, 1.5]],
+    light: { sun: 0.8, ambient: 1.02, tint: '#e9eff6', tintAmount: 0.08 } },
+  { id: 'weather:cloudy', name: 'Облачно', icon: '☁️', codes: [3], wind: 0.3,
+    weights: { spring: 2.5, summer: 1.5, autumn: 3, winter: 3 },
     light: { sun: 0.45, ambient: 1.05, tint: '#e3e9f2', tintAmount: 0.18 } },
-  { id: 'weather:rain', name: 'Дождь', icon: '🌧️', weights: { spring: 2, summer: 1.2, autumn: 2.5, winter: 0 },
+  { id: 'weather:windy', name: 'Ветрено', icon: '🍃', codes: [], wind: 0.9,
+    weights: { spring: 0.8, summer: 0.4, autumn: 1, winter: 0.6 }, hours: [[11, 19, 1.8]],
+    light: { sun: 0.7, ambient: 1.02, tint: '#e3e9f2', tintAmount: 0.1 } },
+  { id: 'weather:fog', name: 'Туман', icon: '🌫️', codes: [45, 48], wind: 0.05, mist: 1,
+    weights: { spring: 0.3, summer: 0.15, autumn: 0.6, winter: 0.3 }, hours: [[4, 9, 5], [12, 19, 0]],
+    light: { sun: 0.3, ambient: 1.1, tint: '#e8ecef', tintAmount: 0.4 } },
+  { id: 'weather:drizzle', name: 'Морось', icon: '🌦️', codes: [51, 53, 55, 56, 57], wind: 0.2, intensity: 0.4,
+    weights: { spring: 1, summer: 0.5, autumn: 1.4, winter: 0 }, hours: [[5, 11, 1.4]],
+    light: { sun: 0.35, ambient: 0.97, tint: '#ccd6e4', tintAmount: 0.24 }, precipitation: 'rain', waters: true },
+  { id: 'weather:rain', name: 'Дождь', icon: '🌧️', codes: [61, 63, 66, 80, 81], wind: 0.35,
+    weights: { spring: 1.4, summer: 0.8, autumn: 1.8, winter: 0 },
     light: { sun: 0.22, ambient: 0.92, tint: '#c3cfe0', tintAmount: 0.32 }, precipitation: 'rain', waters: true },
-  { id: 'weather:snow', name: 'Снег', icon: '🌨️', weights: { spring: 0, summer: 0, autumn: 0.3, winter: 3 },
+  { id: 'weather:downpour', name: 'Ливень', icon: '🌧️', codes: [65, 67, 82], wind: 0.55, intensity: 1.7, mist: 0.2,
+    weights: { spring: 0.4, summer: 0.4, autumn: 0.5, winter: 0 }, hours: [[14, 21, 1.8]],
+    light: { sun: 0.16, ambient: 0.86, tint: '#b4c2d6', tintAmount: 0.38 }, precipitation: 'rain', waters: true },
+  { id: 'weather:storm', name: 'Гроза', icon: '⛈️', codes: [95, 96, 99], wind: 0.8, intensity: 1.5, lightning: true,
+    weights: { spring: 0.3, summer: 0.7, autumn: 0.15, winter: 0 }, hours: [[14, 21, 2.5], [4, 12, 0]],
+    light: { sun: 0.12, ambient: 0.8, tint: '#a9b4cc', tintAmount: 0.42 }, precipitation: 'rain', waters: true },
+  { id: 'weather:snow', name: 'Снег', icon: '🌨️', codes: [71, 73, 77, 85], wind: 0.25,
+    weights: { spring: 0, summer: 0, autumn: 0.2, winter: 2.5 },
     light: { sun: 0.4, ambient: 1.12, tint: '#eef3ff', tintAmount: 0.25 }, precipitation: 'snow' },
+  { id: 'weather:snowfall', name: 'Снегопад', icon: '❄️', codes: [75, 86], wind: 0.5, intensity: 1.8, mist: 0.35,
+    weights: { spring: 0, summer: 0, autumn: 0, winter: 0.7 },
+    light: { sun: 0.28, ambient: 1.12, tint: '#eef2fa', tintAmount: 0.34 }, precipitation: 'snow' },
 ]

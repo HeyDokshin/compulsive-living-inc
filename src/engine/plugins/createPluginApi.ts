@@ -4,6 +4,7 @@ import type { Game, GamePlugin } from '../Game'
 import type { RegistryEntry } from '../registry/Registry'
 import type { SaverDef } from '../save/SaveService'
 import type { PatternFn } from '../render/textures'
+import { styleUniforms } from '../render/style'
 import { AIR } from '../world/BlockPalette'
 import { cellContext } from '../interact/cellContext'
 import { DisposableStack } from '../util/disposables'
@@ -97,6 +98,7 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       shake: (amplitude, seconds) => {
         if (game.engineConfig.camera.shake > 0) game.renderer.iso.shake(amplitude * game.engineConfig.camera.shake, seconds)
       },
+      setWind: (strength) => void (styleUniforms.uWind.value = strength),
       setZoom: (zoom) => {
         const c = game.engineConfig.camera
         game.config.set('engine', 'camera.zoom', Math.min(c.maxZoom, Math.max(c.minZoom, zoom)))
@@ -230,6 +232,9 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
         if (back) game.moveActor(actor, back)
         if (id) game.restoreSea(game.interiors.area(id))
       },
+    },
+    options: {
+      get: (id) => game.options.get(id, game.optionDefs.get(id)?.default ?? false),
     },
     session: {
       get name() {

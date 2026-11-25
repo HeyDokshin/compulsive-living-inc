@@ -1,0 +1,8 @@
+[
+  // a crack far away, then a long rumble
+  { id: 'weather:thunder', bus: 'ambient', volume: 0.9, pitchJitter: 0.2, cooldown: 0.5, layers: [
+    { wave: 'noise', attack: 0.01, duration: 0.35, gain: 0.35, filter: { type: 'lowpass', freq: 900, freqEnd: 200 } },
+    { wave: 'noise', delay: 0.15, attack: 0.25, duration: 2.6, gain: 0.5, filter: { type: 'lowpass', freq: 260, freqEnd: 70 } },
+    { wave: 'sine', delay: 0.1, freq: 62, freqEnd: 34, attack: 0.1, duration: 1.8, gain: 0.35 },
+  ] },
+]

@@ -11,6 +11,8 @@ export const styleUniforms = {
   uCurveCenter: { value: new Vector3() },
   uCurveDir: { value: new Vector2(0, -1) },
   uWaterSpeed: { value: 1 },
+  /** How hard plants sway (1 = a light breeze). */
+  uWind: { value: 1 },
 }
 
 export interface StyleOptions {
@@ -26,6 +28,7 @@ uniform float uCurve;
 uniform vec3 uCurveCenter;
 uniform vec2 uCurveDir;
 uniform float uWaterSpeed;
+uniform float uWind;
 `
 
 /**
@@ -51,7 +54,7 @@ export function stylize<T extends Material>(material: T, opts: StyleOptions = {}
             swayBase = instanceMatrix[3].xyz;
           #endif
           float ph = uTime * 1.6 + swayBase.x * 0.37 + swayBase.z * 0.53;
-          float k = max(transformed.y, 0.0) * ${sway.toFixed(4)};
+          float k = max(transformed.y, 0.0) * ${sway.toFixed(4)} * uWind;
           transformed.x += sin(ph) * k;
           transformed.z += cos(ph * 0.8) * k * 0.6;
         }`,

@@ -1,13 +1,17 @@
-/** Deterministic weather choice (pure): same island seed + day + time block → same weather. */
+/** The island's own weather (pure): the same seed + day → the same 24 hours. */
+
+export type SeasonName = 'spring' | 'summer' | 'autumn' | 'winter'
 
 export interface WeatherType {
   id: string
-  weights: Partial<Record<'spring' | 'summer' | 'autumn' | 'winter', number>>
+  weights: Partial<Record<SeasonName, number>>
+  /** Times of day that suit it: [from, to) and how many times likelier it is then. */
+  hours?: Array<[number, number, number]>
   waters?: boolean
 }
 
-/** Hours per weather block (4 blocks a day). */
-export const BLOCK_HOURS = 6
+/** How often an hour goes on like the one before. */
+const LASTS = 0.72
 
 function hash(a: number, b: number, c: number): number {
   let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b, 0xc2b2ae35) ^ Math.imul(c, 0x27d4eb2f)
@@ -16,21 +20,44 @@ function hash(a: number, b: number, c: number): number {
   return ((h ^ (h >>> 15)) >>> 0) / 4294967296
 }
 
-export function weatherAt<T extends WeatherType>(types: T[], seed: number, dayIndex: number, hour: number, season: keyof WeatherType['weights']): T | undefined {
-  const block = Math.floor(hour / BLOCK_HOURS)
-  const weighted = types.map((t) => ({ t, w: Math.max(0, t.weights[season] ?? 0) })).filter((x) => x.w > 0)
-  const total = weighted.reduce((s, x) => s + x.w, 0)
+const within = (from: number, to: number, h: number) => (from <= to ? h >= from && h < to : h >= from || h < to)
+
+/** Weight of a weather at an hour: its season's, more at the times of day that suit it. */
+export function weightAt(t: WeatherType, season: SeasonName, hour: number): number {
+  let w = Math.max(0, t.weights[season] ?? 0)
+  for (const [from, to, times] of t.hours ?? []) if (within(from, to, hour)) w *= times
+  return w
+}
+
+function pick<T extends WeatherType>(types: readonly T[], season: SeasonName, hour: number, r: number): T | undefined {
+  let total = 0
+  for (const t of types) total += weightAt(t, season, hour)
   if (!total) return undefined
-  // Weather tends to last: odd blocks keep the previous block's weather half of the time.
-  const r0 = hash(seed, dayIndex, block)
-  if (block > 0 && hash(seed + 1, dayIndex, block) < 0.5) return weatherAt(types, seed, dayIndex, (block - 1) * BLOCK_HOURS, season)
-  let r = r0 * total
-  for (const x of weighted) if ((r -= x.w) <= 0) return x.t
-  return weighted[weighted.length - 1]!.t
+  let left = r * total
+  for (const t of types) {
+    const w = weightAt(t, season, hour)
+    if (w > 0 && (left -= w) <= 0) return t
+  }
+  return types.find((t) => weightAt(t, season, hour) > 0)
+}
+
+/** The 24 hours of a day: weather lasts a while, then changes to what suits the hour. */
+export function dayWeather<T extends WeatherType>(types: readonly T[], seed: number, dayIndex: number, season: SeasonName): Array<T | undefined> {
+  const out: Array<T | undefined> = []
+  let now: T | undefined
+  for (let h = 0; h < 24; h++) {
+    const stays = now && weightAt(now, season, h) > 0 && hash(seed + 1, dayIndex, h) < LASTS
+    if (!stays) now = pick(types, season, h, hash(seed, dayIndex, h))
+    out.push(now)
+  }
+  return out
+}
+
+export function weatherAt<T extends WeatherType>(types: readonly T[], seed: number, dayIndex: number, hour: number, season: SeasonName): T | undefined {
+  return dayWeather(types, seed, dayIndex, season)[Math.floor(((hour % 24) + 24) % 24)]
 }
 
 /** Did it rain (a watering weather) at any time that day? */
-export function rainedOn<T extends WeatherType>(types: T[], seed: number, dayIndex: number, season: keyof WeatherType['weights']): boolean {
-  for (let h = 0; h < 24; h += BLOCK_HOURS) if (weatherAt(types, seed, dayIndex, h, season)?.waters) return true
-  return false
+export function rainedOn<T extends WeatherType>(types: readonly T[], seed: number, dayIndex: number, season: SeasonName): boolean {
+  return dayWeather(types, seed, dayIndex, season).some((t) => t?.waters)
 }

@@ -16,6 +16,7 @@ import type { ModelDef, RigDef } from './models/defs'
 import type { ItemDef } from './items/defs'
 import type { SoundDef } from './audio/defs'
 import type { ParticleDef } from './fx/defs'
+import type { OptionDef } from './session/options'
 import type { GameDate, Season } from './time/calendar'
 import type { LightState } from './render/dayCycle'
 import type { InteractionContext, InteractionDef } from './interact/Interactions'
@@ -139,6 +140,7 @@ export interface Registries {
   textures: TextureDef
   prefabs: PrefabDef
   commands: CommandDef
+  options: OptionDef
   worldgen: WorldGenStep
 }
 

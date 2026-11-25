@@ -66,6 +66,7 @@ export default definePlugin({
 | `api.content` | контент как данные: `registries()`, `schema(name)`, `get`, `without(name, id, mod)`, `check(name, entry)` — для редакторов |
 | `api.mods` | моды игрока: `list`, `create`, `read`, `write` (сразу в игре), `exportZip` |
 | слот `menu` | кнопка в Esc-меню (`api.ui.slot('menu', …)`) |
+| `api.render.setWind(strength)` | как сильно качаются растения (1 — лёгкий ветерок) |
 | `api.session` | имя острова и игрока (`name`, `player`), `rename(...)`; событие `session:created` — новый остров показан, пора создавать персонажа |
 | `api.save.hasData` | в сейве есть данные этого плагина (нет — новый остров или плагин появился позже: пора засеять) |
 | `api.render.refreshView(entity)` / `api.render.setZoom(z)` | пересобрать модель сущности после смены `model` / плавный зум |
@@ -193,7 +194,8 @@ api.save.register({
 ## Время, погода, природа
 
 - **Время** идёт по часам устройства: за ночь деревья отрастят фрукты. Для тестов: `time 6:00`, `time +2d`, `time mode scaled` (быстрые сутки).
-- **Погода** — реестр `weather:types` (веса по сезонам, свет, осадки). `weather` показывает прогноз, `weather rain` фиксирует погоду, `weather auto` возвращает прогноз. Сервис `weather:forecast` отвечает, был ли дождь в нужный день.
+- **Погода** — реестр `weather:types`: `codes` (коды WMO для настоящей погоды), веса по сезонам и часам для своей (`weights`, `hours`), свет, осадки с `intensity`, `mist`, `lightning`, `wind`. Настоящую погоду берёт `plugins/weather/live.ts` (место по IP, округлённое до `real.placeStep`, хранится только в браузере), числа и адреса — в конфиге `weather.real`. `weather` показывает день по часам, `weather rain` фиксирует погоду, `weather auto` возвращает прогноз. Сервис `weather:forecast`: `current()`, `rainedOn(day)`, `live()`, `temperature()`, `wind()`.
+- **Настройки плагина** — реестр `options`: `{ id, label, choices, default, hint }`, значение — `api.options.get(id)`; показываются в «Настройки → Остров» и хранятся на устройстве, не в сейве.
 - **Деревья** — реестр `nature:trees` (фрукт, модель фрукта на ветках, саженец, цвета кроны по сезонам). Логика роста — чистая функция `plugins/nature/growth.ts`. Команда `trees`.
 - **Цветы** — реестр `garden:species` (цвета, базовые цвета, правила скрещивания). Предметы «вид × цвет» и семена создаются из этих данных. Команда `flowers`.
 
