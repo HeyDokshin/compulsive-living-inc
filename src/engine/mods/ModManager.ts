@@ -135,6 +135,7 @@ export class ModManager {
   async remove(id: string): Promise<void> {
     if (this.mods.get(id)?.source !== 'installed') return
     await this.store.remove(id)
+    this.dropAssets(id)
     this.mods.delete(id)
     this.installedBytes.delete(id)
     delete this.choices[id]
@@ -278,11 +279,18 @@ export class ModManager {
       }
       const manifest = parseManifest(text['mod.json5'] ?? '')
       this.check(manifest)
+      this.dropAssets(id)
       this.mods.set(id, { manifest, text, assets, source: 'installed', errors: [], active: false })
       this.installedBytes.set(id, files)
     } catch (e) {
       log.error(`installed mod ${id}:`, e)
     }
+  }
+
+  /** Give back the URLs of an installed mod's images and models. */
+  private dropAssets(id: string): void {
+    const m = this.mods.get(id)
+    if (m?.source === 'installed') for (const url of Object.values(m.assets)) URL.revokeObjectURL(url)
   }
 
   private async loadCode(mod: Mod): Promise<GamePlugin[]> {

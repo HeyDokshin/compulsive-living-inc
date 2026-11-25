@@ -1,13 +1,16 @@
 import type { Entities } from '../ecs/Entities'
 import type { Entity } from '../types'
 
+/** A number per cell (asked many times per tick: no strings). */
+const cellKey = (x: number, z: number) => (x + 32768) * 65536 + (z + 32768)
+
 /**
  * Index of entities that block walking (`blocker` component: footprint w × d cells around the
  * entity, h cells tall). Trees, rocks, buildings… The engine answers `movement:blocked` from it.
  */
 export class Blockers {
-  private cells = new Map<string, { y: number; h: number; entity: Entity }>()
-  private owned = new WeakMap<Entity, string[]>()
+  private cells = new Map<number, { y: number; h: number; entity: Entity }>()
+  private owned = new WeakMap<Entity, number[]>()
 
   constructor(entities: Entities) {
     const q = entities.world.with('blocker', 'transform')
@@ -29,12 +32,12 @@ export class Blockers {
   }
 
   at(x: number, z: number): Entity | undefined {
-    return this.cells.get(`${x},${z}`)?.entity
+    return this.cells.get(cellKey(x, z))?.entity
   }
 
   /** Is (x, y, z) inside a blocker (from just under its base to its height)? */
   isBlocked(x: number, y: number, z: number): boolean {
-    const c = this.cells.get(`${x},${z}`)
+    const c = this.cells.get(cellKey(x, z))
     return !!c && y >= c.y - 1 && y <= c.y + c.h
   }
 
@@ -45,7 +48,7 @@ export class Blockers {
   }
 
   private add(e: Entity): void {
-    const keys = Blockers.footprint(e).map(([x, z]) => `${x},${z}`)
+    const keys = Blockers.footprint(e).map(([x, z]) => cellKey(x, z))
     const y = Math.round(e.transform!.y)
     const h = e.blocker?.h ?? 3
     for (const k of keys) this.cells.set(k, { y, h, entity: e })

@@ -138,6 +138,8 @@ export interface PluginApi {
     readonly seed: number
     /** The walking-blocker entity covering a cell (tree, rock, building), if any. */
     blockerAt(x: number, z: number): Entity | undefined
+    /** Call after moving an entity that has a `blocker`. */
+    updateBlocker(entity: Entity): void
     /** The voxel under a screen point (client pixels), e.g. the mouse — curvature-corrected. */
     pick(clientX: number, clientY: number): VoxelHit | null
     getBlock(x: number, y: number, z: number): string

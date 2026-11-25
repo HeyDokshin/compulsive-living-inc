@@ -127,7 +127,7 @@ export default definePlugin({
       for (const e of api.entities.world.with('tree')) updateTree(e)
     }
     api.events.on('time:season', refreshAll)
-    api.events.on('session:started', refreshAll)
+    api.events.on('plugin:loaded', ({ id }) => id === api.id && refreshAll())
 
     // A shaken tree wobbles for a moment.
     const wobble = new WeakMap<object, number>()
@@ -299,9 +299,12 @@ export default definePlugin({
         const kind = kinds.get(e.tree!.kind)
         const n = shake(e.tree!, api.time.dayIndex, rules())
         if (n && kind?.fruitItem) {
-          for (const cell of freeCellsAround(api, e, blocked, n)) {
-            items().spawnDrop(kind.fruitItem, 1, cell.x + 0.5, cell.y, cell.z + 0.5)
-            api.audio.play('nature:fruit_drop', { at: { x: cell.x, z: cell.z } })
+          const cells = freeCellsAround(api, e, blocked, n)
+          for (let i = 0; i < n; i++) {
+            // hemmed in: the rest lands together, or at your feet
+            const at = cells.length ? cells[i % cells.length]! : feet(ctx.actor)
+            items().spawnDrop(kind.fruitItem, 1, at.x + 0.5, at.y, at.z + 0.5)
+            api.audio.play('nature:fruit_drop', { at: { x: at.x, z: at.z } })
           }
           updateTree(e)
         }
@@ -323,8 +326,8 @@ export default definePlugin({
           api.ui.toast('Сегодня это дерево уже отдало всю древесину')
           return
         }
-        const [cell] = freeCellsAround(api, e, blocked, 1, ctx.actor)
-        if (cell) items().spawnDrop('core:wood', 1, cell.x + 0.5, cell.y, cell.z + 0.5)
+        const cell = freeCellsAround(api, e, blocked, 1, ctx.actor)[0] ?? feet(ctx.actor)
+        items().spawnDrop('core:wood', 1, cell.x + 0.5, cell.y, cell.z + 0.5)
       },
     })
     interactions.register({
@@ -405,8 +408,8 @@ export default definePlugin({
           return
         }
         rock.hits++
-        const [cell] = freeCellsAround(api, ctx.target!, blocked, 1, ctx.actor)
-        if (cell) items().spawnDrop(Math.random() < 0.2 ? 'nature:iron' : 'core:stone', 1, cell.x + 0.5, cell.y, cell.z + 0.5)
+        const cell = freeCellsAround(api, ctx.target!, blocked, 1, ctx.actor)[0] ?? feet(ctx.actor)
+        items().spawnDrop(Math.random() < 0.2 ? 'nature:iron' : 'core:stone', 1, cell.x + 0.5, cell.y, cell.z + 0.5)
       },
     })
 
@@ -476,6 +479,9 @@ export default definePlugin({
     })
   },
 })
+
+/** The cell someone stands in. */
+const feet = (e: Entity) => ({ x: Math.floor(e.transform!.x), y: e.transform!.y, z: Math.floor(e.transform!.z) })
 
 function entitiesAt(api: PluginApi, x: number, z: number): Entity[] {
   const out: Entity[] = []

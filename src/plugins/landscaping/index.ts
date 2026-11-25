@@ -34,6 +34,12 @@ const Config = z.object({
   under: z.string().default('core:dirt'),
 })
 
+/**
+ * Heights of the island as generated: terraforming stays within a few blocks of them. Outside the
+ * plugin: it outlives a reload of it (content edited in the game doesn't generate the island again).
+ */
+let original: Int16Array | null = null
+
 export default definePlugin({
   id: 'landscaping',
   version: '0.1.0',
@@ -70,8 +76,6 @@ export default definePlugin({
         for (const [k, v] of d) under.set(k, v)
       },
     })
-    // Heights of the island as generated: terraforming stays within a few blocks of them.
-    let original: Int16Array | null = null
     api.events.on('world:generated', () => {
       const sx = api.world.sizeX
       original = new Int16Array(sx * api.world.sizeZ)
@@ -105,8 +109,10 @@ export default definePlugin({
         const p = paths.get(ctx.held!)!
         if (inventory().remove(ctx.actor, p.id, 1) < 1) return false
         const prev = byBlock().get(ctx.block)
-        if (prev) inventory().add(ctx.actor, prev.id, 1, { quiet: true }) // repaving gives the old kit back
-        else under.set(key(ctx.x, ctx.z), ctx.block)
+        if (prev) {
+          // repaving gives the old kit back
+          if (inventory().add(ctx.actor, prev.id, 1, { quiet: true }) > 0) inventory().spawnDrop(prev.id, 1, ctx.x + 0.5, ctx.y + 1, ctx.z + 0.5)
+        } else under.set(key(ctx.x, ctx.z), ctx.block)
         api.world.setBlock(ctx.x, ctx.y, ctx.z, p.block)
       },
     })
@@ -122,7 +128,10 @@ export default definePlugin({
       when: (ctx) => outdoors() && byBlock().has(ctx.block),
       run: (ctx) => {
         const p = byBlock().get(ctx.block)!
-        if (inventory().add(ctx.actor, p.id, 1) > 0) return false
+        if (inventory().add(ctx.actor, p.id, 1, { quiet: true }) > 0) {
+          api.ui.toast('Карманы полны')
+          return false
+        }
         api.world.setBlock(ctx.x, ctx.y, ctx.z, under.get(key(ctx.x, ctx.z)) ?? cfg.top)
         under.delete(key(ctx.x, ctx.z))
       },

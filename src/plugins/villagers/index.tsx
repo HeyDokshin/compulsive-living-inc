@@ -466,8 +466,12 @@ export default definePlugin({
           if (!v || !home) continue
           const pers = personalities.get(v.personality)
           let b = brains.get(npc)
-          if (!b) brains.set(npc, (b = { path: [], wait: Math.random() * 2, activity: '', asleep: false }))
           const t = npc.transform
+          if (!b) {
+            // in the house (a save made at night): asleep there until the morning wakes them
+            const asleep = Math.abs(t.x - home.transform.x) < 1.5 && Math.abs(t.z - home.transform.z) < 1.5
+            brains.set(npc, (b = { path: [], wait: Math.random() * 2, activity: asleep ? 'sleep' : '', asleep }))
+          }
           const activity = activityAt(pers?.schedule ?? [], hour)
           if (activity !== b.activity) {
             b.activity = activity

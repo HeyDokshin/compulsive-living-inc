@@ -172,13 +172,13 @@ export default definePlugin({
     }
     /** Turn one unknown fossil into a specific species (prefers ones the museum lacks). */
     const identify = (actor: Entity): string | null => {
-      if (inventory().remove(actor, cfg.unknownFossil, 1) < 1) return null
       const all = catalog().all('fossil')
       const missing = all.filter((s) => !donated.has(s.id) && !inventory().count(actor, s.id))
       const pool = missing.length && Math.random() < cfg.newFossilChance ? missing : all
       const pick = catalog().weighted(pool)
-      if (!pick) return null
-      inventory().add(actor, pick.id, 1, { quiet: true })
+      if (!pick || inventory().remove(actor, cfg.unknownFossil, 1) < 1) return null
+      const t = actor.transform!
+      if (inventory().add(actor, pick.id, 1, { quiet: true }) > 0) inventory().spawnDrop(pick.id, 1, t.x, t.y, t.z) // pockets full
       catalog().record(pick.id)
       api.audio.play('ui:pop')
       return pick.id

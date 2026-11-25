@@ -52,6 +52,16 @@ export class WorldService {
     return true
   }
 
+  /** Take the steps as they are now without generating: the island stays (content edited in the game). */
+  acceptSteps(): void {
+    this.signature = this.stepSignature()
+  }
+
+  /** Forget a regeneration that was asked for but has not started. */
+  cancelSoon(): void {
+    clearTimeout(this.regenTimer)
+  }
+
   getBlock(x: number, y: number, z: number): string {
     return this.voxels.getId(x, y, z)
   }

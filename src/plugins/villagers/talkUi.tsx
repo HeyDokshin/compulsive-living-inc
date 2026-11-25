@@ -66,12 +66,11 @@ export function Talk(props: Props) {
   }
   const give = (id: string) => {
     const name = items.get(id)?.name ?? id
-    if (r.giftDay === today && r.gifts >= cfg.giftsPerDay) return setText(say('gift_full'))
-    if (inv.remove(actor, id, 1) < 1) return
-    r.gifts = (r.giftDay === today ? r.gifts : 0) + 1
-    r.giftDay = today
     const req = r.request
-    if (req && items.isTagged(id, req.tag)) {
+    const asked = !!req && items.isTagged(id, req.tag) // what they asked for is not a gift
+    if (!asked && r.giftDay === today && r.gifts >= cfg.giftsPerDay) return setText(say('gift_full'))
+    if (inv.remove(actor, id, 1) < 1) return
+    if (asked) {
       r.request = null
       add(cfg.requestPoints)
       api.events.emit('villagers:helped', { id: v.id, item: id })
@@ -80,6 +79,8 @@ export function Talk(props: Props) {
       setMode('talk')
       return
     }
+    r.gifts = (r.giftDay === today ? r.gifts : 0) + 1
+    r.giftDay = today
     const taste = giftTaste((t) => items.isTagged(id, t), pers?.likes ?? [], pers?.dislikes ?? [], items.get(id)?.price ?? 0)
     add(cfg.giftPoints[taste])
     api.events.emit('villagers:gifted', { id: v.id, item: id, taste })

@@ -22,6 +22,7 @@ declare module '@sdk' {
   }
   interface GameEvents {
     'items:changed': { actor: Entity }
+    /** Found or gathered (not bought, crafted into place or taken from a chest). */
     'items:picked': { actor: Entity; id: string; count: number }
   }
 }
@@ -118,7 +119,8 @@ export default definePlugin({
         const got = count - left
         if (got > 0) {
           changed(actor)
-          api.events.emit('items:picked', { actor, id, count: got })
+          // quiet = moved around (a chest, a shop, a reward), not found or gathered
+          if (!opts?.quiet) api.events.emit('items:picked', { actor, id, count: got })
           if (!opts?.quiet && cfg.pickupToasts) {
             void api.ui.itemIcon(id).then((icon) => api.ui.toast(`${nameOf(id)}${got > 1 ? ` ×${got}` : ''}`, { icon }))
           }

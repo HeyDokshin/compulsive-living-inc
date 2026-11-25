@@ -41,6 +41,14 @@ export function planRoom(w: number, d: number, areaW = 16, areaD = 16): RoomPlan
   }
 }
 
+/** Where something hanging on a wall of the old room hangs in the new one (area cells), or null. */
+export function moveToWall(from: RoomPlan, to: RoomPlan, x: number, z: number): { x: number; z: number } | null {
+  if (from.kindAt(x, z) !== 'wall') return null
+  const out = from.outward(x, z)
+  const at = { x: out.x < 0 ? to.x0 : out.x > 0 ? to.x0 + to.w - 1 : x, z: out.z < 0 ? to.z0 : out.z > 0 ? to.z0 + to.d - 1 : z }
+  return to.kindAt(at.x, at.z) === 'wall' ? at : null
+}
+
 /** Is a wall on the side facing the camera (yaw in degrees)? Those are drawn low. */
 export function nearWall(out: { x: number; z: number }, yawDeg: number): boolean {
   const y = (yawDeg * Math.PI) / 180

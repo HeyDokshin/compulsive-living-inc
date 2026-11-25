@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nearWall, payment, planRoom } from '../src/plugins/house/room'
+import { moveToWall, nearWall, payment, planRoom } from '../src/plugins/house/room'
 import { fits, topmost, type Placed } from '../src/plugins/decor/layers'
 
 describe('house room', () => {
@@ -63,5 +63,16 @@ describe('terraforming', async () => {
     expect(terraformOp(12, 11, 12, lim)).toBe('lower') // back down to the original is fine
     expect(terraformOp(11, 10, 12, lim)).toBeNull() // −1 already
     expect(terraformOp(9, 8, 9, lim)).toBeNull() // the sea level stays
+  })
+})
+
+describe('a bigger room', () => {
+  it('takes pictures out with the walls', () => {
+    const a = planRoom(8, 8)
+    const b = planRoom(10, 10)
+    expect(moveToWall(a, b, 4, 6)).toEqual({ x: 3, z: 6 }) // left wall
+    expect(moveToWall(a, b, 7, 4)).toEqual({ x: 7, z: 3 }) // back wall
+    expect(moveToWall(a, b, 11, 9)).toEqual({ x: 12, z: 9 }) // right wall
+    expect(moveToWall(a, b, 6, 6)).toBeNull() // not on a wall
   })
 })

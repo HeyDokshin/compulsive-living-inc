@@ -63,6 +63,8 @@ export class SessionManager {
   /** True while a session is being (re)built — saving is skipped meanwhile. */
   switching = false
   private sinceSave = 0
+  /** The last autosave failed (the player has been told). */
+  private saveFailed = false
 
   constructor(private game: Game) {}
 
@@ -122,7 +124,11 @@ export class SessionManager {
           playTime: 0,
           demo: opts.demo ?? false,
         }
-        if (opts.seed !== undefined) g.worldConfig.seed = opts.seed
+        // a loaded island brings its own world settings: a new one starts from the config again
+        const seed = opts.seed ?? g.worldConfig.seed
+        g.config.resetToFile('world')
+        g.world.cancelSoon()
+        g.worldConfig.seed = seed
         g.time.reset() // a new island starts today
       }
       g.panel.refresh()
@@ -131,7 +137,7 @@ export class SessionManager {
         await g.world.regenerate()
         if (save) {
           decodeWorld(save.world, g.world.voxels)
-          restoreEntities(save.entities, g.entities)
+          this.saves.keepEntities(restoreEntities(save.entities, g.entities))
           this.saves.loadPlugins(save.plugins)
           g.renderer.chunks.update()
           g.events.emit('save:loaded', { slot: save.meta.slot })
@@ -226,7 +232,14 @@ export class SessionManager {
     this.sinceSave += dt
     if (this.sinceSave >= every) {
       this.sinceSave = 0
-      void this.save().catch((e) => log.error('autosave failed:', e))
+      void this.save().then(
+        () => (this.saveFailed = false),
+        (e) => {
+          log.error('autosave failed:', e)
+          if (!this.saveFailed) this.game.ui.toast('Не получается сохранить игру: проверьте место на диске и настройки браузера', { ms: 6000 })
+          this.saveFailed = true
+        },
+      )
     }
   }
 

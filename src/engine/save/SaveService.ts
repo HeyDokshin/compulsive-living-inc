@@ -3,7 +3,7 @@ import type { Entities } from '../ecs/Entities'
 import type { VoxelWorld } from '../world/VoxelWorld'
 import { createLogger } from '../util/log'
 import { encodeWorld, serializeEntities } from './codec'
-import { SAVE_FORMAT, type SaveData, type SaveMeta, type SavedPlugin } from './format'
+import { SAVE_FORMAT, type SaveData, type SavedEntity, type SaveMeta, type SavedPlugin } from './format'
 import { migrateSave } from './migrations'
 
 const log = createLogger('save')
@@ -25,6 +25,10 @@ export class SaveService {
   readonly loadedKeys = new Set<string>()
   /** Data of plugins that are not loaded now — written back unchanged so it isn't lost. */
   private orphans: Record<string, SavedPlugin> = {}
+  /** Entities that could not be spawned — written back too. */
+  private lostEntities: SavedEntity[] = []
+  /** What each saver last gave or got, in case it throws while saving. */
+  private lastGood: Record<string, SavedPlugin> = {}
 
   register(key: string, def: SaverDef, owner: string): Dispose {
     if (this.savers.has(key) && this.savers.get(key)!.owner !== owner) throw new Error(`Saver "${key}" already registered`)
@@ -42,16 +46,17 @@ export class SaveService {
     const plugins: Record<string, SavedPlugin> = { ...structuredClone(this.orphans) }
     for (const [key, s] of this.savers) {
       try {
-        plugins[key] = { version: s.version, data: structuredClone(s.save()) }
+        this.lastGood[key] = plugins[key] = { version: s.version, data: structuredClone(s.save()) }
       } catch (e) {
-        log.error(`saver "${key}" failed:`, e)
+        log.error(`saver "${key}" failed, keeping what it saved before:`, e)
+        if (this.lastGood[key]) plugins[key] = this.lastGood[key]
       }
     }
     return {
       format: SAVE_FORMAT,
       meta,
       world: encodeWorld(world, worldConfig),
-      entities: serializeEntities(entities),
+      entities: [...serializeEntities(entities), ...this.lostEntities],
       plugins,
     }
   }
@@ -69,11 +74,20 @@ export class SaveService {
     return out
   }
 
-  /** Hand snapshot data back to the savers of the given (just reloaded) plugins. */
+  /**
+   * Hand snapshot data back to the savers of the given (just reloaded) plugins. A plugin that did not
+   * come back (broken code) keeps its data aside — until it does.
+   */
   restore(snapshot: Record<string, SavedPlugin & { owner: string }>, owners: readonly string[]): void {
-    for (const [key, saved] of Object.entries(snapshot)) {
+    const all: Record<string, SavedPlugin & { owner?: string }> = { ...this.orphans, ...snapshot }
+    for (const [key, saved] of Object.entries(all)) {
       const s = this.savers.get(key)
-      if (!s || !owners.includes(saved.owner)) continue
+      if (!s) {
+        this.orphans[key] = { version: saved.version, data: saved.data }
+        continue
+      }
+      if (!owners.includes(s.owner)) continue
+      delete this.orphans[key]
       try {
         s.load(saved.version < s.version && s.migrate ? s.migrate(saved.data, saved.version) : saved.data)
       } catch (e) {
@@ -91,6 +105,7 @@ export class SaveService {
   loadPlugins(plugins: Record<string, SavedPlugin>): string[] {
     const failed: string[] = []
     this.orphans = {}
+    this.lastGood = {}
     this.loadedKeys.clear()
     for (const [key, saved] of Object.entries(plugins)) {
       const s = this.savers.get(key)
@@ -108,8 +123,10 @@ export class SaveService {
         }
         s.load(data)
         this.loadedKeys.add(key)
+        this.lastGood[key] = saved
       } catch (e) {
         failed.push(key)
+        this.orphans[`${key}#unread`] = saved // not lost: it can be looked at or repaired
         log.error(`loading "${key}" failed:`, e)
       }
     }
@@ -117,9 +134,16 @@ export class SaveService {
     return failed
   }
 
+  /** Entities of the loaded save that could not be spawned. */
+  keepEntities(list: SavedEntity[]): void {
+    this.lostEntities = list
+  }
+
   /** Forget orphans (new game). */
   reset(): void {
     this.orphans = {}
+    this.lostEntities = []
+    this.lastGood = {}
     this.loadedKeys.clear()
   }
 }

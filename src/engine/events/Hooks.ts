@@ -15,22 +15,17 @@ export class Hooks<M extends { [K in keyof M]: HookSpec }> {
   private counter = 0
 
   tap<K extends keyof M>(name: K, fn: Tap<M[K]>, opts: { priority?: number } = {}): Dispose {
-    const list = this.taps.get(name) ?? []
     const entry: TapEntry = { fn: fn as unknown as Tap<HookSpec>, priority: opts.priority ?? 0, order: this.counter++ }
-    list.push(entry)
-    list.sort((a, b) => a.priority - b.priority || a.order - b.order)
-    this.taps.set(name, list)
-    return () => {
-      const i = list.indexOf(entry)
-      if (i >= 0) list.splice(i, 1)
-    }
+    // lists are replaced, never edited: `run` (thousands of times per frame) needs no copy
+    this.taps.set(name, [...(this.taps.get(name) ?? []), entry].sort((a, b) => a.priority - b.priority || a.order - b.order))
+    return () => void this.taps.set(name, (this.taps.get(name) ?? []).filter((t) => t !== entry))
   }
 
   run<K extends keyof M>(name: K, value: M[K]['value'], ctx: M[K]['ctx']): M[K]['value'] {
     const list = this.taps.get(name)
     if (!list) return value
     let v = value
-    for (const t of [...list]) {
+    for (const t of list) {
       try {
         v = t.fn(v, ctx) as M[K]['value']
       } catch (e) {

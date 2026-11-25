@@ -217,7 +217,12 @@ export default definePlugin({
         return false
       }
       const id = variantItemId(e.decor.piece, e.decor.variant)
-      if (inventory().add(actor, id, 1) > 0) return false // pockets full: the service says so
+      if (inventory().add(actor, id, 1, { quiet: true }) > 0) {
+        api.ui.toast('Карманы полны')
+        return false
+      }
+      const name = api.registry('items').get(id)?.name ?? id
+      void api.ui.itemIcon(id).then((icon) => api.ui.toast(name, { icon }))
       api.entities.despawn(e)
       return true
     }
@@ -291,9 +296,9 @@ export default definePlugin({
         t.rotY = Math.round(t.rotY / (Math.PI / 2) + 1) * (Math.PI / 2)
       },
     })
-    // Views come back from saves without a model: rebuild them.
-    api.events.on('session:started', () => {
-      for (const e of api.entities.world.with('decor')) look(e)
+    // Views come back from saves without a model; after a reload the pieces may look different.
+    api.events.on('plugin:loaded', ({ id }) => {
+      if (id === api.id) for (const e of api.entities.world.with('decor')) look(e)
     })
 
     // --- glow after dark -----------------------------------------------------------------------

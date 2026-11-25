@@ -162,7 +162,9 @@ export default definePlugin({
       live = true
       // New island, or an older save from before this plugin existed: plant it now.
       if (!api.save.hasData && ![...api.entities.world.with('flower')].length) spawnWild()
-      for (const e of api.entities.world.with('flower')) look(e)
+    })
+    api.events.on('plugin:loaded', ({ id }) => {
+      if (id === api.id) for (const e of api.entities.world.with('flower')) look(e) // from a save, or colors changed
     })
     api.events.on('world:generated', () => {
       if (!live) return
@@ -224,6 +226,7 @@ export default definePlugin({
       particles: 'core:splash',
       run: (ctx) => {
         const f = ctx.target!.flower!
+        if (f.watered === api.time.dayIndex) return false
         f.watered = api.time.dayIndex
         const t = ctx.target!.transform!
         api.fx.burst('core:sparkle', { x: t.x, y: t.y + 0.5, z: t.z }, { amount: 0.5 })

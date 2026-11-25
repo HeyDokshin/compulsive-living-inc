@@ -274,15 +274,25 @@ export class Game {
     return next
   }
 
-  /** Hot reload: plugin code changed. */
-  reloadPlugins(defs: GamePlugin[]): Promise<string[]> {
+  /**
+   * Reload plugins and everything that depends on them, keeping their state. Hot reload of code also
+   * regenerates the island when generation steps changed; `keepWorld` never touches it.
+   */
+  reloadPlugins(defs: GamePlugin[], opts: { keepWorld?: boolean } = {}): Promise<string[]> {
     return this.serial(async () => {
       const state = this.sessions.saves.snapshot()
-      const ids = await this.plugins.reload(defs, async () => {
-        this.reloadContent()
-        await this.world.regenerateIfStepsChanged()
-      })
-      this.sessions.saves.restore(state, ids)
+      this.sessions.switching = true // a save now would miss the plugins that are away
+      let ids: string[]
+      try {
+        ids = await this.plugins.reload(defs, async () => {
+          this.reloadContent()
+          if (opts.keepWorld) this.world.acceptSteps()
+          else await this.world.regenerateIfStepsChanged()
+        })
+        this.sessions.saves.restore(state, ids)
+      } finally {
+        this.sessions.switching = false
+      }
       for (const id of this.config.ids()) {
         if (id !== 'engine' && id !== 'world' && !this.plugins.isLoaded(id)) this.config.undefine(id)
       }
@@ -336,6 +346,7 @@ export class Game {
       await this.loadMods()
     })
     this.setConfigFiles([...new Set([...touched, ...this.mods.configIds()])])
+    this.world.cancelSoon() // the island is about to be loaded: a mod's world settings are for new ones
     applyUserSettings(this)
     await this.sessions.start(await this.sessions.latest(), { demo: true })
     this.reportModPlugins()
@@ -364,7 +375,7 @@ export class Game {
     this.setContentFiles()
     const registry = /^content\/([a-z0-9_]+)\.([a-z0-9_]+)\.json5$/.exec(path)
     const owner = registry && this.registries.has(`${registry[1]}:${registry[2]}`) ? this.plugins.get(this.registries.get(`${registry[1]}:${registry[2]}`).owner) : undefined
-    if (owner) return void (await this.reloadPlugins([owner]))
+    if (owner) return void (await this.reloadPlugins([owner], { keepWorld: true }))
     this.content.reloadPack(id)
     this.events.emit('content:loaded', { packs: [id] })
   }

@@ -57,9 +57,10 @@ describe('save codec', () => {
 
     const dst = entities()
     dst.define('pocket', 'test', z.object({ n: z.number() }))
-    const restored = restoreEntities(saved, dst)
-    expect(restored[1]!.uid).toBe(e2.uid)
-    expect((restored[1] as Record<string, unknown>).mystery).toEqual({ from: 'removed mod' })
+    expect(restoreEntities(saved, dst)).toEqual([])
+    const restored = dst.world.entities[1]!
+    expect(restored.uid).toBe(e2.uid)
+    expect((restored as Record<string, unknown>).mystery).toEqual({ from: 'removed mod' })
     expect(dst.spawn({ name: 'new' }).uid).toBe(3) // continues after restored uids
   })
 
@@ -106,6 +107,46 @@ describe('SaveService', () => {
     const again = v2.collect(meta, world, {}, ents)
     expect(again.plugins.gone).toEqual({ version: 1, data: { secret: 1 } }) // not lost
     expect(again.plugins.tools!.version).toBe(2)
+  })
+
+  it('keeps what can not be read or written, instead of losing it', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const world = new VoxelWorld()
+    world.reset(1, 1, 4)
+    const ents = entities()
+    ents.define('pocket', 'test', z.object({ n: z.number() }))
+    const s = new SaveService()
+    // an entity whose component changed shape, a saver that can't read its data, one that can't write
+    const odd = { components: { uid: 9, pocket: { n: 'seven' } } }
+    s.keepEntities(restoreEntities([odd, { components: { pocket: { n: 1 } } }], ents))
+    s.register('picky', { version: 1, save: () => 'fresh', load: () => { throw new Error('what is this') } }, 'picky')
+    let broken = false
+    s.register('shaky', { version: 1, save: () => { if (broken) throw new Error('oops'); return 'new' }, load: () => {} }, 'shaky')
+    expect(s.loadPlugins({ picky: { version: 1, data: 'old' }, shaky: { version: 1, data: 'before' } })).toEqual(['picky'])
+    broken = true
+    const out = s.collect(meta, world, {}, ents)
+    expect(out.entities).toHaveLength(2)
+    expect(out.entities).toContainEqual(odd)
+    expect(out.plugins['picky#unread']).toEqual({ version: 1, data: 'old' })
+    expect(out.plugins.shaky).toEqual({ version: 1, data: 'before' })
+    s.reset()
+    expect(s.collect(meta, world, {}, ents).entities).toHaveLength(1)
+  })
+
+  it('a plugin that fails to come back after a reload gets its data when it does', () => {
+    const world = new VoxelWorld()
+    world.reset(1, 1, 4)
+    const s = new SaveService()
+    const off = s.register('hives', { version: 1, save: () => 'honey', load: () => {} }, 'hives')
+    const snap = s.snapshot()
+    off() // unloaded; its new code throws in setup
+    s.restore(snap, [])
+    expect(s.collect(meta, world, {}, entities()).plugins.hives).toEqual({ version: 1, data: 'honey' })
+    let got: unknown
+    s.register('hives', { version: 1, save: () => got, load: (d) => void (got = d) }, 'hives')
+    s.restore(s.snapshot(), ['other']) // somebody else reloads: not ours yet
+    s.restore({}, ['hives'])
+    expect(got).toBe('honey')
   })
 
   it('refuses newer save formats and passes current ones through', () => {

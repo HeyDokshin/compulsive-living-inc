@@ -35,6 +35,7 @@ export class EntityRenderer {
   /** Stencil-writing clones of entity materials, so silhouettes ignore the entity's own parts. */
   private stencilWriters = new WeakMap<Material, Material>()
   private models: ReturnType<typeof modelQuery>
+  private placed: ReturnType<typeof placedQuery>
   private blobs: BlobBatch
   private batches: ModelBatches
 
@@ -45,6 +46,7 @@ export class EntityRenderer {
     private world: VoxelWorld,
   ) {
     this.models = modelQuery(entities)
+    this.placed = placedQuery(entities)
     this.blobs = new BlobBatch(scene, makeBlobTexture())
     this.batches = new ModelBatches(scene, library)
     entities.world.onEntityRemoved.subscribe((e) => e.view?.removeFromParent())
@@ -52,7 +54,7 @@ export class EntityRenderer {
 
   /** Start of each tick: remember transforms so rendering can interpolate. */
   snapshot(): void {
-    for (const e of this.entities.world.with('transform')) {
+    for (const e of this.placed) {
       const p = this.prev.get(e)
       if (p) Object.assign(p, e.transform)
       else this.prev.set(e, { ...e.transform })
@@ -224,6 +226,7 @@ function makeBlobTexture(): CanvasTexture {
 /** Radius (blocks) an entity without a footprint takes up for culling: a tree with its canopy fits. */
 const DEFAULT_RADIUS = 3.5
 
+const placedQuery = (entities: Entities) => entities.world.with('transform')
 const modelQuery = (entities: Entities) => entities.world.with('model')
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t

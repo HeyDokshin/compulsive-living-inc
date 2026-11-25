@@ -22,8 +22,9 @@ export class ModelLibrary {
     private rigs: Registry<RigDef>,
   ) {}
 
-  /** Drop caches (content changed). Existing objects keep their geometry until rebuilt. */
+  /** Drop caches (content changed). Objects still showing an old geometry upload it again by themselves. */
   clear(): void {
+    for (const geo of this.geometries.values()) geo.dispose()
     this.parsed.clear()
     this.ready.clear()
     this.geometries.clear()

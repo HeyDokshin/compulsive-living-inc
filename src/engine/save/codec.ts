@@ -86,9 +86,21 @@ export function serializeEntities(entities: Entities): SavedEntity[] {
   return out
 }
 
-/** Spawn saved entities as they were (uids kept). Unknown components are restored as-is. */
-export function restoreEntities(saved: SavedEntity[], entities: Entities): Entity[] {
-  return saved.map((s) => entities.spawn(structuredClone(s.components) as Entity))
+/**
+ * Spawn saved entities as they were (uids kept). Unknown components are restored as-is. Returns the
+ * ones that can't be spawned (a component changed shape): they stay out but must not be lost.
+ */
+export function restoreEntities(saved: SavedEntity[], entities: Entities): SavedEntity[] {
+  const failed: SavedEntity[] = []
+  for (const s of saved) {
+    try {
+      entities.spawn(structuredClone(s.components) as Entity)
+    } catch (e) {
+      console.error('[save] an entity could not be restored:', e)
+      failed.push(s)
+    }
+  }
+  return failed
 }
 
 /** Save → portable JSON text (typed arrays become base64). */

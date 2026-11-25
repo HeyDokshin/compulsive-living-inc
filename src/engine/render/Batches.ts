@@ -1,4 +1,4 @@
-import { InstancedBufferAttribute, InstancedMesh, MeshBasicMaterial, PlaneGeometry, type BufferGeometry, type Material, type Object3D, type Texture } from 'three'
+import { type BufferAttribute, InstancedBufferAttribute, InstancedMesh, MeshBasicMaterial, PlaneGeometry, type BufferGeometry, type Material, type Object3D, type Texture } from 'three'
 import type { ModelLibrary } from '../models/ModelLibrary'
 import type { ModelSpec } from '../types'
 import { stylize } from './style'
@@ -82,12 +82,15 @@ class Instances {
 
   private grow(): void {
     const old = this.mesh
+    const alpha = this.geometry.getAttribute('aAlpha') as BufferAttribute | undefined
     const capacity = old.instanceMatrix.count * 2
     this.mesh = this.create(capacity)
     ;(this.mesh.instanceMatrix.array as Float32Array).set(old.instanceMatrix.array as Float32Array)
     old.removeFromParent()
     old.dispose()
-    // everything is written again into the new buffers
+    const alphaNow = this.mesh.geometry.getAttribute('aAlpha') as BufferAttribute | undefined
+    if (alpha && alphaNow) (alphaNow.array as Float32Array).set(alpha.array as Float32Array)
+    // the next frame writes everything again
     this.slots = new Float32Array(capacity * 6).fill(NaN)
     this.dirty = true
   }
@@ -98,6 +101,8 @@ export class ModelBatches {
   private byKey = new Map<string, Instances>()
   /** Batch and scale per model spec (spec objects are replaced, not edited). Absent while loading. */
   private bySpec = new WeakMap<ModelSpec, { batch: Instances; scale: number } | 'loading'>()
+  /** Bumps on clear: models that arrive late from before are dropped. */
+  private epoch = 0
 
   constructor(
     private parent: Object3D,
@@ -112,7 +117,9 @@ export class ModelBatches {
     let entry = this.bySpec.get(spec)
     if (!entry) {
       this.bySpec.set(spec, 'loading')
+      const epoch = this.epoch
       this.library.voxelGeometry(spec.ref!, spec.palette, (geo, scale, key) => {
+        if (epoch !== this.epoch) return
         let batch = this.byKey.get(key)
         if (!batch) {
           batch = new Instances(this.parent, geo, this.library.material, (mesh) => {
@@ -134,6 +141,7 @@ export class ModelBatches {
 
   /** Forget everything (models changed). */
   clear(): void {
+    this.epoch++
     for (const b of this.byKey.values()) b.dispose()
     this.byKey.clear()
     this.bySpec = new WeakMap()

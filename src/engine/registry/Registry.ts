@@ -185,7 +185,8 @@ export class Registry<T extends RegistryEntry> {
     for (const [id, list] of this.patches) {
       const kept = list.filter((p) => p.owner !== owner)
       if (kept.length !== list.length) {
-        this.patches.set(id, kept)
+        if (kept.length) this.patches.set(id, kept)
+        else this.patches.delete(id)
         this.invalidate(id, 'modify')
       }
     }

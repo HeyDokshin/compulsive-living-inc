@@ -142,6 +142,7 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       },
       pick: (clientX, clientY) => game.renderer.pick(clientX, clientY),
       blockerAt: (x, z) => game.blockers.at(x, z),
+      updateBlocker: (e) => game.blockers.update(e),
       getBlock: (x, y, z) => game.world.getBlock(x, y, z),
       setBlock: (x, y, z, id) => game.world.setBlock(x, y, z, id),
       isSolid: (x, y, z) => game.world.isSolid(x, y, z),

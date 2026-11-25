@@ -39,16 +39,20 @@ export class Interiors {
   constructor(private chunks: () => { x: number; z: number }) {}
 
   /** Corner chunks in a fixed order: they stay put however many interiors there are. */
-  corners(): Array<{ cx: number; cz: number }> {
+  corners(): ReadonlyArray<{ cx: number; cz: number }> {
     const { x, z } = this.chunks()
+    if (this.cached && this.cached.x === x && this.cached.z === z) return this.cached.list // asked for every entity, every frame
     const all = [
       { cx: 0, cz: 0 },
       { cx: x - 1, cz: 0 },
       { cx: 0, cz: z - 1 },
       { cx: x - 1, cz: z - 1 },
     ]
-    return all.filter((c, i) => all.findIndex((o) => o.cx === c.cx && o.cz === c.cz) === i)
+    const list = all.filter((c, i) => all.findIndex((o) => o.cx === c.cx && o.cz === c.cz) === i)
+    this.cached = { x, z, list }
+    return list
   }
+  private cached: { x: number; z: number; list: Array<{ cx: number; cz: number }> } | null = null
 
   /** The room area of an interior (allocated on first use, then kept in the save). */
   area(id: string): InteriorBox {
@@ -90,8 +94,9 @@ export class Interiors {
 
   /** Is the chunk (cx, cz) shown? Inside: only the current room. Outside: everything. */
   chunkVisible(cx: number, cz: number): boolean {
-    const box = this.inside ? this.area(this.inside.id) : null
-    return !box || (cx === box.x / CHUNK && cz === box.z / CHUNK)
+    if (!this.inside) return true
+    const c = this.corners()[this.slots.get(this.inside.id) ?? -1]
+    return !!c && c.cx === cx && c.cz === cz
   }
 
   /** Is a world point shown? Inside: only points in the room. Outside: not the furniture of rooms

@@ -6,7 +6,7 @@
  * Levels and finishes are data: content/house/house.levels.json5, house.finishes.json5.
  */
 import { definePlugin, signal, ui, z, type Entity, type PluginApi, type ReadonlySignal, type RegistryEntry } from '@sdk'
-import { nearWall, payment, planRoom, type RoomPlan } from './room'
+import { moveToWall, nearWall, payment, planRoom, type RoomPlan } from './room'
 
 export const HOME = 'house:home'
 
@@ -296,7 +296,18 @@ export default definePlugin({
       const s = state.value
       if (s.readyDay < 0 || dayIndex < s.readyDay) return
       const next = levelDef(s.level + 1)
+      const before = plan()
       set({ level: next ? s.level + 1 : s.level, readyDay: -1 })
+      // pictures and shelves go out with the walls they hang on
+      const after = plan()
+      for (const e of api.entities.world.with('decor', 'transform')) {
+        if (api.interiors.roomAt(e.transform.x, e.transform.z) !== HOME || decor().get(e.decor.piece)?.layer !== 'wall') continue
+        const at = moveToWall(before, after, Math.floor(e.transform.x) - area.x, Math.floor(e.transform.z) - area.z)
+        if (!at) continue
+        e.transform.x = area.x + at.x + 0.5
+        e.transform.z = area.z + at.z + 0.5
+        api.world.updateBlocker(e)
+      }
       refreshHouse()
       if (inside()) build()
       if (next) api.ui.toast(`Готово: ${next.name}! Комната стала больше.`, { ms: 4000 })
