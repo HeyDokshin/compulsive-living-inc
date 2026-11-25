@@ -1,10 +1,10 @@
 /**
- * Appearance editor (C): hairstyle and colors of hair, skin, eyes, shirt, pants and shoes.
+ * Appearance editor (C) and character creation on a new island: hairstyle and colors of hair, skin, eyes, shirt, pants and shoes.
  * Choices come from the `wardrobe:options` registry (content/wardrobe/wardrobe.options.json5),
  * so packs can add styles and swatches. The look lives in the player's `model` component
  * (`palette` + `parts`), so it is saved with the island automatically.
  */
-import { definePlugin, ui, useState, z, type ComponentChildren, type Entity, type PluginApi, type RegistryEntry } from '@sdk'
+import { definePlugin, signal, ui, useState, z, type ComponentChildren, type Entity, type PluginApi, type RegistryEntry, type Signal } from '@sdk'
 
 interface WardrobeOption extends RegistryEntry {
   kind: 'style' | 'color'
@@ -20,6 +20,10 @@ interface WardrobeOption extends RegistryEntry {
 declare module '@sdk' {
   interface Registries {
     'wardrobe:options': WardrobeOption
+  }
+  interface GameEvents {
+    /** The character of a new island is ready. */
+    'wardrobe:created': Record<string, never>
   }
 }
 
@@ -61,12 +65,19 @@ export default definePlugin({
     const key = api.input.action('open', ['KeyC'])
     api.input.on(key, () => !api.ui.modalOpen.value && api.ui.open('wardrobe:editor'))
 
+    // A new island starts with the editor: who came to live here?
+    const creating = signal(false)
+    api.events.on('session:created', () => {
+      creating.value = true
+      api.ui.open('wardrobe:editor')
+    })
+
     api.ui.window({
       id: 'wardrobe:editor',
       title: 'Внешность',
       backdrop: 'clear',
       align: 'right',
-      component: () => <Editor api={api} />,
+      component: () => <Editor api={api} creating={creating} />,
     })
 
     // Close-up while dressing up: zoom in and turn the character to face the camera.
@@ -85,6 +96,10 @@ export default definePlugin({
       if (id !== 'wardrobe:editor' || savedZoom === null) return
       api.render.setZoom(savedZoom)
       savedZoom = null
+      if (!creating.value) return
+      creating.value = false
+      void api.save.saveNow()
+      api.events.emit('wardrobe:created', {})
     })
   },
 })
@@ -94,7 +109,7 @@ function player(api: PluginApi): Entity | undefined {
   return undefined
 }
 
-function Editor({ api }: { api: PluginApi }) {
+function Editor({ api, creating }: { api: PluginApi; creating: Signal<boolean> }) {
   const [, redraw] = useState(0)
   const p = player(api)
   if (!p?.model) return <div>Персонаж не найден.</div>
@@ -114,8 +129,30 @@ function Editor({ api }: { api: PluginApi }) {
     redraw((n) => n + 1)
   }
 
+  const pick = <T,>(list: T[]): T | undefined => list[Math.floor(Math.random() * list.length)]
+  const randomize = () => {
+    const look: { palette: Record<string, string>; parts: Record<string, string> } = { palette: {}, parts: {} }
+    const style = pick(styles)
+    if (style) look.parts[style.part!] = style.model!
+    for (const ch of CHANNELS) {
+      const c = pick(options.filter((o) => o.kind === 'color' && o.channel === ch.id && o.color))
+      if (c) look.palette[ch.id] = c.color!
+    }
+    apply(look)
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '320px' }}>
+      {creating.value && <div style={{ fontSize: '14px', lineHeight: 1.4 }}>Добро пожаловать на «{api.session.name}»! Кто здесь теперь живёт?</div>}
+      <Section label="Имя">
+        <input
+          class="cl-input"
+          maxLength={20}
+          value={api.session.player}
+          placeholder="Ваше имя"
+          onInput={(e) => api.session.rename({ player: (e.target as HTMLInputElement).value.trim() })}
+        />
+      </Section>
       <Section label="Причёска">
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
           {styles.map((s) => {
@@ -160,8 +197,11 @@ function Editor({ api }: { api: PluginApi }) {
           </Section>
         )
       })}
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <ui.Button onClick={() => api.ui.close()}>Готово</ui.Button>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <ui.Button secondary onClick={randomize}>
+          🎲 Случайно
+        </ui.Button>
+        <ui.Button onClick={() => api.ui.close()}>{creating.value ? 'Это я!' : 'Готово'}</ui.Button>
       </div>
     </div>
   )

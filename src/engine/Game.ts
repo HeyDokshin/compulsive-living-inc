@@ -31,6 +31,7 @@ import { Interactions, type InteractionDef } from './interact/Interactions'
 import { UiHost } from './ui/UiHost'
 import { IconService } from './ui/IconService'
 import { FpsMeter } from './ui/FpsMeter'
+import { Title } from './session/Title'
 import { SessionManager } from './session/SessionManager'
 import { GameMenu } from './session/GameMenu'
 import { applyUserSettings } from './session/settings'
@@ -102,6 +103,7 @@ export class Game {
   readonly audio: Audio
   readonly particles: Particles
   readonly sessions: SessionManager
+  readonly title: Title
   readonly time: TimeService
   readonly blockers: Blockers
   readonly interiors: Interiors
@@ -138,6 +140,7 @@ export class Game {
     this.audio = new Audio(this.sounds, this.engineConfig.audio)
     this.particles = new Particles(this.renderer.scene, this.particleDefs)
     this.sessions = new SessionManager(this)
+    this.title = new Title(this)
     this.time = new TimeService(this.engineConfig.time, this.events)
     this.blockers = new Blockers(this.entities)
     // Engine-level answer: entities with a `blocker` footprint are walked around.
@@ -150,6 +153,7 @@ export class Game {
     )
     this.renderer.adjustLight = (state, hour) => this.hooks.run('light:adjust', state, { hour })
     this.interiors = this.createInteriors()
+    this.camera.insideRoom = () => this.interiors.current !== null
     this.panel = new DebugPanel(this.config)
     this.devConsole = new DevConsole(this.commands)
     this.plugins = new PluginManager((def) => createPluginScope(this, def))
@@ -168,7 +172,6 @@ export class Game {
   private createInteriors(): Interiors {
     const interiors = new Interiors(() => ({ x: this.worldConfig.chunksX, z: this.worldConfig.chunksZ }))
     interiors.onChange = (id) => {
-      this.renderer.chunks.applyVisibility()
       this.events.emit('interior:changed', { id })
     }
     this.renderer.chunks.isVisible = (cx, cz) => interiors.chunkVisible(cx, cz)
@@ -221,7 +224,10 @@ export class Game {
     this.content.setFiles(opts.contentFiles, opts.assetFiles)
     for (const p of opts.plugins) this.plugins.register(p)
 
-    await this.sessions.start(await this.sessions.latest())
+    const latest = await this.sessions.latest()
+    const title = this.engineConfig.title.enabled
+    if (title) this.title.show() // before the island: plugins shouldn't open windows over it
+    await this.sessions.start(latest, { demo: title })
     this.sessions.installSaveOnHide()
     this.installMenu()
     this.loop.start()

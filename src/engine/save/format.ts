@@ -4,6 +4,8 @@ export const SAVE_FORMAT = 1
 export interface SaveMeta {
   slot: string
   name: string
+  /** The player's name (saves before 0.11 have none). */
+  player?: string
   createdAt: number
   savedAt: number
   /** Seconds of play. */

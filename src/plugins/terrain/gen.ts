@@ -51,6 +51,8 @@ export const Config = z.object({
     .prefault({}),
   /** Decoration only: flat sea and sea bed drawn past the world edge so the island doesn't float in the sky. */
   seaBackdrop: z.boolean().default(true).meta({ label: 'sea backdrop' }),
+  /** Grid cells per tile of the sea backdrop. */
+  seaTile: z.number().int().min(4).max(128).default(16).meta({ label: 'sea tile', step: 1 }),
   blocks: z
     .object({
       grass: z.string().default('core:grass'),
@@ -98,6 +100,16 @@ export function seaRing(sx: number, sz: number, inner: number, outer: number, ce
     [a, b, b, sz + inner, cell],
     [sx + inner, b, sx + outer, sz + inner, cell],
   ]
+}
+
+/** Cut rects into tiles of at most `cells` grid cells a side (drawn and hidden one by one). */
+export function tileRects(rects: readonly SurfaceRect[], cells: number): SurfaceRect[] {
+  const out: SurfaceRect[] = []
+  for (const [x0, z0, x1, z1, cell = 1] of rects) {
+    const size = cell * cells
+    for (let z = z0; z < z1; z += size) for (let x = x0; x < x1; x += size) out.push([x, z, Math.min(x1, x + size), Math.min(z1, z + size), cell])
+  }
+  return out
 }
 
 /** Height of the sea bed surface outside the world (matches the in-world floor near the edge). */

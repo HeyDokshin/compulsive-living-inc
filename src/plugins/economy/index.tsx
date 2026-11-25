@@ -74,7 +74,7 @@ export default definePlugin({
   description: 'Колокольчики: кошелёк и ящик для продажи',
   dependsOn: ['items'],
   // placed after the museum so the box doesn't end up on its plot
-  optionalDependsOn: ['museum', 'collection', 'nature', 'garden', 'daily'],
+  optionalDependsOn: ['museum', 'collection', 'nature', 'garden', 'daily', 'tutorial'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -191,6 +191,19 @@ export default definePlugin({
       run: () => void api.ui.open('economy:sell'),
     })
     api.ui.window({ id: 'economy:sell', title: 'Ящик для продажи', component: () => <SellBox api={api} cfg={cfg} wallet={wallet} market={market} /> })
+
+    try {
+      api.registry('tutorial:steps').register({
+        id: 'economy:tutorial_sell',
+        order: 90,
+        day: 3,
+        text: 'Продайте что-нибудь в лавке или в ящике для продажи — появятся колокольчики.',
+        keys: ['Space'],
+        event: 'economy:sold',
+      })
+    } catch {
+      // no tutorial
+    }
 
     api.commands.register({
       name: 'market',

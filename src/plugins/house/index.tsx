@@ -387,10 +387,24 @@ export default definePlugin({
       api.registry('tutorial:steps').register({
         id: 'house:tutorial_home',
         order: 78,
-        text: 'Зайдите домой и поставьте что-нибудь из поделок.',
+        text: 'Найдите свой домик и загляните внутрь.',
         keys: ['Space'],
         event: 'interior:changed',
         when: (p: { id: string | null }) => p.id === HOME,
+      })
+    } catch {
+      // no tutorial
+    }
+
+    try {
+      api.registry('tutorial:steps').register({
+        id: 'house:tutorial_mailbox',
+        order: 96,
+        day: 3,
+        text: 'У почтового ящика рядом с домом можно взять кредит и расширить дом.',
+        keys: ['Space'],
+        event: 'ui:opened',
+        when: (p: { id: string }) => p.id === 'house:mailbox',
       })
     } catch {
       // no tutorial

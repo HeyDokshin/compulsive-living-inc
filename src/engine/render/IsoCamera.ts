@@ -19,7 +19,17 @@ export class IsoCamera {
 
   /** Zoom actually shown right now (eases towards the configured one). */
   get currentZoom(): number {
-    return this.zoomNow || this.cfg.zoom
+    return this.zoomNow || this.zoomOverride || this.cfg.zoom
+  }
+
+  /** Shown instead of the player's zoom (title screen). */
+  zoomOverride: number | null = null
+  private glideLeft = 0
+  private glideFor = 0
+
+  /** Let zoom changes ease in slowly for a while. */
+  glide(seconds: number): void {
+    this.glideLeft = this.glideFor = seconds
   }
 
   get targetYaw(): number {
@@ -74,8 +84,11 @@ export class IsoCamera {
     const k = 1 - Math.exp(-c.rotateSmoothing * dt)
     this.yaw += (this.targetYaw - this.yaw) * k
 
-    if (!this.zoomNow) this.zoomNow = c.zoom
-    this.zoomNow *= Math.pow(c.zoom / this.zoomNow, 1 - Math.exp(-c.zoomSmoothing * dt))
+    const zoom = this.zoomOverride ?? c.zoom
+    if (!this.zoomNow) this.zoomNow = zoom
+    this.glideLeft = Math.max(0, this.glideLeft - dt)
+    const done = this.glideLeft > 0 ? 1 - this.glideLeft / this.glideFor : 1
+    this.zoomNow *= Math.pow(zoom / this.zoomNow, 1 - Math.exp(-c.zoomSmoothing * done * done * dt))
     const half = c.viewSize / 2 / this.zoomNow
     this.camera.left = -half * this.aspect
     this.camera.right = half * this.aspect

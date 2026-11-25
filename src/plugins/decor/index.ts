@@ -139,7 +139,7 @@ export default definePlugin({
       const piece = pieces.get(d.piece)
       const v = piece?.variants.find((x) => x.id === d.variant) ?? piece?.variants[0]
       if (!piece || !v) return
-      api.render.setModel(e, { shape: 'voxel', ref: piece.model, palette: v.palette, size: [1, 1, 1], color: '#ccc', anchor: 'bottom' })
+      api.render.setModel(e, { shape: 'voxel', ref: piece.model, palette: v.palette, size: [1, 1, 1], color: '#ccc', anchor: 'bottom', instanced: true })
       e.name = api.registry('items').get(variantItemId(piece.id, v.id))?.name ?? piece.name
     }
 
@@ -368,7 +368,7 @@ function setupGlow(api: PluginApi, cfg: { glow: number; indoorGlow: number }, pi
         const flicker = glow.flicker ? 0.8 + Math.sin(time * 11 + e.transform.x) * 0.1 + Math.sin(time * 17) * 0.1 : 1
         s.position.set(e.transform.x, e.transform.y + glow.y, e.transform.z)
         s.material.opacity = Math.min(1, n * flicker)
-        s.visible = s.material.opacity > 0.01 && (e.view?.visible ?? true)
+        s.visible = s.material.opacity > 0.01 && api.interiors.roomAt(e.transform.x, e.transform.z) === api.interiors.current
       }
     },
   })

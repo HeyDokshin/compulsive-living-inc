@@ -241,6 +241,7 @@ export default definePlugin({
       api.registry('tutorial:steps').register({
         id: 'collection:tutorial_catch',
         order: 75,
+        day: 2,
         text: 'Поймайте рыбу удочкой или насекомое сачком. Всё пойманное — в энциклопедии.',
         keys: ['B'],
         event: 'collection:caught',

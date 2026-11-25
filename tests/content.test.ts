@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
+import JSON5 from 'json5'
+import { ID_PATTERN } from '../src/engine/registry/Registry'
 import { ContentLoader } from '../src/engine/content/ContentLoader'
 import { RegistryHub } from '../src/engine/registry/RegistryHub'
 import { Entities } from '../src/engine/ecs/Entities'
@@ -40,5 +42,27 @@ describe('ContentLoader + prefabs', () => {
     expect(e.prefab).toBe('t:child')
     expect(e.uid).toBe(1)
     expect(() => ents.spawn({ transform: { x: 'no' } as never })).toThrow(/transform/)
+  })
+})
+
+describe('shipped content', () => {
+  it('has only valid ids, and every model a rig asks for exists', () => {
+    const files = import.meta.glob<string>('../content/**/*.json5', { query: '?raw', import: 'default', eager: true })
+    const bad: string[] = []
+    const ids = new Set<string>()
+    const wanted: string[] = []
+    for (const [path, text] of Object.entries(files)) {
+      const data = JSON5.parse(text) as unknown
+      const entries = (Array.isArray(data) ? data : ((data as { entries?: unknown[] }).entries ?? [])) as Array<{ id?: string; parts?: Array<{ model?: string }> }>
+      for (const e of entries) {
+        if (!e.id) continue
+        if (!ID_PATTERN.test(e.id)) bad.push(`${path}: ${e.id}`)
+        if (/\/models\.json5$/.test(path)) ids.add(e.id)
+        if (/\/rigs\.json5$/.test(path)) for (const p of e.parts ?? []) if (p.model) wanted.push(p.model)
+      }
+    }
+    expect(Object.keys(files).length).toBeGreaterThan(20)
+    expect(bad).toEqual([])
+    expect(wanted.filter((m) => !ids.has(m))).toEqual([])
   })
 })

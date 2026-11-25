@@ -100,38 +100,80 @@ export interface GeometryData {
   index: number[]
 }
 
-const FACES: Array<{ n: [number, number, number]; corners: Array<[number, number, number]> }> = [
-  { n: [1, 0, 0], corners: [[1, 0, 0], [1, 1, 0], [1, 1, 1], [1, 0, 1]] },
-  { n: [-1, 0, 0], corners: [[0, 0, 1], [0, 1, 1], [0, 1, 0], [0, 0, 0]] },
-  { n: [0, 1, 0], corners: [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]] },
-  { n: [0, -1, 0], corners: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]] },
-  { n: [0, 0, 1], corners: [[1, 0, 1], [1, 1, 1], [0, 1, 1], [0, 0, 1]] },
-  { n: [0, 0, -1], corners: [[0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 0, 0]] },
+/**
+ * Face directions: the axis they point along, the two axes of the face plane (u × v = the axis),
+ * and which side.
+ */
+const DIRS: ReadonlyArray<{ d: 0 | 1 | 2; u: 0 | 1 | 2; v: 0 | 1 | 2; s: 1 | -1 }> = [
+  { d: 0, u: 1, v: 2, s: 1 },
+  { d: 0, u: 1, v: 2, s: -1 },
+  { d: 1, u: 2, v: 0, s: 1 },
+  { d: 1, u: 2, v: 0, s: -1 },
+  { d: 2, u: 0, v: 1, s: 1 },
+  { d: 2, u: 0, v: 1, s: -1 },
 ]
 
-/** One quad per visible voxel face, positions in voxel units relative to `pivot`. */
-export function buildVoxelGeometry(m: VoxelModel, pivot: [number, number, number]): GeometryData {
+/**
+ * Visible faces of a model, positions in voxel units relative to `pivot`. Neighbouring faces of one
+ * color become one quad, up to `maxMerge` voxels long (long quads would show the curved world's bend).
+ */
+export function buildVoxelGeometry(m: VoxelModel, pivot: [number, number, number], maxMerge = Infinity): GeometryData {
   const out: GeometryData = { position: [], normal: [], colorIndex: [], index: [] }
-  const [sx, sy, sz] = m.size
-  for (let y = 0; y < sy; y++) {
-    for (let z = 0; z < sz; z++) {
-      for (let x = 0; x < sx; x++) {
-        const c = m.voxels[voxelIndex(m, x, y, z)]!
-        if (!c) continue
-        for (const f of FACES) {
-          if (voxelAt(m, x + f.n[0], y + f.n[1], z + f.n[2])) continue
-          const base = out.position.length / 3
-          for (const [cx, cy, cz] of f.corners) {
-            out.position.push(x + cx - pivot[0], y + cy - pivot[1], z + cz - pivot[2])
-            out.normal.push(...f.n)
-            out.colorIndex.push(c)
+  const at = [0, 0, 0] as [number, number, number]
+  for (const { d, u, v, s } of DIRS) {
+    const nu = m.size[u]
+    const nv = m.size[v]
+    const mask = new Int32Array(nu * nv)
+    for (let layer = 0; layer < m.size[d]; layer++) {
+      for (let j = 0; j < nv; j++) {
+        for (let i = 0; i < nu; i++) {
+          at[d] = layer
+          at[u] = i
+          at[v] = j
+          const c = voxelAt(m, at[0], at[1], at[2])
+          at[d] = layer + s
+          mask[i + j * nu] = c && !voxelAt(m, at[0], at[1], at[2]) ? c : 0
+        }
+      }
+      for (let j = 0; j < nv; j++) {
+        for (let i = 0; i < nu; ) {
+          const c = mask[i + j * nu]!
+          if (!c) {
+            i++
+            continue
           }
-          out.index.push(base, base + 1, base + 2, base, base + 2, base + 3)
+          let w = 1
+          while (i + w < nu && w < maxMerge && mask[i + w + j * nu] === c) w++
+          let h = 1
+          grow: while (j + h < nv && h < maxMerge) {
+            for (let k = 0; k < w; k++) if (mask[i + k + (j + h) * nu] !== c) break grow
+            h++
+          }
+          for (let dj = 0; dj < h; dj++) mask.fill(0, i + (j + dj) * nu, i + w + (j + dj) * nu)
+          quad(out, pivot, d, u, v, s, layer + (s > 0 ? 1 : 0), i, j, w, h, c)
+          i += w
         }
       }
     }
   }
   return out
+}
+
+function quad(out: GeometryData, pivot: [number, number, number], d: number, u: number, v: number, s: number, layer: number, i: number, j: number, w: number, h: number, c: number): void {
+  const base = out.position.length / 3
+  for (let k = 0; k < 4; k++) {
+    const p = [0, 0, 0]
+    p[d] = layer
+    p[u] = i + (k === 1 || k === 2 ? w : 0)
+    p[v] = j + (k >= 2 ? h : 0)
+    out.position.push(p[0]! - pivot[0], p[1]! - pivot[1], p[2]! - pivot[2])
+    const n = [0, 0, 0]
+    n[d] = s
+    out.normal.push(n[0]!, n[1]!, n[2]!)
+    out.colorIndex.push(c)
+  }
+  if (s > 0) out.index.push(base, base + 1, base + 2, base, base + 2, base + 3)
+  else out.index.push(base, base + 2, base + 1, base, base + 3, base + 2)
 }
 
 export function defaultPivot(m: VoxelModel): [number, number, number] {

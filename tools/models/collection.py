@@ -524,20 +524,22 @@ def add_bug(name, g, pal, wings=None):
     origin = (x0 + sx / 2, y0, z0 + sz / 2)  # = the full model's default pivot, in grid coords
     parts = {'body': Grid(), 'wingL': Grid(), 'wingR': Grid()}
     for (x, y, z), c in g.v.items():
-        part = 'body' if c not in wings or z == 0 else ('wingL' if z < 0 else 'wingR')
+        side = z + 0.5 - origin[2]
+        part = 'body' if c not in wings or side == 0 else ('wingL' if side < 0 else 'wingR')
         parts[part].set(x, y, z, c)
     wing_y = min(k[1] for p in ('wingL', 'wingR') for k in parts[p].v)
-    hinge = (origin[0], wing_y, 0.5)
+    hinge = (origin[0], wing_y, origin[2])
     rig_parts = []
     for pname, pg in parts.items():
         if not pg.v:
             continue
+        part_id = f'{mid}_' + {'wingL': 'wing_l', 'wingR': 'wing_r'}.get(pname, pname)  # ids are lowercase
         pmin = (min(k[0] for k in pg.v), min(k[1] for k in pg.v), min(k[2] for k in pg.v))
         anchor = origin if pname == 'body' else hinge
         pivot = [round(anchor[i] - pmin[i], 3) for i in range(3)]
         at = [round(anchor[i] - origin[i], 3) for i in range(3)]
-        models.append(model(f'{mid}_{pname}', pg, pal))
-        rig_parts.append({'name': pname, 'model': f'{mid}_{pname}', 'pivot': pivot, 'at': at})
+        models.append(model(part_id, pg, pal))
+        rig_parts.append({'name': pname, 'model': part_id, 'pivot': pivot, 'at': at})
     rigs.append({'id': mid, 'scale': 0.0625, 'parts': rig_parts})
 
 add_bug('cabbage_white', butterfly(), {'a': '#fbfaf2', 'b': '#e6e4d4', 'c': '#3a3a3a', 'k': '#4a4a4a'}, wings=WINGS['butterfly'])

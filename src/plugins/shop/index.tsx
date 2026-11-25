@@ -62,7 +62,7 @@ export default definePlugin({
   description: 'Лавка Тоши: товары дня, открытки с рецептами, саженцы, семена',
   dependsOn: ['items', 'economy'],
   // after the museum and the sell box: the stall takes the next free plot
-  optionalDependsOn: ['museum', 'decor', 'nature', 'garden', 'daily'],
+  optionalDependsOn: ['museum', 'decor', 'nature', 'garden', 'daily', 'tutorial'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -293,6 +293,20 @@ export default definePlugin({
       })
     } catch {
       // no daily notes
+    }
+
+    try {
+      api.registry('tutorial:steps').register({
+        id: 'shop:tutorial_visit',
+        order: 82,
+        day: 2,
+        text: 'Познакомьтесь с Тошей: красная панда держит лавку в центре острова.',
+        keys: ['Space'],
+        event: 'ui:opened',
+        when: (p: { id: string }) => p.id === 'shop:counter',
+      })
+    } catch {
+      // no tutorial
     }
 
     api.commands.register({

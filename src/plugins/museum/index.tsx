@@ -197,6 +197,7 @@ export default definePlugin({
       api.registry('tutorial:steps').register({
         id: 'museum:tutorial_visit',
         order: 80,
+        day: 2,
         text: 'Загляните в музей в центре острова: находки дарят у стойки.',
         keys: ['Space'],
         event: 'interior:changed',

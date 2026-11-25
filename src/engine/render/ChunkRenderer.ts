@@ -37,8 +37,10 @@ export class ChunkRenderer {
   /** Chunks meshed since start (debug stat). */
   meshedCount = 0
   private focus = { x: 0, z: 0 }
-  /** Which chunks are drawn (interiors hide the island and vice versa). Change → applyVisibility(). */
+  /** Which chunks may be drawn (interiors hide the island and vice versa). */
   isVisible: (cx: number, cz: number) => boolean = () => true
+  /** Can a ball show up in the picture? (set by the Renderer; knows about the curved world) */
+  inView: (x: number, y: number, z: number, r: number) => boolean = () => true
 
   constructor(
     private world: VoxelWorld,
@@ -116,11 +118,14 @@ export class ChunkRenderer {
     }
   }
 
-  applyVisibility(): void {
+  /** Every frame: show the chunks that are allowed and in the picture. */
+  cull(): void {
+    const half = this.world.height / 2
+    const r = Math.hypot(8, half, 8)
     for (const [ci, m] of this.meshes) {
       const c = this.world.chunks[ci]
       if (!c) continue
-      const v = this.isVisible(c.cx, c.cz)
+      const v = this.isVisible(c.cx, c.cz) && this.inView(c.cx * 16 + 8, half, c.cz * 16 + 8, r)
       if (m.opaque) m.opaque.visible = v
       if (m.transparent) m.transparent.visible = v
     }
@@ -183,6 +188,7 @@ export class ChunkRenderer {
     const mesh = new Mesh(geo, mat)
     mesh.position.set(cx * 16, 0, cz * 16)
     mesh.visible = this.isVisible(cx, cz)
+    mesh.frustumCulled = false // see cull()
     mesh.castShadow = mat === this.opaqueMaterial
     mesh.receiveShadow = true
     mesh.matrixAutoUpdate = false

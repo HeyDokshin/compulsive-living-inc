@@ -1,12 +1,16 @@
 /**
- * First-minutes tutorial: a small card with one step at a time (walk, wardrobe, pockets, tool,
- * dig, pick up, menu). Steps live in the `tutorial:steps` registry — other plugins add theirs —
- * and complete on game events or a polled check, in any order. Progress is saved per island.
+ * First-days tutorial: a small card with one step at a time. Steps live in the `tutorial:steps`
+ * registry — other plugins add theirs — and belong to an island day: day 1 walks, digs and meets the
+ * neighbours, later days add catching, the museum, crafting, trade and the house. They complete on
+ * game events or a polled check, in any order, even before their day. Progress is saved per island.
  */
 import { definePlugin, signal, ui, type Entity, type GameEvents, type PluginApi, type RegistryEntry, type Signal } from '@sdk'
+import { finishedBy, lessonFor } from './days'
 
 export interface TutorialStep extends RegistryEntry {
   order: number
+  /** Island day the step appears on (1 = the first, default). */
+  day?: number
   text: string
   /** Key caps shown on the card. */
   keys?: string[]
@@ -26,23 +30,39 @@ declare module '@sdk' {
 interface Progress {
   done: string[]
   skipped: boolean
-  finished: boolean
+  /** Day index the island started on (-1 = not known yet). */
+  startDay: number
 }
+
+const FRESH: Progress = { done: [], skipped: false, startDay: -1 }
 
 export default definePlugin({
   id: 'tutorial',
-  version: '0.1.0',
-  description: 'Обучение первых минут',
-  optionalDependsOn: ['items', 'tools', 'wardrobe', 'player'],
+  version: '0.2.0',
+  description: 'Обучение первых дней',
+  optionalDependsOn: ['items', 'tools', 'player'],
 
   setup(api) {
     const steps = api.createRegistry<TutorialStep>('tutorial:steps')
-    const progress = signal<Progress>({ done: [], skipped: false, finished: false })
+    const progress = signal<Progress>(FRESH)
     api.save.register<Progress>({
-      version: 1,
+      version: 2,
       save: () => progress.value,
       load: (d) => (progress.value = d),
+      // v1 knew only the first day and stored `finished`.
+      migrate: (old) => {
+        const o = old as { done: string[]; skipped: boolean; finished: boolean }
+        return { done: o.done, skipped: o.skipped || o.finished, startDay: -1 }
+      },
     })
+    api.events.on('session:started', () => {
+      if (progress.value.startDay < 0) progress.value = { ...progress.value, startDay: api.time.dayIndex }
+    })
+    // The card also appears on its own when a new day begins.
+    const today = signal(1)
+    const syncDay = () => (today.value = Math.max(1, api.time.dayIndex - progress.value.startDay + 1))
+    api.events.on('session:started', syncDay)
+    api.events.on('time:day', syncDay)
 
     let start: { x: number; z: number } | null = null
     const player = (): Entity | undefined => {
@@ -67,14 +87,6 @@ export default definePlugin({
           start ??= { x: t.x, z: t.z }
           return Math.hypot(t.x - start.x, t.z - start.z) > 4
         },
-      },
-      {
-        id: 'tutorial:wardrobe',
-        order: 20,
-        text: 'Выберите внешность: причёску и цвета одежды.',
-        keys: ['C'],
-        event: 'ui:opened',
-        when: (p: GameEvents['ui:opened']) => p.id === 'wardrobe:editor',
       },
       {
         id: 'tutorial:pockets',
@@ -109,7 +121,7 @@ export default definePlugin({
       {
         id: 'tutorial:menu',
         order: 70,
-        text: 'Меню — сохранения и настройки. Игра сохраняется сама.',
+        text: 'Меню — сохранения и настройки. Игра сохраняется сама. А внешность меняют на C.',
         keys: ['Esc'],
         event: 'ui:opened',
         when: (p: GameEvents['ui:opened']) => p.id === 'engine:menu',
@@ -119,15 +131,15 @@ export default definePlugin({
 
     const complete = (id: string) => {
       const p = progress.value
-      if (p.finished || p.skipped || p.done.includes(id)) return
+      if (p.skipped || p.done.includes(id)) return
       const done = [...p.done, id]
-      const all = steps.all()
-      const finished = all.every((s) => done.includes(s.id))
-      progress.value = { ...p, done, finished }
+      progress.value = { ...p, done }
       api.audio.play('ui:pop')
       const pl = player()?.transform
       if (pl) api.fx.burst('core:sparkle', { x: pl.x, y: pl.y + 1.2, z: pl.z }, { amount: 0.6 })
-      if (finished) api.ui.toast('Обучение пройдено! Хорошей жизни на острове ✿', { ms: 4000 })
+      const finished = finishedBy(steps.all(), done, id)
+      if (finished === 'all') api.ui.toast('Обучение пройдено! Хорошей жизни на острове ✿', { ms: 4000 })
+      else if (finished === 'day' && !lessonFor(steps.all(), done, today.value)) api.ui.toast('На сегодня всё! Новые советы — завтра ✿', { ms: 4000 })
     }
 
     // Event-driven steps: one subscription per distinct event, rebuilt when steps are added
@@ -159,34 +171,36 @@ export default definePlugin({
         if ((poll -= dt) > 0) return
         poll = 0.25
         const p = progress.value
-        if (p.finished || p.skipped) return
+        if (p.skipped) return
         for (const s of steps.all()) if (s.check && !p.done.includes(s.id) && s.check(api)) complete(s.id)
       },
     })
 
-    api.ui.slot('hud.topLeft', () => <Card api={api} progress={progress} stepsVersion={stepsVersion} />)
+    api.ui.slot('hud.topLeft', () => <Card api={api} progress={progress} today={today} stepsVersion={stepsVersion} />)
     api.commands.register({
       name: 'tutorial',
-      description: 'Обучение: tutorial reset — начать заново, tutorial skip — пропустить',
-      usage: '[reset | skip]',
-      run: ([a]) => {
-        if (a === 'reset') progress.value = { done: [], skipped: false, finished: false }
+      description: 'Обучение: tutorial reset — начать заново, skip — пропустить, day <n> — советы этого дня',
+      usage: '[reset | skip | day <n>]',
+      run: ([a, n]) => {
+        if (a === 'reset') progress.value = { ...FRESH, startDay: api.time.dayIndex }
+        if (a === 'day') progress.value = { ...progress.value, startDay: api.time.dayIndex - Math.max(1, Number(n) || 1) + 1 }
         if (a === 'skip') progress.value = { ...progress.value, skipped: true }
+        syncDay()
         const p = progress.value
-        return `${p.done.length}/${steps.all().length}${p.skipped ? ' (пропущено)' : ''}${p.finished ? ' (пройдено)' : ''}`
+        return `день ${today.value}: ${p.done.length}/${steps.all().length}${p.skipped ? ' (пропущено)' : ''}`
       },
     })
   },
 })
 
-function Card({ api, progress, stepsVersion }: { api: PluginApi; progress: Signal<Progress>; stepsVersion: Signal<number> }) {
+function Card({ api, progress, today, stepsVersion }: { api: PluginApi; progress: Signal<Progress>; today: Signal<number>; stepsVersion: Signal<number> }) {
   stepsVersion.value
   const p = progress.value
-  if (p.finished || p.skipped || api.ui.modalOpen.value) return null
-  const all = api.registry('tutorial:steps').all().sort((a, b) => a.order - b.order)
-  const current = all.find((s) => !p.done.includes(s.id))
-  if (!current) return null
-  const index = all.indexOf(current) + 1
+  if (p.skipped || api.ui.modalOpen.value) return null
+  const lesson = lessonFor(api.registry('tutorial:steps').all(), p.done, today.value)
+  if (!lesson) return null
+  const { current, steps: all } = lesson
+  const doneToday = all.filter((s) => p.done.includes(s.id)).length
   return (
     <div
       style={{
@@ -203,7 +217,7 @@ function Card({ api, progress, stepsVersion }: { api: PluginApi; progress: Signa
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
         <span style={{ fontWeight: 800, fontSize: '13px', color: 'var(--ui-text-soft)' }}>
-          Обучение · {index}/{all.length}
+          День {lesson.day} · {doneToday + 1}/{all.length}
         </span>
         <button
           onClick={() => (progress.value = { ...p, skipped: true })}
@@ -221,7 +235,7 @@ function Card({ api, progress, stepsVersion }: { api: PluginApi; progress: Signa
         </div>
       ) : null}
       <div style={{ height: '5px', background: 'var(--ui-bg-2)', borderRadius: '999px', overflow: 'hidden' }}>
-        <div style={{ width: `${(p.done.length / all.length) * 100}%`, height: '100%', background: 'var(--ui-accent)', transition: 'width .4s' }} />
+        <div style={{ width: `${(doneToday / all.length) * 100}%`, height: '100%', background: 'var(--ui-accent)', transition: 'width .4s' }} />
       </div>
     </div>
   )

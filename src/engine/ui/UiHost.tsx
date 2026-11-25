@@ -42,9 +42,12 @@ export class UiHost {
   private entries = signal<SlotEntry[]>([])
   private windows = signal<Map<string, WindowDef & { owner: string }>>(new Map())
   readonly openId = signal<string | null>(null)
+  /** Covers the whole screen (title): the HUD is hidden, windows don't open, game input is paused. */
+  readonly cover = signal<{ component: ComponentType; onEscape?: () => void } | null>(null)
   readonly toasts = signal<ToastEntry[]>([])
   /** True while a modal window is open — gameplay input should pause. */
   readonly modalOpen = computed(() => {
+    if (this.cover.value) return true
     const id = this.openId.value
     return !!id && (this.windows.value.get(id)?.modal ?? true)
   })
@@ -90,7 +93,7 @@ export class UiHost {
   }
 
   open(id: string): void {
-    if (!this.windows.value.has(id) || this.openId.value === id) return
+    if (this.cover.value || !this.windows.value.has(id) || this.openId.value === id) return
     const prev = this.openId.value
     this.openId.value = id
     if (prev) this.onWindow?.(prev, false)
@@ -133,13 +136,15 @@ export class UiHost {
 function Root({ host }: { host: UiHost }) {
   const entries = host.allEntries
   const win = host.openWindow
+  const cover = host.cover.value
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || e.repeat) return
       const t = e.target as HTMLElement | null
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return
       // One owner for Esc: close the open window, or (nothing open) ask for the menu.
-      if (host.openId.value) host.close()
+      if (host.cover.value) host.cover.value.onEscape?.()
+      else if (host.openId.value) host.close()
       else host.onIdleEscape?.()
       e.stopImmediatePropagation()
     }
@@ -153,6 +158,7 @@ function Root({ host }: { host: UiHost }) {
       window.removeEventListener('pointerdown', onClick, true)
     }
   }, [host])
+  if (cover) return <cover.component />
   return (
     <>
       {UI_SLOTS.map((slot) => (

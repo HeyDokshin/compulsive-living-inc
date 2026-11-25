@@ -22,6 +22,7 @@ import { createLightState, sampleLight, type LightState } from './dayCycle'
 import type { VoxelWorld } from '../world/VoxelWorld'
 import { MesherPool } from '../world/mesher/MesherPool'
 import { PostFX } from './PostFX'
+import { inView, shadowHalf, type CullView } from './ViewCull'
 import { stylize, styleUniforms, type StyleOptions } from './style'
 import { ACESFilmicToneMapping, AgXToneMapping, BufferAttribute, BufferGeometry, NeutralToneMapping, NoToneMapping, Vector3 } from 'three'
 import { pickCurved, type VoxelHit } from '../world/pick'
@@ -43,7 +44,7 @@ export class Renderer {
   readonly chunks: ChunkRenderer
   readonly mesher = new MesherPool()
   readonly postfx: PostFX
-  private surfaces = new Set<{ mesh: Mesh; blockId: string }>()
+  private surfaces = new Set<{ mesh: Mesh; blockId: string; cull?: { x: number; y: number; z: number; r: number } }>()
   private palette: VoxelWorld['palette']
   readonly entityRenderer: EntityRenderer
   /** Seed for lawn color patches (set from the world seed). */
@@ -77,6 +78,7 @@ export class Renderer {
     this.postfx = new PostFX(this.renderer, this.scene, this.iso.camera)
 
     this.entityRenderer = new EntityRenderer(this.scene, entities, library, world)
+    this.entityRenderer.inView = this.chunks.inView = (x, y, z, r) => inView(this.cull, x, y, z, r)
 
     this.resizeObserver = new ResizeObserver(() => this.resize())
     this.resizeObserver.observe(container)
@@ -93,12 +95,6 @@ export class Renderer {
       this.sun.shadow.mapSize.set(render.shadowMapSize, render.shadowMapSize)
       this.sun.shadow.map?.dispose() // re-created at the new size on the next frame
       this.sun.shadow.map = null
-    }
-    const sc = this.sun.shadow.camera
-    if (sc.right !== render.shadowRange) {
-      sc.left = sc.bottom = -render.shadowRange
-      sc.right = sc.top = render.shadowRange
-      sc.updateProjectionMatrix()
     }
     if (!light.dayCycle) {
       this.scene.background = new Color(render.background)
@@ -136,7 +132,6 @@ export class Renderer {
 
     this.renderer.toneMapping = { neutral: NeutralToneMapping, agx: AgXToneMapping, aces: ACESFilmicToneMapping, none: NoToneMapping }[style.toneMapping]
     this.renderer.toneMappingExposure = style.exposure
-    this.sun.shadow.radius = style.shadowSoftness
     this.sun.shadow.intensity = style.shadowStrength
     styleUniforms.uWaterSpeed.value = style.waterSpeed
     this.postfx.setSamples(render.msaa)
@@ -168,8 +163,31 @@ export class Renderer {
     this.entityRenderer.snapshot()
   }
 
+  /** What the camera sees, refreshed every frame. */
+  private cull: CullView = { x: 0, y: 0, z: 0, fx: 0, fz: -1, halfW: 1, halfH: 1, pitch: 1, curvature: 0, margin: 0 }
+
+  private updateCull(): void {
+    const c = this.cull
+    const cam = this.iso.camera
+    const f = this.iso.forwardXZ()
+    c.x = this.iso.target.x
+    c.y = this.iso.target.y
+    c.z = this.iso.target.z
+    c.fx = f.x
+    c.fz = f.z
+    c.halfW = cam.right
+    c.halfH = cam.top
+    c.pitch = MathUtils.degToRad(this.cfg.camera.pitch)
+    c.curvature = this.cfg.style.curvature
+    c.margin = this.cfg.render.cullMargin
+  }
+
   render(ctx: TickContext): void {
+    this.updateCull()
     this.entityRenderer.render(ctx)
+    this.chunks.cull()
+    // layers, not `visible`: the owner decides whether a surface is shown at all
+    for (const s of this.surfaces) if (s.cull) s.mesh.layers.mask = inView(this.cull, s.cull.x, s.cull.y, s.cull.z, s.cull.r) ? 1 : 0
 
     this.iso.update(ctx.dt)
     this.chunks.update(this.iso.target.x, this.iso.target.z)
@@ -216,7 +234,7 @@ export class Renderer {
    * Flat surfaces textured like a block's top face (e.g. the endless sea around the island).
    * Rects are [x0, z0, x1, z1] in world units. Kept in sync with atlas rebuilds.
    */
-  createBlockSurface(blockId: string, rects: SurfaceRect[], y: number, transparent: boolean): Mesh {
+  createBlockSurface(blockId: string, rects: SurfaceRect[], y: number, transparent: boolean, cull = false): Mesh {
     const pos: number[] = []
     const uv: number[] = []
     const idx: number[] = []
@@ -248,7 +266,12 @@ export class Renderer {
     const mesh = new Mesh(geo, transparent ? this.chunks.transparentMaterial : this.chunks.opaqueMaterial)
     mesh.receiveShadow = true
     mesh.frustumCulled = false
-    const entry = { mesh, blockId }
+    const entry: { mesh: Mesh; blockId: string; cull?: { x: number; y: number; z: number; r: number } } = { mesh, blockId }
+    if (cull) {
+      geo.computeBoundingSphere()
+      const b = geo.boundingSphere!
+      entry.cull = { x: b.center.x, y: b.center.y, z: b.center.z, r: b.radius }
+    }
     this.surfaces.add(entry)
     this.updateSurfaceTiles(entry)
     mesh.addEventListener('removed', () => this.surfaces.delete(entry))
@@ -299,9 +322,40 @@ export class Renderer {
       const el = MathUtils.degToRad(light.sunElevation)
       dir = [Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az)]
     }
-    const t = this.iso.target
-    this.sun.target.position.copy(t)
-    this.sun.position.set(t.x + 150 * dir[0], t.y + 150 * dir[1], t.z + 150 * dir[2])
+    this.placeSun(dir)
+  }
+
+  private sunRight = new Vector3()
+  private sunUp = new Vector3()
+  private sunDir = new Vector3()
+  private sunAt = new Vector3()
+
+  /**
+   * Point the sun at the picture. The shadow map covers only what is on screen (sharper, and far fewer
+   * things to draw into it) and moves in whole texels, so shadows don't crawl while walking.
+   */
+  private placeSun(dir: [number, number, number]): void {
+    const { render, style } = this.cfg
+    const half = shadowHalf(this.cull, render.shadowMargin, render.shadowRange)
+    const sc = this.sun.shadow.camera
+    if (sc.right !== half) {
+      sc.left = sc.bottom = -half
+      sc.right = sc.top = half
+      sc.updateProjectionMatrix()
+    }
+    const texel = (2 * half) / render.shadowMapSize
+    this.sun.shadow.radius = Math.min(style.shadowSoftness * 4, style.shadowSoftness * (render.softnessTexel / texel))
+    const d = this.sunDir.set(dir[0], dir[1], dir[2]).normalize()
+    const right = this.sunRight.set(d.z, 0, -d.x)
+    if (right.lengthSq() < 1e-6) right.set(1, 0, 0)
+    right.normalize()
+    const up = this.sunUp.crossVectors(d, right)
+    const at = this.sunAt.copy(this.iso.target)
+    const r = at.dot(right)
+    const u = at.dot(up)
+    at.addScaledVector(right, Math.round(r / texel) * texel - r).addScaledVector(up, Math.round(u / texel) * texel - u)
+    this.sun.target.position.copy(at)
+    this.sun.position.copy(at).addScaledVector(d, 150)
   }
 
   private resize(): void {

@@ -199,9 +199,19 @@ export default definePlugin({
       api.registry('tutorial:steps').register({
         id: 'crafting:tutorial_craft',
         order: 85,
+        day: 2,
         text: 'Смастерите что-нибудь на верстаке — например, скамейку из древесины.',
         keys: ['Space'],
         event: 'crafting:crafted',
+      })
+      api.registry('tutorial:steps').register({
+        id: 'crafting:tutorial_place',
+        order: 94,
+        day: 3,
+        text: 'Поставьте поделку на острове или дома: возьмите её в руки из карманов.',
+        keys: ['Space'],
+        event: 'interaction:performed',
+        when: (p: { id: string }) => p.id === 'decor:place',
       })
     } catch {
       // no tutorial

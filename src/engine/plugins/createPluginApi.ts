@@ -109,7 +109,7 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       },
       blockSurface: (blockId, rects, y, opts) => {
         const block = game.blocks.get(blockId)
-        const mesh = game.renderer.createBlockSurface(blockId, rects, y, opts?.transparent ?? !!block?.transparent)
+        const mesh = game.renderer.createBlockSurface(blockId, rects, y, opts?.transparent ?? !!block?.transparent, opts?.cull)
         game.renderer.scene.add(mesh)
         track(() => {
           mesh.removeFromParent()
@@ -228,6 +228,15 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
         if (back) game.moveActor(actor, back)
         if (id) game.restoreSea(game.interiors.area(id))
       },
+    },
+    session: {
+      get name() {
+        return game.sessions.session.name
+      },
+      get player() {
+        return game.sessions.session.player
+      },
+      rename: (names) => void Object.assign(game.sessions.session, names),
     },
     save: {
       register: (d: SaverDef, name?: string) => void track(game.sessions.saves.register(name ? `${owner}:${name}` : owner, d, owner)),

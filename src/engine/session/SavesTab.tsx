@@ -3,15 +3,18 @@ import { Button } from '../ui/components'
 import type { Game } from '../Game'
 import type { SaveMeta } from '../save/format'
 
-const fmtTime = (s: number) => {
+export const fmtTime = (s: number) => {
   const h = Math.floor(s / 3600)
   const m = Math.floor((s % 3600) / 60)
   return h ? `${h} ч ${m} мин` : `${m} мин`
 }
-const fmtDate = (t: number) => new Date(t).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+export const fmtDate = (t: number) => new Date(t).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
-/** Menu tab «Острова»: save, slots (load / overwrite / delete / export / import), new island. */
-export function SavesTab({ game }: { game: Game }) {
+/**
+ * Menu tab «Острова»: save, slots (load / overwrite / delete / export / import), new island.
+ * On the title screen (`onTitle`) nothing is being played: only load, delete, export, import.
+ */
+export function SavesTab({ game, onTitle = false }: { game: Game; onTitle?: boolean }) {
   const sm = game.sessions
   const [metas, setMetas] = useState<SaveMeta[]>([])
   const [busy, setBusy] = useState(false)
@@ -74,17 +77,17 @@ export function SavesTab({ game }: { game: Game }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+      {!onTitle && <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: '16px' }}>{s.name}</div>
           <div style={{ color: 'var(--ui-text-soft)', fontSize: '13px' }}>
-            сид {game.worldConfig.seed} · в игре {fmtTime(s.playTime)} · слот {s.slot.replace('slot', '')}
+            {s.player ? `${s.player} · ` : ''}сид {game.worldConfig.seed} · в игре {fmtTime(s.playTime)} · слот {s.slot.replace('slot', '')}
           </div>
         </div>
         <Button disabled={busy} onClick={() => run('Сохранено', () => sm.save())}>
           Сохранить
         </Button>
-      </div>
+      </div>}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {sm.slotIds().map((slot, i) => {
@@ -100,7 +103,7 @@ export function SavesTab({ game }: { game: Game }) {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 gap: '10px',
-                border: slot === s.slot ? '2.5px solid var(--ui-accent)' : '2.5px solid transparent',
+                border: !onTitle && slot === s.slot ? '2.5px solid var(--ui-accent)' : '2.5px solid transparent',
               }}
             >
               <div>
@@ -109,16 +112,16 @@ export function SavesTab({ game }: { game: Game }) {
                   {m ? ` · ${m.name}` : ''}
                 </div>
                 <div style={{ color: 'var(--ui-text-soft)', fontSize: '12px' }}>
-                  {m ? `${fmtDate(m.savedAt)} · ${fmtTime(m.playTime)} · сид ${m.seed}` : 'пусто'}
+                  {m ? `${m.player ? `${m.player} · ` : ''}${fmtDate(m.savedAt)} · ${fmtTime(m.playTime)} · сид ${m.seed}` : 'пусто'}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {m && (
-                  <Button disabled={busy} onClick={() => run('Загружено', () => sm.load(slot))}>
+                  <Button disabled={busy} onClick={() => run('Загружено', () => (onTitle ? game.title.load(slot) : sm.load(slot)))}>
                     Загрузить
                   </Button>
                 )}
-                {m ? ask(`save:${slot}`, 'Перезаписать', () => run('Сохранено', () => sm.save(slot))) : (
+                {onTitle ? null : m ? ask(`save:${slot}`, 'Перезаписать', () => run('Сохранено', () => sm.save(slot))) : (
                   <Button secondary disabled={busy} onClick={() => run('Сохранено', () => sm.save(slot))}>
                     Сохранить сюда
                   </Button>
@@ -140,16 +143,12 @@ export function SavesTab({ game }: { game: Game }) {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-        <span style={{ color: 'var(--ui-text-soft)', fontSize: '13px' }}>{note || 'Игра сохраняется сама каждые пару минут.'}</span>
-        {ask('new', 'Новый остров', () => {
-          const free = sm.slotIds().find((id) => !metas.some((m) => m.slot === id))
-          if (!free) {
-            setConfirm(null)
-            setNote('Нет свободного слота — удалите один, чтобы начать новый остров.')
-            return
-          }
-          void run('Новый остров готов', () => sm.newGame({ slot: free }))
-        })}
+        <span style={{ color: 'var(--ui-text-soft)', fontSize: '13px' }}>{note || (onTitle ? '' : 'Игра сохраняется сама каждые пару минут.')}</span>
+        {!onTitle && (
+          <Button secondary disabled={busy} onClick={() => void game.title.leaveGame('new')}>
+            Новый остров
+          </Button>
+        )}
       </div>
     </div>
   )

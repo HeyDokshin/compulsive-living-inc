@@ -5,7 +5,7 @@
  * All numbers live in config/terrain.json5 and are tunable live in the debug panel (F2): the world regenerates.
  */
 import { definePlugin, type PluginApi, type SurfaceRect } from '@sdk'
-import { Config, connect, ponds, rivers, seaBedY, seaRing, shape, surface, voxels, waterKindAt, type TerrainData, type WaterKind } from './gen'
+import { Config, connect, ponds, rivers, seaBedY, seaRing, shape, tileRects, surface, voxels, waterKindAt, type TerrainData, type WaterKind } from './gen'
 
 export type { TerrainData, WaterKind } from './gen'
 
@@ -85,8 +85,11 @@ export default definePlugin({
         ...seaRing(sx, sz, 64, 160, 4),
         ...seaRing(sx, sz, 160, 480, 16),
       ]
-      sea.push(api.render.blockSurface(cfg.blocks.sand, rings, seaBedY(cfg)))
-      sea.push(api.render.blockSurface(cfg.blocks.water, rings, cfg.waterLevel - 0.125))
+      // in tiles, so only the sea in the picture is drawn
+      for (const tile of tileRects(rings, cfg.seaTile)) {
+        sea.push(api.render.blockSurface(cfg.blocks.sand, [tile], seaBedY(cfg), { cull: true }))
+        sea.push(api.render.blockSurface(cfg.blocks.water, [tile], cfg.waterLevel - 0.125, { cull: true }))
+      }
       showSea()
     }
     // Inside a room only the room is drawn: no sea around it.

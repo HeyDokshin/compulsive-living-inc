@@ -44,7 +44,14 @@ export const EngineConfigSchema = z.object({
       background: z.string().default('#9fd3e6').meta({ color: true }),
       shadows: z.boolean().default(true),
       maxPixelRatio: z.number().min(0.5).max(3).default(2).meta({ step: 0.25 }),
+      /** Shadows reach at most this far from the camera focus; zoomed in they cover just the picture. */
       shadowRange: z.number().min(10).max(200).default(60).meta({ label: 'shadow range', step: 1 }),
+      /** Blocks around the picture that still cast shadows into it. */
+      shadowMargin: z.number().min(0).max(60).default(10).meta({ label: 'shadow margin', step: 1 }),
+      /** Size of a shadow texel (blocks) that `style.shadowSoftness` is tuned for. */
+      softnessTexel: z.number().min(0.005).max(0.2).default(0.03).meta({ label: 'softness texel', step: 0.005 }),
+      /** Blocks around the picture where things are still drawn. */
+      cullMargin: z.number().min(0).max(60).default(6).meta({ label: 'cull margin', step: 1 }),
       shadowMapSize: z.number().int().min(256).max(4096).default(2048).meta({ label: 'shadow map size', step: 256 }),
       /** Antialiasing samples of the post-processing target (0 = off). */
       msaa: z.number().int().min(0).max(8).default(4).meta({ label: 'MSAA samples', step: 1 }),
@@ -135,6 +142,18 @@ export const EngineConfigSchema = z.object({
       ambient: z.number().min(0).max(1).default(0.6).meta({ step: 0.01 }),
       music: z.number().min(0).max(1).default(0.5).meta({ step: 0.01 }),
       hearingRange: z.number().min(4).max(100).default(26).meta({ label: 'hearing range (blocks)', step: 1 }),
+    })
+    .prefault({}),
+  title: z
+    .object({
+      /** Title screen on start (off: straight into the latest island). */
+      enabled: z.boolean().default(true),
+      zoom: z.number().min(0.1).max(8).default(1.15).meta({ step: 0.05 }),
+      /** The camera drifts in a circle around the island middle (blocks, degrees per second). */
+      orbit: z.number().min(0).max(60).default(16).meta({ step: 1 }),
+      orbitSpeed: z.number().min(0).max(30).default(2.5).meta({ label: 'orbit speed°', step: 0.1 }),
+      /** Seconds of the slow zoom-in when the game starts. */
+      glide: z.number().min(0).max(6).default(2).meta({ label: 'glide-in (s)', step: 0.1 }),
     })
     .prefault({}),
   save: z

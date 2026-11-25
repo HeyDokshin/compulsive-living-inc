@@ -57,6 +57,9 @@ declare module '@sdk' {
 }
 
 const Config = z.object({
+  /** Where the board stands, from the island middle (cells) — off the spot where the player arrives. */
+  boardX: z.number().int().min(-20).max(20).default(-5).meta({ label: 'board x', step: 1 }),
+  boardZ: z.number().int().min(-20).max(20).default(3).meta({ label: 'board z', step: 1 }),
   daily: z.number().int().min(1).max(10).default(5).meta({ label: 'tasks per day', step: 1 }),
   /** Bonus for finishing every task of the day. */
   bonus: z.number().int().min(0).max(2000).default(150).meta({ step: 10 }),
@@ -69,7 +72,7 @@ export default definePlugin({
   version: '0.1.0',
   description: 'Задания дня, листики, достижения, рейтинг острова и проекты',
   dependsOn: ['items'],
-  optionalDependsOn: ['collection', 'economy', 'crafting', 'villagers', 'museum', 'shop', 'house', 'decor', 'landscaping', 'terrain', 'daily'],
+  optionalDependsOn: ['collection', 'economy', 'crafting', 'villagers', 'museum', 'shop', 'house', 'decor', 'landscaping', 'terrain', 'daily', 'tutorial'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -214,9 +217,9 @@ export default definePlugin({
     const placeBoard = () => {
       if (!api.services.has('decor:pieces')) return null
       const decor = api.services.get('decor:pieces')
-      const cx = Math.floor(api.world.sizeX / 2)
-      const cz = Math.floor(api.world.sizeZ / 2) + 5
-      for (let r = 1; r < 30; r++)
+      const cx = Math.floor(api.world.sizeX / 2) + cfg.boardX
+      const cz = Math.floor(api.world.sizeZ / 2) + cfg.boardZ
+      for (let r = 0; r < 30; r++)
         for (let dz = -r; dz <= r; dz++)
           for (let dx = -r; dx <= r; dx++) {
             if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue
@@ -247,6 +250,20 @@ export default definePlugin({
       label: 'Доска острова',
       run: () => void api.ui.open('quests:board'),
     })
+    try {
+      api.registry('tutorial:steps').register({
+        id: 'quests:tutorial_board',
+        order: 92,
+        day: 3,
+        text: 'Загляните на доску острова: задания дня приносят листики.',
+        keys: ['Space'],
+        event: 'ui:opened',
+        when: (p: { id: string }) => p.id === 'quests:board',
+      })
+    } catch {
+      // no tutorial
+    }
+
     api.ui.slot('hud.topRight', () => <Leaves state={state} />, { order: 21 })
 
     // --- rating and projects -------------------------------------------------------------------------------

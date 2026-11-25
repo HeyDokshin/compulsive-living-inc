@@ -34,7 +34,7 @@ export function Talk(props: Props) {
     const others = Object.keys(props.state.value.residents).filter((id) => id !== v.id)
     const other = props.defs.get(others[Math.floor(Math.random() * others.length)] ?? '')?.name ?? 'кто-то'
     const line = pickLine(props.lines.all(), topic, { personality: v.personality, hour: api.time.hour, raining: w?.precipitation === 'rain', hearts: hearts(r.points), season: api.time.season }, Math.random)
-    return fill(line ?? '…', { name: v.name, phrase: v.phrase, animal: v.animal, player: cfg.playerName, other, a: v.she ? 'а' : '', hearts: hearts(r.points), ...extra })
+    return fill(line ?? '…', { name: v.name, phrase: v.phrase, animal: v.animal, player: api.session.player || cfg.playerName, other, a: v.she ? 'а' : '', hearts: hearts(r.points), ...extra })
   }
   const add = (n: number) => {
     if (!r) return

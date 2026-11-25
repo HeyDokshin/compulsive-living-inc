@@ -96,6 +96,7 @@ const Config = z.object({
       { tag: '#core:materials', label: 'немного материалов' },
       { tag: '#core:beach_finds', label: 'что-нибудь с пляжа' },
     ]),
+  /** What villagers call a player without a name. */
   playerName: z.string().default('сосед'),
   /** Watering can villagers carry (they water flowers through the interaction matrix). */
   tool: z.string().default('core:watering_can'),

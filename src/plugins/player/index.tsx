@@ -366,7 +366,7 @@ class Cursor {
     this.time += dt
     const t = e.transform
     const view = e.view
-    const show = this.cfg.cursor && !!t && !!view
+    const show = this.cfg.cursor && !this.api.ui.modalOpen.value && !!t && !!view
     this.mesh.visible = show
     if (!show) return
     ;(this.mesh.material as InstanceType<Three['MeshBasicMaterial']>).color.set(this.cfg.cursorColor)

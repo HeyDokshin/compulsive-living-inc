@@ -60,6 +60,7 @@ export default definePlugin({
 | `api.fx.burst(id, at, { color, amount, scale })` | частицы из реестра `particles` |
 | `api.time.now()` / `hour` / `season` / `dayIndex` / `shift(ms)` | часы игры; события `time:hour`, `time:day` (`catchUp` для пропущенных дней), `time:season` |
 | хук `light:adjust` | поправить свет каждый кадр (погода) |
+| `api.session` | имя острова и игрока (`name`, `player`), `rename(...)`; событие `session:created` — новый остров показан, пора создавать персонажа |
 | `api.save.hasData` | в сейве есть данные этого плагина (нет — новый остров или плагин появился позже: пора засеять) |
 | `api.render.refreshView(entity)` / `api.render.setZoom(z)` | пересобрать модель сущности после смены `model` / плавный зум |
 | события `ui:opened` / `ui:closed` | окно открыто или закрыто (по ним работает обучение) |
@@ -178,7 +179,7 @@ api.save.register({
 ## Внешность, обучение, звуковой фон
 
 - **Причёски и цвета** — записи реестра `wardrobe:options` (`content/wardrobe/wardrobe.options.json5`): `kind: 'style'` меняет модель части рига (`model.parts.head`), `kind: 'color'` — цвет канала палитры (`h s e t p o`). Новая причёска — это новая модель головы в данных.
-- **Шаги обучения** — реестр `tutorial:steps`: `{ id, order, text, keys, event, when }` или `check(api)`. Шаг засчитывается в любом порядке, прогресс сохраняется с островом. Команды: `tutorial reset`, `tutorial skip`.
+- **Шаги обучения** — реестр `tutorial:steps`: `{ id, order, day, text, keys, event, when }` или `check(api)`. `day` — день острова, с которого шаг показывается (по умолчанию первый). Шаг засчитывается в любом порядке, даже раньше своего дня; прогресс сохраняется с островом. Команды: `tutorial reset`, `tutorial skip`, `tutorial day <n>`.
 - **Музыка** — плагин `ambience`: аккорды, бас и мелодия по пентатонике, днём мажор, ночью тише и в миноре; после ~4 минут музыки пауза. Громкость: Esc → Настройки → «Музыка» и «Природа».
 
 ## Время, погода, природа
@@ -236,6 +237,8 @@ model: { shape: 'rig', ref: 'core:chibi', palette: { t: '#ffc4d6' } }  // пер
 silhouette: { color: '#fff6fb', opacity: 0.5 }  // виден сквозь рельеф
 blobShadow: { radius: 0.36 }                     // мягкая круглая тень
 ```
+
+Статичные сущности, которых много (цветы, поделки), помечайте `model.instanced: true`: они рисуются одной пачкой на модель и палитру, но у них нет своего `view`. Поверхности `api.render.blockSurface` с опцией `cull` рисуются, только когда попадают в кадр.
 
 ## Управление в dev-режиме
 

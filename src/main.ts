@@ -12,12 +12,18 @@ globalThis.__CL_HMR__ = {
   data: (content, config, assets) => game.reloadData(content, config, assets),
 }
 
-void game.boot({
-  plugins: Object.values(pluginModules).map((m) => m.default),
-  contentFiles,
-  configFiles,
-  assetFiles,
-})
+const splash = document.getElementById('splash')
+void game
+  .boot({
+    plugins: Object.values(pluginModules).map((m) => m.default),
+    contentFiles,
+    configFiles,
+    assetFiles,
+  })
+  .finally(() => {
+    splash?.classList.add('done')
+    setTimeout(() => splash?.remove(), 700)
+  })
 
 // Handy in the browser devtools: `game.entities.world.entities`
 Object.assign(globalThis, { game })

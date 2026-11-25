@@ -228,7 +228,7 @@
     ],
   },
   {
-    id: 'collection:cabbage_white_wingL',
+    id: 'collection:cabbage_white_wing_l',
     scale: 0.0625,
     palette: {"a": "#fbfaf2", "b": "#e6e4d4", "c": "#3a3a3a", "k": "#4a4a4a"},
     layers: [
@@ -237,7 +237,7 @@
     ],
   },
   {
-    id: 'collection:cabbage_white_wingR',
+    id: 'collection:cabbage_white_wing_r',
     scale: 0.0625,
     palette: {"a": "#fbfaf2", "b": "#e6e4d4", "c": "#3a3a3a", "k": "#4a4a4a"},
     layers: [
@@ -266,7 +266,7 @@
     ],
   },
   {
-    id: 'collection:peacock_eye_wingL',
+    id: 'collection:peacock_eye_wing_l',
     scale: 0.0625,
     palette: {"a": "#c9483a", "b": "#5a2a2a", "c": "#5a8ad8", "e": "#ffe08a", "k": "#3a2a2a"},
     layers: [
@@ -275,7 +275,7 @@
     ],
   },
   {
-    id: 'collection:peacock_eye_wingR',
+    id: 'collection:peacock_eye_wing_r',
     scale: 0.0625,
     palette: {"a": "#c9483a", "b": "#5a2a2a", "c": "#5a8ad8", "e": "#ffe08a", "k": "#3a2a2a"},
     layers: [
@@ -304,7 +304,7 @@
     ],
   },
   {
-    id: 'collection:moth_wingL',
+    id: 'collection:moth_wing_l',
     scale: 0.0625,
     palette: {"a": "#b8a48a", "b": "#8a765e", "c": "#6a5a48", "k": "#7a6a58"},
     layers: [
@@ -313,7 +313,7 @@
     ],
   },
   {
-    id: 'collection:moth_wingR',
+    id: 'collection:moth_wing_r',
     scale: 0.0625,
     palette: {"a": "#b8a48a", "b": "#8a765e", "c": "#6a5a48", "k": "#7a6a58"},
     layers: [
@@ -342,7 +342,7 @@
     ],
   },
   {
-    id: 'collection:winter_moth_wingL',
+    id: 'collection:winter_moth_wing_l',
     scale: 0.0625,
     palette: {"a": "#e2dccc", "b": "#bcb4a0", "c": "#a49c88", "k": "#9c9484"},
     layers: [
@@ -351,7 +351,7 @@
     ],
   },
   {
-    id: 'collection:winter_moth_wingR',
+    id: 'collection:winter_moth_wing_r',
     scale: 0.0625,
     palette: {"a": "#e2dccc", "b": "#bcb4a0", "c": "#a49c88", "k": "#9c9484"},
     layers: [
@@ -377,20 +377,27 @@
     scale: 0.0625,
     palette: {"a": "#ffd23a", "k": "#3a3030", "g": "#eef6ff"},
     layers: [
-      ['.........', '.........', '..aaka...', '..aaka...', '.........'],
-      ['.........', '..aaka...', '.kaakaakk', '.kaakaakk', '..aaka...'],
-      ['.........', '.kaakaa..', 'akaakaakk', 'akaakaakk', '.kaakaa..'],
-      ['.........', '..aaka...', '.kaakaakk', '.kaakaakk', '..aaka...'],
-      ['.........', '.........', '..aaka...', '..aaka...', '.........'],
-      ['..ggg....', '.........', '.........', '.........', '.........'],
+      ['.........', '..aaka...', '..aaka...', '.........'],
+      ['..aaka...', '.kaakaakk', '.kaakaakk', '..aaka...'],
+      ['.kaakaa..', 'akaakaakk', 'akaakaakk', '.kaakaa..'],
+      ['..aaka...', '.kaakaakk', '.kaakaakk', '..aaka...'],
+      ['.........', '..aaka...', '..aaka...', '.........'],
     ],
   },
   {
-    id: 'collection:bumblebee_wingR',
+    id: 'collection:bumblebee_wing_l',
     scale: 0.0625,
     palette: {"a": "#ffd23a", "k": "#3a3030", "g": "#eef6ff"},
     layers: [
-      ['.ggg', '....', '....', '....', '.ggg', 'ggg.'],
+      ['ggg.', '.ggg'],
+    ],
+  },
+  {
+    id: 'collection:bumblebee_wing_r',
+    scale: 0.0625,
+    palette: {"a": "#ffd23a", "k": "#3a3030", "g": "#eef6ff"},
+    layers: [
+      ['.ggg', 'ggg.'],
     ],
   },
   {
@@ -425,7 +432,7 @@
     ],
   },
   {
-    id: 'collection:dragonfly_wingL',
+    id: 'collection:dragonfly_wing_l',
     scale: 0.0625,
     palette: {"a": "#3aa0c8", "b": "#2a6a8a", "e": "#2a3a4a", "g": "#dff4ff"},
     layers: [
@@ -433,7 +440,7 @@
     ],
   },
   {
-    id: 'collection:dragonfly_wingR',
+    id: 'collection:dragonfly_wing_r',
     scale: 0.0625,
     palette: {"a": "#3aa0c8", "b": "#2a6a8a", "e": "#2a3a4a", "g": "#dff4ff"},
     layers: [
@@ -461,7 +468,7 @@
     ],
   },
   {
-    id: 'collection:red_dragonfly_wingL',
+    id: 'collection:red_dragonfly_wing_l',
     scale: 0.0625,
     palette: {"a": "#e0563a", "b": "#a8382a", "e": "#4a2a2a", "g": "#fff0e6"},
     layers: [
@@ -469,7 +476,7 @@
     ],
   },
   {
-    id: 'collection:red_dragonfly_wingR',
+    id: 'collection:red_dragonfly_wing_r',
     scale: 0.0625,
     palette: {"a": "#e0563a", "b": "#a8382a", "e": "#4a2a2a", "g": "#fff0e6"},
     layers: [

@@ -13,7 +13,7 @@ export function Key({ children }: { children: ComponentChildren }) {
 
 export function Button(props: { children: ComponentChildren; onClick?: () => void; secondary?: boolean; disabled?: boolean }) {
   return (
-    <button class={`cl-btn${props.secondary ? ' secondary' : ''}`} disabled={props.disabled} onClick={props.onClick}>
+    <button type="button" class={`cl-btn${props.secondary ? ' secondary' : ''}`} disabled={props.disabled} onClick={props.onClick}>
       {props.children}
     </button>
   )

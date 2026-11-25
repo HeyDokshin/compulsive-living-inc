@@ -123,7 +123,7 @@ export interface PluginApi {
      * or [x0, z0, x1, z1, cellSize] — split big areas into cells so world curvature bends them.
      * Added to the scene and removed on unload.
      */
-    blockSurface(blockId: string, rects: SurfaceRect[], y: number, opts?: { transparent?: boolean }): THREE.Mesh
+    blockSurface(blockId: string, rects: SurfaceRect[], y: number, opts?: { transparent?: boolean; cull?: boolean }): THREE.Mesh
   }
 
   /** The voxel island. Coordinates are block units; a block occupies [x, x+1). */
@@ -226,6 +226,14 @@ export interface PluginApi {
     enter(id: string, actor: Entity, at: { x: number; y: number; z: number; rotY: number }): void
     /** Back outside where the actor entered. */
     exit(actor: Entity): void
+  }
+  /** The island being played. */
+  session: {
+    /** The island's name. */
+    readonly name: string
+    /** The player's name ('' = not given). */
+    readonly player: string
+    rename(names: { name?: string; player?: string }): void
   }
   save: {
     /**

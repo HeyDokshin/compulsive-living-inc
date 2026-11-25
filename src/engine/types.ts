@@ -45,6 +45,8 @@ export const ModelSchema = z.object({
   palette: z.record(z.string(), z.string()).optional(),
   /** Rig only: swap the model of named parts, e.g. `{ head: 'core:chibi_head_bob' }` (hairstyles, hats…). */
   parts: z.record(z.string(), z.string()).optional(),
+  /** Voxel models that just stand there (flowers, furniture): drawn together, with no `view` of their own. */
+  instanced: z.boolean().optional(),
 })
 export type ModelSpec = z.infer<typeof ModelSchema>
 
@@ -155,6 +157,8 @@ export interface GameEvents {
   'interaction:performed': { id: string; ctx: InteractionContext }
   /** A new game or a loaded save is fully set up (plugins started). */
   'session:started': { loaded: boolean; slot: string }
+  /** A new island from the title screen is ready and shown: time to create the character. */
+  'session:created': { slot: string }
   'save:saved': { slot: string }
   /** A new game hour started. */
   'time:hour': { hour: number; dayIndex: number }

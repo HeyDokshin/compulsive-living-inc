@@ -35,6 +35,7 @@ export class ModelLibrary {
     group.name = id
     this.withModel(id, (model, def) => {
       const mesh = this.mesh(id, model, def.pivot ?? defaultPivot(model), opts.palette, def)
+      if (!mesh) return
       const s = opts.scale ?? def.scale
       mesh.scale.setScalar(s)
       group.add(mesh)
@@ -71,7 +72,10 @@ export class ModelLibrary {
         parent.add(g)
       } else inner.add(g)
       const modelId = opts.parts?.[part.name] ?? part.model
-      this.withModel(modelId, (model, def) => g.add(this.mesh(modelId, model, part.pivot, opts.palette, def)))
+      this.withModel(modelId, (model, def) => {
+        const mesh = this.mesh(modelId, model, part.pivot, opts.palette, def)
+        if (mesh) g.add(mesh)
+      })
     }
     return root
   }
@@ -119,13 +123,30 @@ export class ModelLibrary {
     return p
   }
 
-  private mesh(id: string, model: VoxelModel, pivot: [number, number, number], palette: Record<string, string> | undefined, def: ModelDef): Mesh {
+  /** Geometry of a voxel model (voxel units), its scale and a key naming this exact look — for instancing. */
+  voxelGeometry(id: string, palette: Record<string, string> | undefined, cb: (geo: BufferGeometry, scale: number, key: string) => void): void {
+    this.withModel(id, (model, def) => {
+      const { geo, key } = this.geometry(id, model, def.pivot ?? defaultPivot(model), palette, def)
+      if (geo.index!.count) cb(geo, def.scale, key)
+    })
+  }
+
+  private geometry(id: string, model: VoxelModel, pivot: [number, number, number], palette: Record<string, string> | undefined, def: ModelDef) {
     const key = `${id}|${pivot.join(',')}|${palette ? JSON.stringify(palette) : ''}`
     let geo = this.geometries.get(key)
     if (!geo) {
-      geo = toGeometry(buildVoxelGeometry(model, pivot), resolveColors(model, def, palette))
+      // faces merge up to one block: longer quads would cut corners on the curved world
+      const maxMerge = Math.max(1, Math.round(1 / def.scale))
+      geo = toGeometry(buildVoxelGeometry(model, pivot, maxMerge), resolveColors(model, def, palette))
       this.geometries.set(key, geo)
     }
+    return { geo, key }
+  }
+
+  /** Null for empty models (a tree's missing fruit): nothing to draw. */
+  private mesh(id: string, model: VoxelModel, pivot: [number, number, number], palette: Record<string, string> | undefined, def: ModelDef): Mesh | null {
+    const { geo } = this.geometry(id, model, pivot, palette, def)
+    if (!geo.index!.count) return null
     const mesh = new Mesh(geo, this.material)
     mesh.castShadow = true
     mesh.receiveShadow = true

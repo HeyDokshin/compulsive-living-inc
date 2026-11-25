@@ -24,6 +24,11 @@ export class CameraController {
   follow: Entity | null = null
   /** False until the camera got a sensible place (island center or a followed entity). */
   placed = false
+  /** Title screen: a slow drift around the island instead of following and panning. */
+  cinematic: { zoom: number; orbit: number; orbitSpeed: number } | null = null
+  /** Rooms are small: the drift holds still inside one. */
+  insideRoom: () => boolean = () => false
+  private angle = 0
   /** Called after a wheel zoom (the debug panel shows the zoom value). */
   onZoom?: () => void
   private dir = new Vector3()
@@ -44,8 +49,8 @@ export class CameraController {
     input.define(ACTIONS.down, ['KeyS', 'ArrowDown'], 'engine')
     input.define(ACTIONS.left, ['KeyA', 'ArrowLeft'], 'engine')
     input.define(ACTIONS.right, ['KeyD', 'ArrowRight'], 'engine')
-    input.on(ACTIONS.rotL, () => iso.rotate(-1))
-    input.on(ACTIONS.rotR, () => iso.rotate(1))
+    input.on(ACTIONS.rotL, () => !this.cinematic && iso.rotate(-1))
+    input.on(ACTIONS.rotR, () => !this.cinematic && iso.rotate(1))
   }
 
   /** Point the camera at the middle of the island. */
@@ -69,7 +74,18 @@ export class CameraController {
   update(ctx: TickContext): void {
     const { iso, cfg } = this
     const fe = this.follow
-    if (fe && this.entities.world.has(fe) && fe.view) {
+    const drift = this.insideRoom() ? null : this.cinematic
+    iso.zoomOverride = drift ? drift.zoom : null
+    if (drift) {
+      const v = this.world.voxels
+      this.angle += ((drift.orbitSpeed * Math.PI) / 180) * ctx.dt
+      const x = v.sizeX / 2 + Math.cos(this.angle) * drift.orbit
+      const z = v.sizeZ / 2 + Math.sin(this.angle) * drift.orbit
+      this.goal.set(x, this.world.surfaceY(v.sizeX / 2, v.sizeZ / 2), z)
+      // Far away (the title just opened): cut, don't sweep.
+      if (iso.target.distanceToSquared(this.goal) > 9) iso.target.copy(this.goal)
+      else iso.target.lerp(this.goal, Math.min(1, ctx.dt * 2))
+    } else if (fe && this.entities.world.has(fe) && fe.view) {
       // Smoothed velocity of the followed view → look ahead in the direction of travel.
       const pos = fe.view.position
       if (ctx.dt > 0) {
@@ -97,7 +113,7 @@ export class CameraController {
       iso.target.y += (ground - iso.target.y) * Math.min(1, ctx.dt * 4)
     }
     const wheel = this.input.consumeWheel()
-    if (wheel) {
+    if (wheel && !this.cinematic) {
       iso.zoomBy(wheel)
       this.onZoom?.()
     }

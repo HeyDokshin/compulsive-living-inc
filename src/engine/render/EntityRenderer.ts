@@ -10,7 +10,6 @@ import {
   type Material,
   MeshBasicMaterial,
   MeshLambertMaterial,
-  PlaneGeometry,
   SRGBColorSpace,
   type Object3D,
   type Scene,
@@ -19,11 +18,13 @@ import type { Entities } from '../ecs/Entities'
 import type { ModelLibrary } from '../models/ModelLibrary'
 import type { Entity, ModelSpec, TickContext, Transform } from '../types'
 import type { VoxelWorld } from '../world/VoxelWorld'
+import { BlobBatch, ModelBatches } from './Batches'
 import { stylize } from './style'
 
 /**
  * `model` component → three.js `view`, interpolated between simulation ticks.
- * Also draws optional silhouettes (visible through terrain) and soft blob shadows.
+ * Things outside the picture are hidden; `instanced` models and soft blob shadows are drawn in batches.
+ * Also draws optional silhouettes (visible through terrain).
  */
 export class EntityRenderer {
   private prev = new WeakMap<Entity, Transform>()
@@ -33,9 +34,9 @@ export class EntityRenderer {
   private silhouetted = new WeakSet<Mesh>()
   /** Stencil-writing clones of entity materials, so silhouettes ignore the entity's own parts. */
   private stencilWriters = new WeakMap<Material, Material>()
-  private blobs = new Map<Entity, Mesh>()
-  private blobGeometry = new PlaneGeometry(1, 1).rotateX(-Math.PI / 2)
-  private blobTexture = makeBlobTexture()
+  private models: ReturnType<typeof modelQuery>
+  private blobs: BlobBatch
+  private batches: ModelBatches
 
   constructor(
     private scene: Scene,
@@ -43,15 +44,10 @@ export class EntityRenderer {
     private library: ModelLibrary,
     private world: VoxelWorld,
   ) {
-    entities.world.onEntityRemoved.subscribe((e) => {
-      e.view?.removeFromParent()
-      const blob = this.blobs.get(e)
-      if (blob) {
-        blob.removeFromParent()
-        ;(blob.material as MeshBasicMaterial).dispose()
-        this.blobs.delete(e)
-      }
-    })
+    this.models = modelQuery(entities)
+    this.blobs = new BlobBatch(scene, makeBlobTexture())
+    this.batches = new ModelBatches(scene, library)
+    entities.world.onEntityRemoved.subscribe((e) => e.view?.removeFromParent())
   }
 
   /** Start of each tick: remember transforms so rendering can interpolate. */
@@ -66,29 +62,46 @@ export class EntityRenderer {
   private frame = 0
   /** Is an entity at (x, z) drawn? (inside an interior only its room is) */
   visibleAt: (x: number, z: number) => boolean = () => true
+  /** Can a ball show up in the picture? (set by the Renderer from the camera) */
+  inView: (x: number, y: number, z: number, r: number) => boolean = () => true
 
   render(ctx: TickContext): void {
     this.frame++
     const a = ctx.alpha
-    for (const e of this.entities.world.with('model')) {
-      if (!e.view) {
-        const view = this.create(e.model)
+    this.batches.begin()
+    this.blobs.begin()
+    for (const e of this.models) {
+      const spec = e.model
+      const batched = spec.instanced === true && spec.shape === 'voxel' && spec.ref !== undefined
+      if (!e.view && !batched) {
+        const view = this.create(spec)
         this.scene.add(view)
         this.entities.world.addComponent(e, 'view', view)
       }
-      const view = e.view!
       const t = e.transform
       if (!t) continue
       const p = this.prev.get(e) ?? t
-      view.position.set(lerp(p.x, t.x, a), lerp(p.y, t.y, a), lerp(p.z, t.z, a))
-      view.rotation.y = lerpAngle(p.rotY, t.rotY, a)
-      view.visible = this.visibleAt(t.x, t.z)
-      const blob = this.blobs.get(e)
-      if (blob) blob.visible = view.visible
+      const x = lerp(p.x, t.x, a)
+      const y = lerp(p.y, t.y, a)
+      const z = lerp(p.z, t.z, a)
+      const rotY = lerpAngle(p.rotY, t.rotY, a)
+      const b = e.blocker
+      const r = b ? Math.max(DEFAULT_RADIUS, ((b.w ?? 1) + (b.d ?? 1)) / 2 + (b.h ?? 3)) : DEFAULT_RADIUS
+      const visible = this.visibleAt(t.x, t.z) && this.inView(x, y, z, r)
+      const view = e.view
+      if (view) {
+        view.position.set(x, y, z)
+        view.rotation.y = rotY
+        view.visible = visible
+      }
+      if (!visible) continue
+      if (batched) this.batches.place(spec, x, y, z, rotY)
       // Parts may load asynchronously; look for new meshes now and then, not every frame.
-      if (e.silhouette && (this.frame + (e.uid ?? 0)) % 15 === 0) this.applySilhouette(view, e.silhouette)
-      if (e.blobShadow) this.updateBlob(e, view)
+      if (view && e.silhouette && (this.frame + (e.uid ?? 0)) % 15 === 0) this.applySilhouette(view, e.silhouette)
+      if (e.blobShadow) this.blob(e.blobShadow, x, y, z)
     }
+    this.batches.end()
+    this.blobs.end()
   }
 
   /** Recreate one entity's view (its `model` changed, e.g. new clothes). */
@@ -104,6 +117,7 @@ export class EntityRenderer {
       e.view.removeFromParent()
       this.entities.world.removeComponent(e, 'view')
     }
+    this.batches.clear()
   }
 
   create(spec: ModelSpec): Object3D {
@@ -177,30 +191,18 @@ export class EntityRenderer {
     return m
   }
 
-  private updateBlob(e: Entity, view: Object3D): void {
-    let blob = this.blobs.get(e)
-    const s = e.blobShadow!
-    if (!blob) {
-      const mat = stylize(new MeshBasicMaterial({ map: this.blobTexture, transparent: true, depthWrite: false, opacity: s.opacity }))
-      blob = new Mesh(this.blobGeometry, mat)
-      blob.renderOrder = 1
-      this.blobs.set(e, blob)
-      this.scene.add(blob)
-    }
-    const x = view.position.x
-    const z = view.position.z
+  /** A soft round shadow on the ground under (x, y, z). */
+  private blob(s: { radius: number; opacity: number }, x: number, y: number, z: number): void {
     // ground under the entity: the first non-air cell at or below its feet
     let ground = 0
-    for (let y = Math.floor(view.position.y + 0.01); y >= 0; y--) {
-      if (this.world.get(Math.floor(x), y - 1, Math.floor(z))) {
-        ground = y
+    for (let gy = Math.floor(y + 0.01); gy >= 0; gy--) {
+      if (this.world.get(Math.floor(x), gy - 1, Math.floor(z))) {
+        ground = gy
         break
       }
     }
-    const lift = Math.max(0, view.position.y - ground)
-    blob.position.set(x, ground + 0.02, z)
-    blob.scale.setScalar(s.radius * 2 * Math.max(0.5, 1 - lift * 0.3))
-    ;(blob.material as MeshBasicMaterial).opacity = s.opacity * Math.max(0.2, 1 - lift * 0.5)
+    const lift = Math.max(0, y - ground)
+    this.blobs.push(x, ground + 0.02, z, s.radius * 2 * Math.max(0.5, 1 - lift * 0.3), s.opacity * Math.max(0.2, 1 - lift * 0.5))
   }
 }
 
@@ -218,6 +220,11 @@ function makeBlobTexture(): CanvasTexture {
   t.colorSpace = SRGBColorSpace
   return t
 }
+
+/** Radius (blocks) an entity without a footprint takes up for culling: a tree with its canopy fits. */
+const DEFAULT_RADIUS = 3.5
+
+const modelQuery = (entities: Entities) => entities.world.with('model')
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const lerpAngle = (a: number, b: number, t: number) => {

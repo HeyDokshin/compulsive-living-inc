@@ -77,4 +77,37 @@ export const UI_CSS = /* css */ `
 .cl-bells-float { position: absolute; right: 12px; top: 100%; font-weight: 800; font-size: 14px; white-space: nowrap; pointer-events: none;
   text-shadow: 0 1px 0 #fff, 0 0 6px #fff; animation: cl-float 1.4s ease-out forwards; }
 @keyframes cl-float { 0% { transform: translateY(6px); opacity: 0 } 15% { transform: translateY(0); opacity: 1 } 100% { transform: translateY(-34px); opacity: 0 } }
+.cl-input { border: 2px solid var(--ui-line); border-radius: 14px; padding: 9px 14px; font: 700 15px var(--ui-font); color: var(--ui-text);
+  background: #fff; outline: none; width: 100%; }
+.cl-input:focus { border-color: var(--ui-accent); }
+.cl-input::placeholder { color: var(--ui-text-soft); opacity: .7; }
+
+.cl-title { position: absolute; inset: 0; pointer-events: auto; display: flex; align-items: center; gap: 24px; padding: 4vh 5vw; overflow: auto;
+  background: linear-gradient(90deg, rgba(255, 250, 240, .55), rgba(255, 250, 240, 0) 60%); animation: cl-fade .5s ease-out; }
+.cl-title-side { display: flex; flex-direction: column; align-items: flex-start; gap: 26px; flex: none; }
+.cl-title-logo { margin: 0; font-size: clamp(44px, 7vw, 84px); line-height: .95; font-weight: 900; letter-spacing: -.02em; color: #fffaf0;
+  -webkit-text-stroke: 10px #8a6a55; paint-order: stroke fill; filter: drop-shadow(0 6px 0 rgba(110, 80, 70, .28)); animation: cl-bob 5s ease-in-out infinite; }
+.cl-title-menu { display: flex; flex-direction: column; gap: 10px; width: 270px; }
+.cl-title-btn { border: 3px solid #fff; border-radius: 22px; padding: 11px 22px; text-align: left; cursor: pointer; background: rgba(255, 250, 240, .94);
+  color: var(--ui-text); font: 800 18px var(--ui-font); box-shadow: var(--ui-shadow); transition: transform .12s; }
+.cl-title-btn small { display: block; font-size: 12px; font-weight: 700; opacity: .85; margin-top: 2px; }
+.cl-title-btn:hover, .cl-title-btn.on { transform: translateX(8px); }
+.cl-title-btn.on { border-color: var(--ui-accent); }
+.cl-title-btn.main { background: var(--ui-accent); color: #fff; }
+.cl-title-btn:focus-visible, .cl-btn:focus-visible { outline: 3px solid var(--ui-gold); outline-offset: 2px; }
+.cl-title-panel { margin: auto; max-height: 88vh; }
+.cl-title-busy { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 18px; background: rgba(255, 250, 240, .94);
+  border-radius: 999px; padding: 12px 24px; box-shadow: var(--ui-shadow); }
+.cl-title-dots { display: inline-flex; gap: 5px; }
+.cl-title-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--ui-accent); }
+.cl-title .cl-pill { white-space: normal; max-width: min(420px, 88vw); }
+.cl-title-panel form { max-width: 100%; }
+.cl-title-version { position: fixed; left: 16px; bottom: 12px; font-size: 12px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(90, 70, 60, .6); }
+@keyframes cl-bob { 50% { transform: translateY(-6px) } }
+@media (max-width: 760px) {
+  .cl-title { flex-direction: column; justify-content: flex-start; }
+  .cl-title-side { align-items: center; text-align: center; gap: 16px; }
+  .cl-title-panel { margin: 0 auto; max-height: none; flex: none; }
+}
+@media (prefers-reduced-motion: reduce) { .cl-title-logo { animation: none } }
 `

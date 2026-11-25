@@ -9,20 +9,29 @@ import { createLogger } from '../util/log'
 
 const log = createLogger('session')
 
+export const DEFAULT_ISLAND = 'Мой остров'
+
 export interface Session {
   /** Restored from a save (plugins skip first-time setup). */
   loaded: boolean
   slot: string
+  /** The island's name. */
   name: string
+  /** The player's name ('' = not given). */
+  player: string
   createdAt: number
   /** Seconds of play. */
   playTime: number
+  /** Only a backdrop for the title screen: never saved. */
+  demo: boolean
 }
 
 export interface NewSessionOptions {
   seed?: number
   slot?: string
   name?: string
+  player?: string
+  demo?: boolean
 }
 
 /** Shape check for save files coming from outside (imports), before anything touches the game. */
@@ -50,7 +59,7 @@ const SaveShape = z.object({
 export class SessionManager {
   readonly saves = new SaveService()
   storage: SaveStorage = new IndexedDbStorage()
-  session: Session = { loaded: false, slot: 'slot1', name: 'Мой остров', createdAt: Date.now(), playTime: 0 }
+  session: Session = { loaded: false, slot: 'slot1', name: DEFAULT_ISLAND, player: '', createdAt: Date.now(), playTime: 0, demo: true }
   /** True while a session is being (re)built — saving is skipped meanwhile. */
   switching = false
   private sinceSave = 0
@@ -72,7 +81,7 @@ export class SessionManager {
   /**
    * (Re)build the whole game: unload plugins, clear entities, then load plugins again on top of
    * either a fresh island or a save (world voxels → entities → plugin data → plugin start).
-   * A save that fails to load falls back to a fresh island instead of leaving a broken game.
+   * A save that fails to load leads back to the title screen instead of leaving a broken game.
    */
   start(save: SaveData | null, opts: NewSessionOptions = {}): Promise<void> {
     return this.game.serial(async () => {
@@ -81,8 +90,9 @@ export class SessionManager {
       } catch (e) {
         if (!save) throw e
         log.error('loading the save failed, starting a fresh island:', e)
-        await this.build(null, { slot: save.meta.slot })
-        this.game.ui.toast('Не получилось загрузить сохранение — начат новый остров')
+        // The broken save stays as it is: the fresh island is only a backdrop for the title screen.
+        await this.build(null, { slot: save.meta.slot, demo: true })
+        this.game.title.show('main', 'Не получилось загрузить сохранение — оно осталось нетронутым.')
       }
     })
   }
@@ -100,10 +110,18 @@ export class SessionManager {
       g.ui.close()
       if (save) {
         const m = save.meta
-        this.session = { loaded: true, slot: m.slot, name: m.name, createdAt: m.createdAt, playTime: m.playTime }
+        this.session = { loaded: true, slot: m.slot, name: m.name, player: m.player ?? '', createdAt: m.createdAt, playTime: m.playTime, demo: false }
         Object.assign(g.worldConfig, save.world.config) // silently: no regenerate-on-change
       } else {
-        this.session = { loaded: false, slot: opts.slot ?? this.session.slot, name: opts.name ?? 'Мой остров', createdAt: Date.now(), playTime: 0 }
+        this.session = {
+          loaded: false,
+          slot: opts.slot ?? this.session.slot,
+          name: opts.name || DEFAULT_ISLAND,
+          player: opts.player ?? '',
+          createdAt: Date.now(),
+          playTime: 0,
+          demo: opts.demo ?? false,
+        }
         if (opts.seed !== undefined) g.worldConfig.seed = opts.seed
         g.time.reset() // a new island starts today
       }
@@ -136,11 +154,12 @@ export class SessionManager {
 
   /** Save the current island into a slot (default: the session's slot). */
   async save(slot = this.session.slot): Promise<SaveMeta | null> {
-    if (this.switching) return null
+    if (this.switching || this.session.demo) return null
     const g = this.game
     const meta: SaveMeta = {
       slot,
       name: this.session.name,
+      player: this.session.player,
       createdAt: this.session.createdAt,
       savedAt: Date.now(),
       playTime: Math.round(this.session.playTime),
@@ -162,7 +181,7 @@ export class SessionManager {
   }
 
   async newGame(opts: NewSessionOptions = {}): Promise<void> {
-    await this.start(null, { seed: opts.seed ?? Math.floor(Math.random() * 2 ** 31), slot: opts.slot, name: opts.name })
+    await this.start(null, { ...opts, seed: opts.seed ?? Math.floor(Math.random() * 2 ** 31) })
     await this.save()
   }
 
@@ -193,7 +212,7 @@ export class SessionManager {
 
   /** Per frame: play time and timed autosave. */
   tick(dt: number, paused: boolean): void {
-    if (this.switching) return
+    if (this.switching || this.game.title.visible.value) return
     if (!paused) this.session.playTime += dt
     const every = this.game.engineConfig.save.autosaveMinutes * 60
     if (every <= 0) return
@@ -207,7 +226,7 @@ export class SessionManager {
   /** Also save when the tab is hidden (closing, switching apps). */
   installSaveOnHide(): void {
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden' && this.game.engineConfig.save.autosaveMinutes > 0) {
+      if (document.visibilityState === 'hidden' && !this.game.title.visible.value && this.game.engineConfig.save.autosaveMinutes > 0) {
         void this.save().catch((e) => log.error('save on hide failed:', e))
       }
     })
