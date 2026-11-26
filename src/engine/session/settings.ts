@@ -43,7 +43,12 @@ export const QUALITY_PRESETS: Record<Quality, Record<string, number | boolean>> 
     'style.postfx': true,
     'style.tiltShift': 3,
     'style.curvature': 0.0025,
+    'render.characters.fur': true,
+    'render.characters.maxShells': 14,
+    'render.characters.fabric': true,
+    'render.detail.max': 256,
   },
+  // Fur thinner (fewer shells), block close-ups up to 128 texels.
   medium: {
     'render.maxPixelRatio': 1.5,
     'render.shadows': true,
@@ -52,6 +57,10 @@ export const QUALITY_PRESETS: Record<Quality, Record<string, number | boolean>> 
     'style.postfx': true,
     'style.tiltShift': 3,
     'style.curvature': 0.0025,
+    'render.characters.fur': true,
+    'render.characters.maxShells': 8,
+    'render.characters.fabric': true,
+    'render.detail.max': 128,
   },
   // No shadows or post effects, flat world (lets the mesher merge faces: ~3× fewer triangles).
   low: {
@@ -62,6 +71,11 @@ export const QUALITY_PRESETS: Record<Quality, Record<string, number | boolean>> 
     'style.postfx': false,
     'style.tiltShift': 0,
     'style.curvature': 0,
+    // characters stay round with drawn faces; no fur shells or weave, block close-ups up to 64 texels
+    'render.characters.fur': false,
+    'render.characters.maxShells': 6,
+    'render.characters.fabric': false,
+    'render.detail.max': 64,
   },
 }
 

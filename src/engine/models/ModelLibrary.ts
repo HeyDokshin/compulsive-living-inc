@@ -20,7 +20,7 @@ export class ModelLibrary {
   private geometries = new Map<string, BufferGeometry>()
   readonly material: Material = stylize(new MeshLambertMaterial({ vertexColors: true }))
   /** Round characters (`round` rigs): smooth parts, fur and drawn faces. Set from the engine config. */
-  look: CharacterLook = { round: true, fur: true, faces: true, fabric: true, maxShells: 12, furFrom: 1.6, furFull: 5 }
+  look: CharacterLook = { round: true, fur: true, faces: true, fabric: true, maxShells: 12, furFrom: 2.4, furFull: 6 }
   private characterMaterial = createCharacterMaterial()
   /** Fabric detail textures (set by the game once materials exist). */
   fabrics: FabricTextures | null = null
@@ -146,20 +146,27 @@ export class ModelLibrary {
         geo.setAttribute('fabric', new Float32BufferAttribute(w, 3))
       }
       this.geometries.set(key, geo)
-      // shells only over triangles that grow fur
-      const idx: number[] = []
-      for (let t = 0; t < data.index.length; t += 3) {
-        const a = data.index[t]!
-        const b = data.index[t + 1]!
-        const c = data.index[t + 2]!
-        if (amount[a]! + amount[b]! + amount[c]! > 0) idx.push(a, b, c)
-      }
-      if (idx.length) {
-        furGeo = new BufferGeometry()
-        for (const name of ['position', 'normal', 'color', 'fur']) furGeo.setAttribute(name, geo.getAttribute(name))
-        furGeo.setIndex(idx)
-        furGeo.computeBoundingSphere()
-        this.geometries.set(key + '|fur', furGeo)
+      // Shells: a coarser copy of the same surface (fluff hides the difference; ~half the
+      // triangles, drawn many times over), only where fur grows.
+      if (amount.some((a) => a > 0)) {
+        const coarse = round.subdiv > 2 ? buildSmoothGeometry(model, pivot, { ...round, subdiv: 2 }) : data
+        const shellGeo = coarse === data ? geo : toGeometry(coarse, resolveColors(model, def, colors))
+        const shellFur = coarse === data ? amount : coarse.colorIndex.map((ci) => def.fur?.keys[chars[ci - 1] ?? ''] ?? 0)
+        const idx: number[] = []
+        for (let t = 0; t < coarse.index.length; t += 3) {
+          const a = coarse.index[t]!
+          const b = coarse.index[t + 1]!
+          const c = coarse.index[t + 2]!
+          if (shellFur[a]! + shellFur[b]! + shellFur[c]! > 0) idx.push(a, b, c)
+        }
+        if (idx.length) {
+          furGeo = new BufferGeometry()
+          for (const name of ['position', 'normal', 'color']) furGeo.setAttribute(name, shellGeo.getAttribute(name))
+          furGeo.setAttribute('fur', new Float32BufferAttribute(shellFur, 1))
+          furGeo.setIndex(idx)
+          furGeo.computeBoundingSphere()
+          this.geometries.set(key + '|fur', furGeo)
+        }
       }
     }
     if (!geo.index!.count) return []

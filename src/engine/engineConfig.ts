@@ -70,9 +70,9 @@ export const EngineConfigSchema = z.object({
           /** Fur shells close up (more = denser, softer fur; costs drawing time). */
           maxShells: z.number().int().min(2).max(32).default(14).meta({ label: 'fur shells', step: 1 }),
           /** Fur appears from this many screen pixels per voxel… */
-          furFrom: z.number().min(0.5).max(20).default(1.6).meta({ label: 'fur from (px/voxel)', step: 0.1 }),
+          furFrom: z.number().min(0.5).max(20).default(2.4).meta({ label: 'fur from (px/voxel)', step: 0.1 }),
           /** …and is fully grown at this many. */
-          furFull: z.number().min(0.5).max(40).default(5).meta({ label: 'fur full (px/voxel)', step: 0.1 }),
+          furFull: z.number().min(0.5).max(40).default(6).meta({ label: 'fur full (px/voxel)', step: 0.1 }),
         })
         .prefault({}),
       /** Close-up block textures: finer atlases (procedural materials) as the camera comes closer. */
