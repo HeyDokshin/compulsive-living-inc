@@ -53,7 +53,7 @@ my_mod/
 
 | Реестр | Что это |
 |---|---|
-| `items`, `models`, `rigs`, `blocks`, `textures`, `sounds`, `particles`, `prefabs` | основа: предметы, воксельные модели, блоки, звуки |
+| `items`, `models`, `rigs`, `blocks`, `textures`, `materials`, `sounds`, `particles`, `prefabs` | основа: предметы, воксельные модели (`fur`, `face`), риги (`round`), блоки, текстуры и процедурные материалы, звуки |
 | `decor:pieces`, `crafting:recipes` | поделки (каждый вариант становится предметом) и рецепты |
 | `collection:species` | рыбы, насекомые, окаменелости |
 | `garden:species`, `nature:trees` | цветы и деревья |
