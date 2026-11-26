@@ -170,6 +170,7 @@
     scale: 0.0625,
     palette: {"b": "#b9875a", "v": "#5aa596", "k": "#f2c14e", "f": "#8a5a3a", "t": "#e8645a", "s": "#9a6a48", "n": "#3a2a2a", "m": "#6e4630", "r": "#8a5a3a", "e": "#2a2230", "g": "#f2c14e"},
     fur: {"keys": {"b": 0.6, "r": 0.5}, "length": 0.5, "density": 6, "droop": 0.2},
+    fabric: {"keys": {"v": "core:tweed", "t": "core:linen"}, "tile": 3},
     layers: [
       ['..bbbbbbbb..', '.bffbbbbffb.', '.bffbbbbffb.', '.bbbbbbbbbb.', '.bbbbbbbbbb.', '.bffbbbbffb.', '.bffbbbbffb.', '..bvvkkvvb..', '............'],
       ['..bbbbbbbb..', '.bbbbbbbbbb.', '.bbbbbbbbbb.', '.bbbbbbbbbb.', '.bbbbbbbbbb.', '.bbbbbbbbbb.', '.bbbbbbbbbb.', '..bvvvvvvb..', '............'],

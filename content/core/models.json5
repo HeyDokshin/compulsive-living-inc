@@ -24,8 +24,9 @@
   {
     id: 'core:chibi_body',
     palette: {"t": "#9fd0ff", "p": "#6f84c9", "c": "#ffffff"},
-    // a fuzzy knit sweater on round rigs
+    // a fuzzy knit sweater and jeans on round rigs
     fur: { keys: { t: 0.6, c: 0.4 }, length: 0.3, density: 9, droop: 0, thickness: 0.35 },
+    fabric: { keys: { t: 'core:knit', c: 'core:knit', p: 'core:denim' }, tile: 2.5 },
     layers: [
       ['pppppp', 'pppppp', 'pppppp', 'pppppp'],
       ['tttttt', 'tttttt', 'tttttt', 'tttttt'],
@@ -38,6 +39,7 @@
     id: 'core:chibi_arm',
     palette: {"s": "#ffdcc4", "t": "#9fd0ff"},
     fur: { keys: { t: 0.6 }, length: 0.3, density: 9, droop: 0, thickness: 0.35 },
+    fabric: { keys: { t: 'core:knit' }, tile: 2.5 },
     layers: [
       ['ss', 'ss'],
       ['ss', 'ss'],
@@ -49,6 +51,7 @@
   {
     id: 'core:chibi_leg',
     palette: {"o": "#a8705a", "p": "#6f84c9"},
+    fabric: { keys: { p: 'core:denim' }, tile: 2.5 },
     layers: [
       ['oo', 'oo'],
       ['pp', 'pp'],

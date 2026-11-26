@@ -35,6 +35,20 @@ export const ModelDefSchema = z.looseObject({
     })
     .optional(),
   /**
+   * Fabric on round rigs: palette character → procedural material (the `materials` registry) whose
+   * weave shows on it close up, over the painted color (recolored clothes keep their color). At most
+   * three materials per model.
+   */
+  fabric: z
+    .object({
+      keys: z.record(z.string(), z.string()),
+      /** Voxels one tile of the material covers. */
+      tile: z.number().min(0.25).max(64).default(4),
+      /** How strongly the weave shows (0…1). */
+      strength: z.number().min(0).max(1).default(0.7),
+    })
+    .optional(),
+  /**
    * A drawn face on round rigs (expressions, blinking, talking — the `faces` plugin): where it sits on the
    * front of this model, which painted voxels it replaces, and its look.
    */

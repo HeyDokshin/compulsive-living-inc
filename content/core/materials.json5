@@ -1,7 +1,7 @@
 // Procedural materials: layers of tileable patterns, each through a color ramp, blended over the
 // ones below. Rendered at any size — textures that name a material (textures.json5: `material`) show
 // it when the camera is close; far away they keep their pixel look. Patterns: fill, noise, ridged,
-// cells, cracks, strata, wood, boards, grain, fibers, knit, pebbles. Blend: normal, multiply, screen,
+// cells, cracks, strata, wood, boards, grain, fibers, knit, pebbles, twill, weave. Blend: normal, multiply, screen,
 // overlay, soft, add, darken, lighten. `relief` adds a layer to the surface height (baked light and shade).
 [
   {
@@ -61,6 +61,44 @@
       { kind: 'pebbles', colors: ['#b9a493', '#d9cabd'], scale: 6, relief: 0.3, params: { size: 0.13 }, seed: 24,
         mask: { kind: 'pebbles', scale: 6, threshold: 0.05, softness: 0.05, params: { size: 0.13 }, seed: 24 } },
       { kind: 'grain', colors: ['#8f6545', '#e2bf98'], scale: 128, blend: 'overlay', opacity: 0.35, seed: 25 },
+    ],
+  },
+  // --- fabrics for characters (model `fabric`): only their light and shade is used, over the painted color ---
+  {
+    id: 'core:knit',
+    shading: 0.8,
+    occlusion: 0.4,
+    layers: [
+      { kind: 'knit', colors: ['#7c7c7c', '#cfcfcf'], scale: 6, relief: 0.8, params: { rowsPerCol: 1.2 }, seed: 31 },
+      { kind: 'fibers', colors: ['#959595', '#c8c8c8'], scale: 6, octaves: 3, blend: 'overlay', opacity: 0.3, params: { stretch: 3 }, seed: 32 },
+    ],
+  },
+  {
+    id: 'core:denim',
+    shading: 0.6,
+    occlusion: 0.25,
+    layers: [
+      { kind: 'twill', colors: ['#8c8c8c', '#c9c9c9'], scale: 20, relief: 0.5, params: { wobble: 0.5 }, seed: 33 },
+      { kind: 'noise', colors: ['#9a9a9a', '#d2d2d2'], scale: 3, octaves: 4, blend: 'overlay', opacity: 0.45, seed: 35 },
+    ],
+  },
+  {
+    id: 'core:linen',
+    shading: 0.6,
+    occlusion: 0.3,
+    layers: [
+      { kind: 'weave', colors: ['#8e8e8e', '#cdcdcd'], scale: 14, relief: 0.5, seed: 36 },
+      { kind: 'noise', colors: ['#a5a5a5', '#d0d0d0'], scale: 2, octaves: 3, blend: 'overlay', opacity: 0.3, seed: 37 },
+    ],
+  },
+  {
+    id: 'core:tweed',
+    shading: 0.6,
+    occlusion: 0.3,
+    layers: [
+      { kind: 'twill', colors: ['#888888', '#c4c4c4'], scale: 10, relief: 0.4, params: { wobble: 1 }, seed: 38 },
+      { kind: 'grain', colors: ['#5a5a5a', '#f0f0f0'], scale: 96, blend: 'overlay', opacity: 0.5, seed: 39 },
+      { kind: 'noise', colors: ['#8a8a8a', '#d6d6d6'], scale: 6, octaves: 3, blend: 'soft', opacity: 0.5, seed: 40 },
     ],
   },
 ]

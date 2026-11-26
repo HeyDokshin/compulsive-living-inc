@@ -65,6 +65,8 @@ export const EngineConfigSchema = z.object({
           round: z.boolean().default(true),
           fur: z.boolean().default(true),
           faces: z.boolean().default(true),
+          /** Weave of clothes close up (knit, denim…): procedural materials on characters. */
+          fabric: z.boolean().default(true),
           /** Fur shells close up (more = denser, softer fur; costs drawing time). */
           maxShells: z.number().int().min(2).max(32).default(14).meta({ label: 'fur shells', step: 1 }),
           /** Fur appears from this many screen pixels per voxel… */

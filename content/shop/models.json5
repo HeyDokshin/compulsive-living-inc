@@ -53,6 +53,7 @@
     scale: 0.0625,
     palette: {"o": "#d9643a", "d": "#5a2e22", "a": "#7cc45e", "w": "#fff4e6", "n": "#2a1e1e", "e": "#2a2230"},
     fur: {"keys": {"o": 1, "d": 0.8}, "length": 0.9, "density": 5, "droop": 0.35},
+    fabric: {"keys": {"a": "core:linen"}, "tile": 3},
     layers: [
       ['............', '............', '............', '............', '............', '............', '............', '..dddddddd..', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '..dddddddd..', '............'],
       ['............', '............', '............', '............', '............', '.....oo.....', '.....oo.....', '..dddddddd..', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '..dddddddd..', '............'],

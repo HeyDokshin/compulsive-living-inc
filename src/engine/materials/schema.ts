@@ -6,7 +6,7 @@ import { z } from 'zod'
  * are pixels for them, so a close camera gets real detail and a far one a clean, quiet surface.
  */
 
-export const LAYER_KINDS = ['fill', 'noise', 'ridged', 'cells', 'cracks', 'strata', 'wood', 'boards', 'grain', 'fibers', 'knit', 'pebbles'] as const
+export const LAYER_KINDS = ['fill', 'noise', 'ridged', 'cells', 'cracks', 'strata', 'wood', 'boards', 'grain', 'fibers', 'knit', 'pebbles', 'twill', 'weave'] as const
 export type LayerKind = (typeof LAYER_KINDS)[number]
 
 export const BLEND_MODES = ['normal', 'multiply', 'screen', 'overlay', 'soft', 'add', 'darken', 'lighten'] as const

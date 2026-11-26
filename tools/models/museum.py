@@ -352,6 +352,7 @@ prop('museum:curator_body', grid_layers(bn, *bsize), CUR)
 prop('museum:curator_head', grid_layers(hn, *hsize), CUR)
 # round rig: short capybara fur and a drawn face behind the glasses (eyes and mouth drawn by the faces plugin)
 props[-2]['fur'] = {'keys': {'b': 0.6, 'r': 0.5}, 'length': 0.5, 'density': 6, 'droop': 0.2}
+props[-2]['fabric'] = {'keys': {'v': 'core:tweed', 't': 'core:linen'}, 'tile': 3}
 props[-1]['fur'] = {'keys': {'b': 0.7, 's': 0.3, 'r': 0.5}, 'length': 0.55, 'density': 6, 'droop': 0.2}
 props[-1]['face'] = {'center': [5, 3], 'size': [9.6, 6.6], 'front': 9, 'erase': {'e': 'b', 'm': 's'},
                      'style': {'eyeGap': 2.5, 'eyeY': 4.5, 'eyeSize': 0.6, 'mouthY': 1.5, 'mouthWide': 0.9, 'lids': 0.35}}
@@ -380,7 +381,7 @@ with open(OUT, 'w') as f:
     f.write('  // --- interior props ---\n')
     for m in props:
         f.write(f"  {{\n    id: '{m['id']}',\n    scale: {m['scale']},\n    palette: {json.dumps(m['palette'])},\n")
-        for extra in ('fur', 'face'):
+        for extra in ('fur', 'fabric', 'face'):
             if extra in m:
                 f.write(f"    {extra}: {json.dumps(m[extra])},\n")
         f.write("    layers: [\n")

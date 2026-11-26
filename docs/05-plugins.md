@@ -147,7 +147,7 @@ export default definePlugin({
 // textures.json5: { id: 'my_pack:brick', pattern: 'planks', colors: ['#b5543c'], material: 'my_pack:brick' }
 ```
 
-Слой — узор (`fill noise ridged cells cracks strata wood boards grain fibers knit pebbles`) через цветовую рампу `colors`, наложенный режимом `blend` (`normal multiply screen overlay soft add darken lighten`) с `opacity` и маской; `scale` — сколько деталей на тайл (целые — без швов), `octaves`, `roughness`, `warp`, `contrast`, `relief` (рельеф для запечённого света). Настройки детализации — `engine → render.detail`.
+Слой — узор (`fill noise ridged cells cracks strata wood boards grain fibers knit pebbles twill weave`) через цветовую рампу `colors`, наложенный режимом `blend` (`normal multiply screen overlay soft add darken lighten`) с `opacity` и маской; `scale` — сколько деталей на тайл (целые — без швов), `octaves`, `roughness`, `warp`, `contrast`, `relief` (рельеф для запечённого света). Настройки детализации — `engine → render.detail`.
 
 ## Предметы и взаимодействия
 
@@ -272,12 +272,14 @@ blobShadow: { radius: 0.36 }                     // мягкая круглая 
 ```json5
 // мех или волосы на символах палитры: 0…1, длина и густота в вокселях
 fur: { keys: { s: 1, S: 0.7 }, length: 0.9, density: 6, droop: 0.3, thickness: 0.42 },
+// ткань вблизи: символ палитры → материал (берётся только его светотень, цвет остаётся из палитры)
+fabric: { keys: { t: 'core:knit', p: 'core:denim' }, tile: 2.5, strength: 0.7 },
 // нарисованное лицо: центр и размер на передней стороне (воксели), какие нарисованные вокселями черты оно заменяет
 face: { center: [4, 3.2], size: [7.6, 5.6], front: 7, erase: { e: 's', b: 's' },
         style: { eyeGap: 1.5, eyeY: 3.5, eyeSize: 0.8, mouthY: 1.9, mouthWide: 1, lids: 0, mouth: 'none', blush: '#ff98ad', brows: false } },
 ```
 
-Лицо рисует плагин `faces`: моргает, смотрит на собеседника, двигает губами, пока печатается реплика, и меняет выражение — по эмоциям (`emotes:shown`), по словам реплики или по просьбе любого плагина (`faces:control`). Реплика может начинаться с тега `[joy]` — его увидит только лицо. Всё выключается в `engine → render.characters` (`round`, `fur`, `faces`).
+Лицо рисует плагин `faces`: моргает, смотрит на собеседника, двигает губами, пока печатается реплика, и меняет выражение — по эмоциям (`emotes:shown`), по словам реплики или по просьбе любого плагина (`faces:control`). Реплика может начинаться с тега `[joy]` — его увидит только лицо. Всё выключается в `engine → render.characters` (`round`, `fur`, `faces`, `fabric`). Готовые ткани: `core:knit` (вязка), `core:denim` (саржа), `core:linen` (полотно), `core:tweed`.
 
 **Разговоры крупным планом.** Окно диалога становится сценой одной строкой: `api.services.get('cutscene:talk').conversation('my:talk', () => собеседник)` (сущность или объект рига). В компоненте передайте `ui.Dialogue` `onTyping` и `onLine` в `typing`/`line` сервиса — и лица заговорят. Игрок может выключить крупные планы в настройках.
 

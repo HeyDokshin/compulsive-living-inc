@@ -1,4 +1,5 @@
 import { AlwaysStencilFunc, MeshLambertMaterial, ReplaceStencilOp, Vector4, type Texture } from 'three'
+import { fabricUniforms } from './fabric'
 import { stylize } from './style'
 
 /**
@@ -80,23 +81,71 @@ const RIM = `
   }
 `
 
-/** The body of a round character; with `face`, the face picture is painted on it. */
-export function createCharacterMaterial(face?: FaceUniforms): MeshLambertMaterial {
+/**
+ * Fabric detail on a part: up to three procedural materials (detail textures around 0.5), mapped
+ * from three sides in the part's own space (no UVs needed) and weighted per vertex by the
+ * geometry's `fabric` attribute (one weight per slot, from the palette character painted there).
+ */
+export interface FabricSlots {
+  uMat0: { value: Texture }
+  uMat1: { value: Texture }
+  uMat2: { value: Texture }
+  /** Tiles per voxel. */
+  uMatScale: { value: number }
+  /** How strongly the weave shows (0…1). */
+  uMatStrength: { value: number }
+}
+
+const FABRIC_DECLS = `
+uniform sampler2D uMat0;
+uniform sampler2D uMat1;
+uniform sampler2D uMat2;
+uniform float uMatScale;
+uniform float uMatStrength;
+uniform float uMatFade;
+varying vec3 vFabric;
+vec3 tri3(sampler2D t, vec3 p, vec3 w) {
+  return texture2D(t, p.zy).rgb * w.x + texture2D(t, p.xz).rgb * w.y + texture2D(t, p.xy).rgb * w.z;
+}
+`
+const FABRIC_SAMPLE = `
+  if (uMatFade > 0.0) {
+    vec3 tw = pow(abs(normalize(vObjNormal)), vec3(4.0));
+    tw /= (tw.x + tw.y + tw.z + 1e-5);
+    vec3 mp = vObjPos * uMatScale;
+    float rest = max(0.0, 1.0 - vFabric.x - vFabric.y - vFabric.z);
+    vec3 detail = tri3(uMat0, mp, tw) * vFabric.x + tri3(uMat1, mp, tw) * vFabric.y + tri3(uMat2, mp, tw) * vFabric.z + vec3(0.5) * rest;
+    diffuseColor.rgb *= mix(vec3(1.0), detail * 2.0, uMatFade * uMatStrength);
+  }
+`
+
+/** The body of a round character; with `face`, the face picture is painted on it; with `fabric`, the weave of its clothes. */
+export function createCharacterMaterial(face?: FaceUniforms, fabric?: FabricSlots): MeshLambertMaterial {
   const mat = new MeshLambertMaterial({ vertexColors: true })
+  const local = !!face || !!fabric
   mat.onBeforeCompile = (shader) => {
     if (face) Object.assign(shader.uniforms, face)
+    if (fabric) Object.assign(shader.uniforms, fabric, fabricUniforms)
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\n' + (face ? 'varying vec3 vObjPos;\nvarying vec3 vObjNormal;' : ''))
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\n' + (face ? 'vObjPos = position; vObjNormal = normal;' : ''))
+      .replace(
+        '#include <common>',
+        '#include <common>\n' + (local ? 'varying vec3 vObjPos;\nvarying vec3 vObjNormal;\n' : '') + (fabric ? 'attribute vec3 fabric;\nvarying vec3 vFabric;' : ''),
+      )
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n' + (local ? 'vObjPos = position; vObjNormal = normal;' : '') + (fabric ? 'vFabric = fabric;' : ''))
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\n' + (face ? FACE_DECLS : ''))
+      .replace(
+        '#include <common>',
+        '#include <common>\n' + (face ? FACE_DECLS : local ? 'varying vec3 vObjPos;\nvarying vec3 vObjNormal;\n' : '') + (fabric ? FABRIC_DECLS : ''),
+      )
       .replace(
         '#include <color_fragment>',
-        '#include <color_fragment>\n' + (face ? FACE_SAMPLE + 'diffuseColor.rgb = mix(diffuseColor.rgb, faceColor.rgb, faceColor.a);' : ''),
+        '#include <color_fragment>\n' +
+          (fabric ? FABRIC_SAMPLE : '') +
+          (face ? FACE_SAMPLE + 'diffuseColor.rgb = mix(diffuseColor.rgb, faceColor.rgb, faceColor.a);' : ''),
       )
       .replace('#include <opaque_fragment>', RIM + '#include <opaque_fragment>')
   }
-  mat.customProgramCacheKey = () => `character:${face ? 'face' : 'plain'}`
+  mat.customProgramCacheKey = () => `character:${face ? 'face' : 'plain'}:${fabric ? 'fabric' : ''}`
   return stylize(mat)
 }
 

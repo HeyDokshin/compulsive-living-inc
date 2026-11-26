@@ -44,7 +44,7 @@ def write(path, models, header):
             if 'pivot' in m:
                 f.write(f"    pivot: {json.dumps(m['pivot'])},\n")
             f.write(f"    palette: {json.dumps(m['palette'])},\n")
-            for extra in ('fur', 'face'):
+            for extra in ('fur', 'fabric', 'face'):
                 if extra in m:
                     f.write(f"    {extra}: {json.dumps(m[extra])},\n")
             f.write("    layers: [\n")
@@ -146,7 +146,8 @@ hn, hmin = norm(head)
 keeper_models = [
     # round rig: a fluffy red panda with a drawn face (eyes erased to fur, drawn by the faces plugin)
     {'id': 'shop:keeper_body', 'scale': 0.0625, 'palette': KEEP, 'layers': bn.layers(),
-     'fur': {'keys': {'o': 1, 'd': 0.8}, 'length': 0.9, 'density': 5, 'droop': 0.35}},
+     'fur': {'keys': {'o': 1, 'd': 0.8}, 'length': 0.9, 'density': 5, 'droop': 0.35},
+     'fabric': {'keys': {'a': 'core:linen'}, 'tile': 3}},
     {'id': 'shop:keeper_head', 'scale': 0.0625, 'palette': KEEP, 'layers': hn.layers(),
      'fur': {'keys': {'o': 1, 'w': 0.8}, 'length': 1.0, 'density': 5, 'droop': 0.3},
      'face': {'center': [5, 3.2], 'size': [9, 6.2], 'front': 9, 'erase': {'e': 'o'},

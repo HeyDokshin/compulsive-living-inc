@@ -1,6 +1,7 @@
 import { BufferGeometry, Color, Float32BufferAttribute, Group, InstancedMesh, Mesh, MeshLambertMaterial, type Material, type Object3D, type Texture } from 'three'
 import type { Registry } from '../registry/Registry'
-import { createCharacterMaterial, createFaceUniforms, createFurMaterial, furUniforms, type FaceUniforms } from '../render/characterMaterial'
+import { createCharacterMaterial, createFaceUniforms, createFurMaterial, furUniforms, type FabricSlots, type FaceUniforms } from '../render/characterMaterial'
+import { fabricUniforms, type FabricTextures } from '../render/fabric'
 import { stylize } from '../render/style'
 import type { ModelDef, RigDef } from './defs'
 import { buildSmoothGeometry } from './smoothMesh'
@@ -19,8 +20,11 @@ export class ModelLibrary {
   private geometries = new Map<string, BufferGeometry>()
   readonly material: Material = stylize(new MeshLambertMaterial({ vertexColors: true }))
   /** Round characters (`round` rigs): smooth parts, fur and drawn faces. Set from the engine config. */
-  look: CharacterLook = { round: true, fur: true, faces: true, maxShells: 12, furFrom: 1.6, furFull: 5 }
+  look: CharacterLook = { round: true, fur: true, faces: true, fabric: true, maxShells: 12, furFrom: 1.6, furFull: 5 }
   private characterMaterial = createCharacterMaterial()
+  /** Fabric detail textures (set by the game once materials exist). */
+  fabrics: FabricTextures | null = null
+  private fabricMaterials = new Map<string, Material>()
   private furMaterials = new Map<string, Material>()
   /** Fur shell meshes alive in the scene (their shell count follows the zoom). */
   private furMeshes = new Set<InstancedMesh>()
@@ -39,6 +43,8 @@ export class ModelLibrary {
     for (const geo of this.geometries.values()) geo.dispose()
     for (const m of this.furMaterials.values()) m.dispose()
     this.furMaterials.clear()
+    for (const m of this.fabricMaterials.values()) m.dispose()
+    this.fabricMaterials.clear()
     this.parsed.clear()
     this.ready.clear()
     this.geometries.clear()
@@ -129,6 +135,16 @@ export class ModelLibrary {
       const chars = Object.keys(def.palette)
       const amount = data.colorIndex.map((ci) => def.fur?.keys[chars[ci - 1] ?? ''] ?? 0)
       geo.setAttribute('fur', new Float32BufferAttribute(amount, 1))
+      // fabric slot weights per vertex (one-hot from the painted character; blends between)
+      const fabricIds = def.fabric ? [...new Set(Object.values(def.fabric.keys))].slice(0, 3) : []
+      if (fabricIds.length) {
+        const w = new Float32Array(data.colorIndex.length * 3)
+        data.colorIndex.forEach((ci, i) => {
+          const slot = fabricIds.indexOf(def.fabric!.keys[chars[ci - 1] ?? ''] ?? '')
+          if (slot >= 0) w[i * 3 + slot] = 1
+        })
+        geo.setAttribute('fabric', new Float32BufferAttribute(w, 3))
+      }
       this.geometries.set(key, geo)
       // shells only over triangles that grow fur
       const idx: number[] = []
@@ -150,7 +166,14 @@ export class ModelLibrary {
     const faceUniforms: FaceUniforms | undefined = face
       ? createFaceUniforms(face.center[0] - pivot[0], face.center[1] - pivot[1], face.size[0], face.size[1], face.front - pivot[2] - 1.5)
       : undefined
-    const body = new Mesh(geo, faceUniforms ? createCharacterMaterial(faceUniforms) : this.characterMaterial)
+    const fabric = this.fabricSlots(def, geo)
+    let bodyMat: Material = this.characterMaterial
+    if (faceUniforms) bodyMat = createCharacterMaterial(faceUniforms, fabric)
+    else if (fabric) {
+      bodyMat = this.fabricMaterials.get(id) ?? createCharacterMaterial(undefined, fabric)
+      this.fabricMaterials.set(id, bodyMat)
+    }
+    const body = new Mesh(geo, bodyMat)
     body.castShadow = true
     body.receiveShadow = true
     if (face && faceUniforms) {
@@ -189,6 +212,15 @@ export class ModelLibrary {
     return out
   }
 
+  /** Uniforms of a part's fabric materials (null: no fabric, or the look turned it off). */
+  private fabricSlots(def: ModelDef, geo: BufferGeometry): FabricSlots | undefined {
+    const f = def.fabric
+    if (!f || !this.fabrics || !this.look.fabric || !geo.getAttribute('fabric')) return undefined
+    const ids = [...new Set(Object.values(f.keys))].slice(0, 3)
+    const tex = (i: number) => this.fabrics!.uniform(ids[i] ?? ids[0]!)
+    return { uMat0: tex(0), uMat1: tex(1), uMat2: tex(2), uMatScale: { value: 1 / f.tile }, uMatStrength: { value: f.strength } }
+  }
+
   /** Every drawn face in the scene (rig heads with a `face`), for the plugin that paints them. */
   eachFace(fn: (slot: FaceSlot) => void): void {
     const prune = this.furFrame % 60 === 30
@@ -211,6 +243,10 @@ export class ModelLibrary {
     const shells = t > 0 ? Math.max(3, Math.round(l.maxShells * t)) : 0
     furUniforms.uFurFade.value = t
     furUniforms.uFurShells.value = shells
+    // fabric weave fades in with the fur; its texture is as fine as a tile shows on screen
+    const near = l.fabric ? smoothstep(l.furFrom, l.furFull, pixelsPerVoxel) : 0
+    fabricUniforms.uMatFade.value = near
+    if (this.fabrics && near > 0) this.fabrics.setLevel(Math.min(256, Math.max(32, 2 ** Math.ceil(Math.log2(Math.max(1, pixelsPerVoxel * 4))))))
     const prune = ++this.furFrame % 60 === 0
     if (shells === this.furShells && !prune) return
     this.furShells = shells
@@ -333,6 +369,7 @@ export interface CharacterLook {
   round: boolean
   fur: boolean
   faces: boolean
+  fabric: boolean
   maxShells: number
   /** Fur starts showing at this many screen pixels per voxel… */
   furFrom: number

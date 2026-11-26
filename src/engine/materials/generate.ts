@@ -108,6 +108,11 @@ interface PatternArgs {
   params: Record<string, number>
 }
 
+/** 1 while `features` across the tile get ≥ 6 texels each in a `res` texture, fading to 0 by 3. */
+function fineness(features: number, res: number): number {
+  return clamp01((res / features - 3) / 3)
+}
+
 /** Pattern value in [0, 1] at tile coordinates (u, v); v grows downwards (texture rows). */
 export function pattern(a: PatternArgs, u: number, v: number, res: number): number {
   const p = a.params
@@ -182,6 +187,25 @@ export function pattern(a: PatternArgs, u: number, v: number, res: number): numb
     case 'fibers':
       // threads: noise stretched along u
       return fbm(u, v, n, a.octaves, a.roughness, a.seed, res, p.stretch ?? 6)
+    case 'twill': {
+      // diagonal ribs of a twill weave (denim): n threads across, each a soft rounded ridge
+      const t = (u + v) * n + (fbm(u, v, Math.max(1, Math.round(n / 4)), 2, 0.5, a.seed, res) - 0.5) * (p.wobble ?? 0.6)
+      // too many ribs for the texture: they fade to grey instead of turning into moiré
+      const rib = 0.5 + 0.5 * Math.cos((t - Math.floor(t)) * Math.PI * 2) * fineness(n * 1.5, res)
+      const yarn = fbm(u, v, n * 2, 2, 0.5, a.seed + 7, res, p.stretch ?? 0.25)
+      return clamp01(rib * 0.75 + yarn * 0.25)
+    }
+    case 'weave': {
+      // plain weave: threads over and under in a checker, each bulging in the middle
+      const x = u * n
+      const y = v * n
+      const over = (Math.floor(x) + Math.floor(y)) % 2 === 0
+      const along = over ? y - Math.floor(y) : x - Math.floor(x)
+      const across = over ? x - Math.floor(x) : y - Math.floor(y)
+      const bulge = 0.5 + (Math.sin(across * Math.PI) * (0.75 + 0.25 * Math.sin(along * Math.PI)) - 0.5) * fineness(n * 2, res)
+      const slub = fbm(u, v, n, 2, 0.5, a.seed + (over ? 1 : 2), res, over ? 0.25 : 4)
+      return clamp01(bulge * 0.8 + slub * 0.2)
+    }
     case 'knit': {
       // rows of V stitches: two slanted loops per cell
       const cols = n
@@ -192,7 +216,7 @@ export function pattern(a: PatternArgs, u: number, v: number, res: number): numb
       const ly = y - Math.floor(y)
       const side = lx < 0 ? -1 : 1
       const along = ly - Math.abs(lx) * 1.1
-      const loop = 1 - smoothstep(0.18, 0.5, Math.hypot(Math.abs(lx) - 0.25, along - 0.35) * 1.6)
+      const loop = 0.5 + (0.5 - smoothstep(0.18, 0.5, Math.hypot(Math.abs(lx) - 0.25, along - 0.35) * 1.6)) * fineness(rows * 2, res)
       const fuzz = fbm(u, v, cols * 4, 2, 0.5, a.seed + (side > 0 ? 1 : 2), res)
       return clamp01(loop * 0.85 + fuzz * 0.15)
     }
