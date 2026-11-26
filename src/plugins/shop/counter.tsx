@@ -43,9 +43,10 @@ export function Counter(props: {
     setText(r === 'ok' ? say('thanks', { name }) : r === 'poor' ? say('poor', { name, price, bells: wallet.bells.value }) : r === 'full' ? say('full') : say('sold_out'))
   }
 
+  const scene = api.services.has('cutscene:talk') ? api.services.get('cutscene:talk') : undefined
   return (
     <div style={{ width: 'min(620px, 90vw)' }}>
-      <ui.Dialogue speaker="Тоша, лавочница" text={text} typeSpeed={props.typeSpeed} onBlip={() => voiceBlip(api, props.voicePitch)} onTyping={props.setTalking}>
+      <ui.Dialogue speaker="Тоша, лавочница" text={text} typeSpeed={props.typeSpeed} onBlip={() => voiceBlip(api, props.voicePitch)} onTyping={(on) => (props.setTalking(on), scene?.typing(on))} onLine={(t) => scene?.line(t)}>
         {mode === 'buy' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '46vh', overflowY: 'auto' }}>
             {shop.today().map(({ shelf, goods }) => (

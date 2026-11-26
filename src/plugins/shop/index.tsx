@@ -62,7 +62,7 @@ export default definePlugin({
   description: 'Лавка Тоши: товары дня, открытки с рецептами, саженцы, семена',
   dependsOn: ['items', 'economy'],
   // after the museum and the sell box: the stall takes the next free plot
-  optionalDependsOn: ['museum', 'decor', 'nature', 'garden', 'daily', 'tutorial'],
+  optionalDependsOn: ['museum', 'decor', 'nature', 'garden', 'daily', 'tutorial', 'cutscene'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -232,7 +232,8 @@ export default definePlugin({
           break
         }
         if (pl) {
-          const want = Math.atan2(pl.transform.x - keeper.position.x, pl.transform.z - keeper.position.z)
+          const face = Math.atan2(pl.transform.x - keeper.position.x, pl.transform.z - keeper.position.z)
+          const want = api.services.has('cutscene:talk') ? api.services.get('cutscene:talk').cheat(face) : face
           const d = Math.atan2(Math.sin(want - keeper.rotation.y), Math.cos(want - keeper.rotation.y))
           keeper.rotation.y += d * Math.min(1, dt * 5)
         }
@@ -259,6 +260,8 @@ export default definePlugin({
       label: 'Поговорить с Тошей',
       run: () => void api.ui.open('shop:counter'),
     })
+    // talking to Tosha is a close-up of the two of you
+    if (api.services.has('cutscene:talk')) api.services.get('cutscene:talk').conversation('shop:counter', () => keeper)
     api.ui.window({
       id: 'shop:counter',
       title: 'Лавка Тоши',

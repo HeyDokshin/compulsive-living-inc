@@ -135,7 +135,7 @@ export default definePlugin({
   description: 'Жители: характеры, распорядок, диалоги, дружба, подарки, просьбы, переезды',
   dependsOn: ['items', 'characters'],
   // homes go up after the big buildings; photos are decor pieces
-  optionalDependsOn: ['decor', 'museum', 'shop', 'house', 'economy', 'garden', 'terrain', 'weather', 'daily', 'tutorial', 'emotes'],
+  optionalDependsOn: ['decor', 'museum', 'shop', 'house', 'economy', 'garden', 'terrain', 'weather', 'daily', 'tutorial', 'emotes', 'cutscene'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -575,7 +575,8 @@ export default definePlugin({
           }
           // in a conversation: stand and look at the player
           if (talkingTo === npc && pl) {
-            t.rotY = Math.atan2(pl.transform.x - t.x, pl.transform.z - t.z)
+            const face = Math.atan2(pl.transform.x - t.x, pl.transform.z - t.z)
+            t.rotY = api.services.has('cutscene:talk') ? api.services.get('cutscene:talk').cheat(face) : face
             npc.biped!.speed = 0
             continue
           }
@@ -689,6 +690,8 @@ export default definePlugin({
       talking.value = null
       talkingTo = null
     })
+    // a conversation is a close-up of the two of you
+    if (api.services.has('cutscene:talk')) api.services.get('cutscene:talk').conversation('villagers:talk', () => talking.value)
     api.ui.window({
       id: 'villagers:talk',
       title: 'Разговор',

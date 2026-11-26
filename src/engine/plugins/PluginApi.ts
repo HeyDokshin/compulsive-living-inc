@@ -5,7 +5,7 @@ import type { RegistryEntry, RegistryView } from '../registry/Registry'
 import type { SystemDef } from '../loop/Scheduler'
 import type { Components, Entity, GameEvents, GameHooks, Registries, CommandDef, Services } from '../types'
 import type { ComponentType } from 'preact'
-import type { ReadonlySignal } from '@preact/signals'
+import type { ReadonlySignal, Signal } from '@preact/signals'
 import type { UiSlot, WindowDef } from '../ui/UiHost'
 import type { InteractionContext, InteractionDef } from '../interact/Interactions'
 import type { SaverDef } from '../save/SaveService'
@@ -217,6 +217,8 @@ export interface PluginApi {
     toast(text: string, opts?: { icon?: string; ms?: number }): void
     /** True while a modal window is open — pause gameplay input. */
     readonly modalOpen: ReadonlySignal<boolean>
+    /** Cut-scene mode: set true and the HUD fades out (windows and the 'screen' slot stay). */
+    readonly cinema: Signal<boolean>
     /** Icon (data URL) of an item, drawn from its model. */
     itemIcon(id: string): Promise<string>
   }

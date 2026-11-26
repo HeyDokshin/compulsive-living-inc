@@ -49,8 +49,9 @@ export class CameraController {
     input.define(ACTIONS.down, ['KeyS', 'ArrowDown'], 'engine')
     input.define(ACTIONS.left, ['KeyA', 'ArrowLeft'], 'engine')
     input.define(ACTIONS.right, ['KeyD', 'ArrowRight'], 'engine')
-    input.on(ACTIONS.rotL, () => !this.cinematic && iso.rotate(-1))
-    input.on(ACTIONS.rotR, () => !this.cinematic && iso.rotate(1))
+    // the camera is the director's during a shot (dialogue close-ups)
+    input.on(ACTIONS.rotL, () => !this.cinematic && !iso.shotWeight && iso.rotate(-1))
+    input.on(ACTIONS.rotR, () => !this.cinematic && !iso.shotWeight && iso.rotate(1))
   }
 
   /** Point the camera at the middle of the island. */
@@ -113,7 +114,7 @@ export class CameraController {
       iso.target.y += (ground - iso.target.y) * Math.min(1, ctx.dt * 4)
     }
     const wheel = this.input.consumeWheel()
-    if (wheel && !this.cinematic) {
+    if (wheel && !this.cinematic && !iso.shotWeight) {
       iso.zoomBy(wheel)
       this.onZoom?.()
     }

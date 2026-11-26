@@ -1,5 +1,5 @@
 import { render, type ComponentType } from 'preact'
-import { signal, computed } from '@preact/signals'
+import { signal, computed, effect } from '@preact/signals'
 import { useEffect } from 'preact/hooks'
 import { keyCodeOf } from '../input/Input'
 import type { Dispose } from '../util/disposables'
@@ -7,9 +7,9 @@ import { focusFirst, focusables, moveFocus, nudgeSlider, typingIn, type Dir } fr
 import { UI_CSS } from './theme'
 
 /** Places on screen where plugins can put UI. */
-export type UiSlot = 'hud.topLeft' | 'hud.topRight' | 'hud.bottomLeft' | 'hud.bottom' | 'hud.bottomRight' | 'hud.center' | 'menu'
-/** Slots of the HUD ('menu' is drawn by the Esc menu). */
-export const UI_SLOTS: UiSlot[] = ['hud.topLeft', 'hud.topRight', 'hud.bottomLeft', 'hud.bottom', 'hud.bottomRight', 'hud.center']
+export type UiSlot = 'screen' | 'hud.topLeft' | 'hud.topRight' | 'hud.bottomLeft' | 'hud.bottom' | 'hud.bottomRight' | 'hud.center' | 'menu'
+/** Slots of the HUD ('menu' is drawn by the Esc menu). 'screen' covers the whole screen under the rest (overlays, bars). */
+export const UI_SLOTS: UiSlot[] = ['screen', 'hud.topLeft', 'hud.topRight', 'hud.bottomLeft', 'hud.bottom', 'hud.bottomRight', 'hud.center']
 
 interface SlotEntry {
   key: number
@@ -124,6 +124,9 @@ export class UiHost {
     else this.onIdleEscape?.()
   }
 
+  /** Cut-scene mode: the HUD fades out (windows and the 'screen' slot stay). */
+  readonly cinema = signal(false)
+
   mount(parent: HTMLElement): void {
     if (!document.getElementById('cl-ui-style')) {
       const style = document.createElement('style')
@@ -134,6 +137,11 @@ export class UiHost {
     const root = document.createElement('div')
     root.className = 'cl-ui'
     this.root = root
+    // a scene is playing: the HUD steps aside (only the 'screen' slot and windows stay)
+    effect(() => {
+      if (this.cinema.value) root.dataset.cinema = ''
+      else delete root.dataset.cinema
+    })
     parent.appendChild(root)
     render(<Root host={this} />, root)
   }

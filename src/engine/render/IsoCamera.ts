@@ -36,9 +36,33 @@ export class IsoCamera {
     return 45 + this.quarter * 90
   }
 
+  /**
+   * A cinematic shot blended over the usual view (dialogue close-ups): where to look, how close,
+   * from which side and how low. Everything closer to the camera than `clip` blocks in front of the
+   * focus is cut away, so trees and walls never hide the faces. Change it any time; `cut(on)` blends.
+   */
+  readonly shot = { target: new Vector3(), zoom: 4, pitch: 14, yaw: 45, clip: 6 }
+  private shotGoal = 0
+  private shotT = 0
+  private shotSeconds = 1
+  /** How far the shot is blended in (0…1, eased). */
+  shotWeight = 0
+
+  /** Blend into the shot (`on`) or back to the usual view, over `seconds`. */
+  cut(on: boolean, seconds = 1): void {
+    this.shotGoal = on ? 1 : 0
+    this.shotSeconds = Math.max(0.01, seconds)
+  }
+
+  /** Yaw and pitch actually shown (degrees), with the shot blended in. */
+  viewYaw = 45
+  viewPitch = 30
+  /** Zoom shown right now, the shot included. */
+  shownZoom = 1
+
   /** Horizontal direction the camera looks along (unit XZ). */
   forwardXZ(): { x: number; z: number } {
-    const yaw = MathUtils.degToRad(this.yaw)
+    const yaw = MathUtils.degToRad(this.viewYaw)
     return { x: -Math.sin(yaw), z: -Math.cos(yaw) }
   }
 
@@ -53,7 +77,7 @@ export class IsoCamera {
 
   /** Screen-relative movement → world XZ (for panning or "up = away from camera" controls). */
   screenToWorldDir(right: number, up: number, out = new Vector3()): Vector3 {
-    const yaw = MathUtils.degToRad(this.yaw)
+    const yaw = MathUtils.degToRad(this.viewYaw)
     // forward = direction the camera looks, projected on the ground
     const fx = -Math.sin(yaw)
     const fz = -Math.cos(yaw)
@@ -89,17 +113,32 @@ export class IsoCamera {
     this.glideLeft = Math.max(0, this.glideLeft - dt)
     const done = this.glideLeft > 0 ? 1 - this.glideLeft / this.glideFor : 1
     this.zoomNow *= Math.pow(zoom / this.zoomNow, 1 - Math.exp(-c.zoomSmoothing * done * done * dt))
-    const half = c.viewSize / 2 / this.zoomNow
+    // the shot, eased in and out
+    this.shotT = MathUtils.clamp(this.shotT + (Math.sign(this.shotGoal - this.shotT) * dt) / this.shotSeconds, 0, 1)
+    const w = (this.shotWeight = this.shotT * this.shotT * (3 - 2 * this.shotT))
+    const s = this.shot
+    const shown = w > 0 ? this.zoomNow * Math.pow(s.zoom / this.zoomNow, w) : this.zoomNow
+    this.viewYaw = this.yaw + w * (((((s.yaw - this.yaw) % 360) + 540) % 360) - 180)
+    this.viewPitch = c.pitch + (s.pitch - c.pitch) * w
+    this.shownZoom = shown
+    const half = c.viewSize / 2 / shown
     this.camera.left = -half * this.aspect
     this.camera.right = half * this.aspect
     this.camera.top = half
     this.camera.bottom = -half
     this.camera.updateProjectionMatrix()
 
-    const yaw = MathUtils.degToRad(this.yaw)
-    const pitch = MathUtils.degToRad(c.pitch)
+    const yaw = MathUtils.degToRad(this.viewYaw)
+    const pitch = MathUtils.degToRad(this.viewPitch)
     const dist = 200
     this.look.copy(this.target)
+    if (w > 0) this.look.lerp(s.target, w)
+    // in a shot, cut away what stands between the camera and the focus (ortho: a near plane does it)
+    const near = w > 0 ? dist - 80 + (80 - s.clip) * w : -500
+    if (near !== this.camera.near) {
+      this.camera.near = near
+      this.camera.updateProjectionMatrix()
+    }
     if (this.shakeLeft > 0) {
       this.shakeLeft = Math.max(0, this.shakeLeft - dt)
       this.shakeTime += dt

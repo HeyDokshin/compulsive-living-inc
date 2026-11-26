@@ -89,9 +89,10 @@ export function Curator({ deps }: { deps: CuratorDeps }) {
           ['Пока!', () => api.ui.close()],
         ]
 
+  const scene = api.services.has('cutscene:talk') ? api.services.get('cutscene:talk') : undefined
   return (
     <div style={{ width: 'min(560px, 88vw)' }}>
-      <ui.Dialogue speaker="Мира, смотрительница" text={text} typeSpeed={deps.typeSpeed} onBlip={() => voiceBlip(api, deps.voicePitch)} onTyping={deps.setTalking}>
+      <ui.Dialogue speaker="Мира, смотрительница" text={text} typeSpeed={deps.typeSpeed} onBlip={() => voiceBlip(api, deps.voicePitch)} onTyping={(on) => (deps.setTalking(on), scene?.typing(on))} onLine={(t) => scene?.line(t)}>
         {mode === 'donate' && (
           <ui.Grid columns={7}>
             {candidates.map((id) => (

@@ -56,7 +56,7 @@ export default definePlugin({
   description: 'Музей: залы рыб, насекомых и окаменелостей, пожертвования, оценка окаменелостей',
   dependsOn: ['items', 'collection'],
   // load after the plugins that put things on a new island, so the museum can clear its plot
-  optionalDependsOn: ['nature', 'garden', 'terrain', 'tutorial', 'daily'],
+  optionalDependsOn: ['nature', 'garden', 'terrain', 'tutorial', 'daily', 'cutscene'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -223,6 +223,8 @@ export default definePlugin({
     api.createRegistry<DialogueDef>('museum:dialogue', z.looseObject({ id: z.string(), lines: z.array(z.string()).min(1) }) as never)
     let met = false
     api.save.register<{ met: boolean }>({ version: 1, save: () => ({ met }), load: (d) => void (met = d.met) }, 'curator')
+    // talking to Mira is a close-up of the two of you
+    if (api.services.has('cutscene:talk')) api.services.get('cutscene:talk').conversation('museum:desk', () => hall.curator())
     api.ui.window({
       id: 'museum:desk',
       title: 'Музей острова',

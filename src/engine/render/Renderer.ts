@@ -199,7 +199,7 @@ export class Renderer {
     c.fz = f.z
     c.halfW = cam.right
     c.halfH = cam.top
-    c.pitch = MathUtils.degToRad(this.cfg.camera.pitch)
+    c.pitch = MathUtils.degToRad(this.iso.viewPitch)
     c.curvature = this.cfg.style.curvature
     c.margin = this.cfg.render.cullMargin
   }
@@ -234,7 +234,7 @@ export class Renderer {
     const f = this.iso.forwardXZ()
     styleUniforms.uCurveDir.value.set(f.x, f.z)
     if (this.cfg.style.postfx) {
-      this.postfx.setTiltScale(Math.min(1, this.cfg.style.tiltShiftZoom / this.iso.currentZoom))
+      this.postfx.setTiltScale(Math.min(1, this.cfg.style.tiltShiftZoom / this.iso.shownZoom))
       this.postfx.render(ctx.dt)
     }
     else this.renderer.render(this.scene, this.iso.camera)

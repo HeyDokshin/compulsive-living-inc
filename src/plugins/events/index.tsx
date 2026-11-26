@@ -53,7 +53,7 @@ export default definePlugin({
   version: '0.1.0',
   description: 'Праздники по календарю: гости на площади, особые лавки, украшения',
   dependsOn: ['items', 'decor', 'characters'],
-  optionalDependsOn: ['economy', 'quests', 'villagers', 'daily'],
+  optionalDependsOn: ['economy', 'quests', 'villagers', 'daily', 'cutscene'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -196,6 +196,7 @@ export default definePlugin({
         api.ui.open('events:guest')
       },
     })
+    if (api.services.has('cutscene:talk')) api.services.get('cutscene:talk').conversation('events:guest', () => talking.value)
     api.ui.window({
       id: 'events:guest',
       title: 'Гость острова',
@@ -260,9 +261,10 @@ function GuestTalk({ api, who, guests, calendar }: { api: PluginApi; who: Signal
     api.audio.play('economy:coins')
     setText(line('thanks'))
   }
+  const scene = api.services.has('cutscene:talk') ? api.services.get('cutscene:talk') : undefined
   return (
     <div style={{ width: 'min(600px, 90vw)' }}>
-      <ui.Dialogue speaker={`${g.name}, ${g.animal} · ${ev.name}`} text={text} typeSpeed={g.speed} onBlip={() => voiceBlip(api, g.voice)}>
+      <ui.Dialogue speaker={`${g.name}, ${g.animal} · ${ev.name}`} text={text} typeSpeed={g.speed} onBlip={() => voiceBlip(api, g.voice)} onTyping={(on) => scene?.typing(on)} onLine={(t) => scene?.line(t)}>
         {shopping && (
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {ev.shop.map((s) => (
