@@ -125,7 +125,7 @@ export const EngineConfigSchema = z.object({
       dayCycle: z.boolean().default(true).meta({ label: 'day cycle' }),
       time: z.number().min(0).max(24).default(10).meta({ label: 'time (h)', step: 0.1 }),
       timeSpeed: z.number().min(0).max(4).default(0).meta({ label: 'hours / sec', step: 0.05 }),
-      maxElevation: z.number().min(10).max(90).default(62).meta({ label: 'max sun elevation°', step: 1 }),
+      maxElevation: z.number().min(10).max(90).default(54).meta({ label: 'max sun elevation°', step: 1 }),
       keys: z
         .array(
           z.object({
@@ -165,8 +165,8 @@ export const EngineConfigSchema = z.object({
       tiltShiftZoom: z.number().min(0.5).max(10).default(2.2).meta({ label: 'tilt-shift full until zoom', step: 0.1 }),
       tiltFocus: z.number().min(0).max(1).default(0.5).meta({ label: 'tilt-shift focus', step: 0.01 }),
       curvature: z.number().min(0).max(0.02).default(0.0025).meta({ label: 'world curvature', step: 0.0005 }),
-      shadowSoftness: z.number().min(0).max(10).default(4).meta({ label: 'shadow softness', step: 0.25 }),
-      shadowStrength: z.number().min(0).max(1).default(0.62).meta({ label: 'shadow strength', step: 0.01 }),
+      shadowSoftness: z.number().min(0).max(10).default(1.6).meta({ label: 'shadow softness', step: 0.25 }),
+      shadowStrength: z.number().min(0).max(1).default(0.8).meta({ label: 'shadow strength', step: 0.01 }),
       waterSpeed: z.number().min(0).max(5).default(1).meta({ label: 'water speed', step: 0.05 }),
     })
     .prefault({}),
