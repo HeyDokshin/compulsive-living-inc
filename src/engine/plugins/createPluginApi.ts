@@ -222,6 +222,8 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       toast: (text, opts) => game.ui.toast(text, opts),
       modalOpen: game.ui.modalOpen,
       cinema: game.ui.cinema,
+      peek: game.ui.peek,
+      hasWindow: (id) => game.ui.hasWindow(id),
       itemIcon: (id) => game.icons.item(id),
     },
     interactions: {

@@ -31,6 +31,8 @@ export interface WindowDef {
   align?: 'center' | 'left' | 'right' | 'bottom'
   /** Room for a tool with several columns. */
   wide?: boolean
+  /** No frame or title: the component draws all of itself (a phone, a card). */
+  bare?: boolean
 }
 
 const NAV: Record<string, Dir> = {
@@ -126,6 +128,13 @@ export class UiHost {
 
   /** Cut-scene mode: the HUD fades out (windows and the 'screen' slot stay). */
   readonly cinema = signal(false)
+  /** Everything on the HUD shows, quiet parts included (`ui.Quiet`) — e.g. while the phone is out. */
+  readonly peek = signal(false)
+
+  /** Is a window with this id registered? */
+  hasWindow(id: string): boolean {
+    return this.windows.value.has(id)
+  }
 
   mount(parent: HTMLElement): void {
     if (!document.getElementById('cl-ui-style')) {
@@ -141,6 +150,10 @@ export class UiHost {
     effect(() => {
       if (this.cinema.value) root.dataset.cinema = ''
       else delete root.dataset.cinema
+    })
+    effect(() => {
+      if (this.peek.value) root.dataset.peek = ''
+      else delete root.dataset.peek
     })
     parent.appendChild(root)
     render(<Root host={this} />, root)
@@ -263,17 +276,23 @@ function Root({ host }: { host: UiHost }) {
           class={`cl-backdrop${win.backdrop === 'clear' ? ' clear' : ''}${win.align && win.align !== 'center' ? ' ' + win.align : ''}`}
           onPointerDown={(e) => e.target === e.currentTarget && host.close()}
         >
-          <div class={`cl-window${win.wide ? ' wide' : ''}`} role="dialog" aria-label={win.title}>
-            <div class="cl-window-title">
-              <span>{win.title}</span>
-              <button class="cl-close" aria-label="Закрыть" onClick={() => host.close()}>
-                ×
-              </button>
-            </div>
-            <div class="cl-window-body">
+          {win.bare ? (
+            <div class="cl-bare" role="dialog" aria-label={win.title}>
               <win.component />
             </div>
-          </div>
+          ) : (
+            <div class={`cl-window${win.wide ? ' wide' : ''}`} role="dialog" aria-label={win.title}>
+              <div class="cl-window-title">
+                <span>{win.title}</span>
+                <button class="cl-close" aria-label="Закрыть" onClick={() => host.close()}>
+                  ×
+                </button>
+              </div>
+              <div class="cl-window-body">
+                <win.component />
+              </div>
+            </div>
+          )}
         </div>
       )}
       <div class="cl-toasts">

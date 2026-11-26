@@ -1,0 +1,14 @@
+// Apps on the phone (Q). An app opens a window of some plugin (`window`) or a screen of the phone
+// itself (`screen`: milestones). Apps whose window no plugin provides are hidden.
+// color: the tile; order: place on the home screen.
+[
+  { id: 'phone:pockets', name: 'Карманы', icon: '🎒', color: '#ffd59e', window: 'items:pockets', order: 10 },
+  { id: 'phone:map', name: 'Карта', icon: '🗺️', color: '#b9e3c6', window: 'minimap:full', order: 20 },
+  { id: 'phone:milestones', name: 'Вехи', icon: '🏅', color: '#ffe08a', screen: 'milestones', order: 30 },
+  { id: 'phone:tasks', name: 'Задания', icon: '📋', color: '#c9e7ff', window: 'quests:board', order: 40 },
+  { id: 'phone:book', name: 'Энциклопедия', icon: '📖', color: '#f3c9e8', window: 'collection:book', order: 50 },
+  { id: 'phone:prices', name: 'Цены дня', icon: '📈', color: '#d7f0b8', window: 'economy:market', order: 60 },
+  { id: 'phone:wardrobe', name: 'Гардероб', icon: '👕', color: '#e3d4ff', window: 'wardrobe:editor', order: 70 },
+  { id: 'phone:emotes', name: 'Эмоции', icon: '😊', color: '#ffd0c2', window: 'emotes:wheel', order: 80 },
+  { id: 'phone:menu', name: 'Меню', icon: '⚙️', color: '#e8e2d6', window: 'engine:menu', order: 90 },
+]

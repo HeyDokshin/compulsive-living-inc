@@ -252,7 +252,7 @@ export default definePlugin({
     // --- UI -------------------------------------------------------------------------------
     const selected = signal<number | null>(null)
     api.ui.window({ id: 'items:pockets', title: 'Карманы', component: () => <Pockets api={api} service={service} owner={owner} selected={selected} /> })
-    api.ui.slot('hud.bottomLeft', () => <HeldHud api={api} service={service} owner={owner} />)
+    api.ui.slot('hud.bottomRight', () => <HeldHud api={api} service={service} owner={owner} />)
 
     api.commands.register({
       name: 'give',

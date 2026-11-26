@@ -19,7 +19,16 @@ export const UI_CSS = /* css */ `
 .cl-slot { position: absolute; display: flex; gap: 10px; pointer-events: none; }
 .cl-slot > * { pointer-events: auto; }
 .cl-slot-screen { inset: 0; }
+.cl-clock { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; pointer-events: none; }
+.cl-clock-time { font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; color: #fffdf7; font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 0 rgba(90, 70, 60, 0.35), 0 6px 18px rgba(60, 40, 30, 0.3); }
+.cl-clock-date { display: flex; gap: 6px; align-items: center; padding: 4px 12px; border-radius: 999px; background: var(--ui-bg); color: var(--ui-text);
+  font-size: 13px; font-weight: 700; box-shadow: 0 4px 14px rgba(80, 60, 40, 0.18); }
 .cl-slot { transition: opacity 0.4s ease; }
+.cl-bare { pointer-events: auto; animation: cl-pop 0.22s ease-out; }
+.cl-quiet { transition: opacity 0.5s ease, transform 0.5s ease; }
+.cl-quiet:not([data-awake]) { opacity: 0; transform: translateY(-6px); pointer-events: none; }
+.cl-ui[data-peek] .cl-quiet { opacity: 1; transform: none; pointer-events: auto; }
 .cl-ui[data-cinema] .cl-slot:not(.cl-slot-screen) { opacity: 0; pointer-events: none; }
 .cl-ui[data-cinema] .cl-slot:not(.cl-slot-screen) > * { pointer-events: none; }
 .cl-slot-screen > * { pointer-events: none; }

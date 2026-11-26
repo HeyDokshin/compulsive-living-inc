@@ -118,7 +118,8 @@ export default definePlugin({
     api.services.provide('economy:market', market)
     api.ui.window({ id: 'economy:market', title: 'Цены дня', component: () => <MarketBoard market={market} period={cfg.marketPeriod} /> })
 
-    api.ui.slot('hud.topRight', () => <WalletPill bells={bells} change={change} countUp={cfg.countUp} />, { order: 20 })
+    // quiet: shows when the bells change (and while the phone is out)
+    api.ui.slot('hud.topRight', () => <ui.Quiet watch={bells.value}><WalletPill bells={bells} change={change} countUp={cfg.countUp} /></ui.Quiet>, { order: 20 })
     try {
       api.registry('daily:sections').register({ id: 'economy:wallet', order: 50, line: () => ({ icon: '🔔', text: `В кошельке ${formatBells(bells.value)} колокольчиков.` }) })
       api.registry('daily:sections').register({

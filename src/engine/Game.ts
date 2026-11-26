@@ -544,7 +544,7 @@ export class Game {
     this.input.define('engine:menu', ['Pad9'], 'engine', 'Меню')
     this.input.on('engine:menu', toggleMenu)
     this.ui.window({ id: 'engine:menu', title: 'Меню', component: () => h(GameMenu, { game: this }) }, 'engine')
-    this.ui.slot('hud.topRight', () => h(Clock, { game: this }), 'engine', 0)
+    this.ui.slot('hud.bottomLeft', () => h(Clock, { game: this }), 'engine', 10)
     this.ui.slot('hud.topRight', () => h(FpsMeter, { game: this }), 'engine', 100)
   }
 }
