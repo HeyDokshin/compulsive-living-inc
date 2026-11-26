@@ -57,6 +57,10 @@ export default definePlugin({
 | `api.render.camera.shot` + `camera.cut(true, seconds)` | кинокадр поверх обычного вида: `target`, `zoom`, `pitch`, `yaw`, `clip` (срезать всё ближе к камере); `cut(false)` — обратно |
 | `api.render.pixelsPerBlock` / `api.render.eachFace(fn)` | детализация по зуму; нарисованные лица круглых ригов (`slot.picture(texture)`) |
 | `api.ui.cinema.value = true` | HUD уходит на время сцены |
+| `ui.Quiet watch={значение}` / `api.ui.peek` | «тихая» часть HUD: видна несколько секунд после изменения и пока HUD «подглядывают» (телефон) |
+| `api.ui.window({ …, bare: true })` / `api.ui.hasWindow(id)` | окно без рамки (рисует себя само) / есть ли такое окно |
+| реестр `phone:apps` | приложение телефона: `{ id, name, icon, color, order, window }` — открывает окно любого плагина |
+| сервис `quests:progress` | `points` (листики), `milestones()` — достижения как дорожки ступеней |
 | сервис `faces:control` | `show(who, 'joy', сек)`, `mood`, `talk(who, on)`, `look(who, at)`, `ofLine(text)` — мимика (`neutral happy joy sad worried angry surprised sleepy love shy thinking wink`) |
 | сервис `cutscene:talk` | `conversation(windowId, () => собеседник)` — окно-разговор крупным планом; `line(text)`, `typing(on)`; `cheat(rotY)` — повернуть к камере |
 | `api.ui.slot('hud.bottomLeft', Component)` / `api.ui.window({ id, title, component })` / `api.ui.toast(text)` | интерфейс на Preact (TSX): слоты HUD, окна, сообщения; компоненты `ui.Pill`, `ui.Button`, `ui.ItemSlot`, `ui.Grid`… из `@sdk` |

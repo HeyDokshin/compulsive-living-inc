@@ -4,7 +4,7 @@
 // `material` (materials.json5) takes over close up — the pixel pattern stays for far views.
 // Drop a PNG at content/core/textures/<name>.png to replace `core:<name>` with an image.
 [
-  { id: 'core:grass_top', pattern: 'grass_top', colors: ['#9bd67a', '#b4e591', '#89c76a'], params: { blades: 9 }, seed: 11, material: 'core:grass' },
+  { id: 'core:grass_top', pattern: 'grass_top', colors: ['#86c95e', '#a3db78', '#74b852'], params: { blades: 9 }, seed: 11, material: 'core:grass' },
   { id: 'core:grass_side', pattern: 'grass_side', colors: ['#c79a72', '#9bd67a'], params: { depth: 4, waves: 2 }, seed: 12, material: 'core:cliff' },
   { id: 'core:dirt', pattern: 'soft', colors: ['#c79a72', '#b5875f', '#d6ab84'], params: { dots: 7 }, seed: 13, material: 'core:dirt' },
   { id: 'core:sand', pattern: 'soft', colors: ['#f8ebc4', '#efdcab', '#fff6dc', '#f2c9b8'], params: { dots: 8, amount: 0.03 }, seed: 14, material: 'core:sand' },
