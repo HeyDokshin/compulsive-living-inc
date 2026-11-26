@@ -1,8 +1,9 @@
 /**
  * Bugs around the player: butterflies on flowers, dragonflies in the air, cicadas on trees, crickets in
  * the grass, pill bugs by rocks, pond skaters on water. Which species appear depends on the place,
- * season, hour and weather (collection plugin). Running scares them off; walk up slowly and swing
- * the net. Bugs are not saved — new ones keep arriving.
+ * season, hour and weather (collection plugin). How close one may come depends on the player's gait:
+ * sneaking (use key or mouse button held) never scares them, walking does from a block away, running
+ * from three. A missed swing scares the ones around. Bugs are not saved — new ones keep arriving.
  */
 import { definePlugin, z, type Entity, type PluginApi, type Services } from '@sdk'
 
@@ -16,9 +17,12 @@ const Config = z.object({
   spawnEvery: z.number().min(0.1).max(30).default(1.6).meta({ label: 'spawn every (s)', step: 0.1 }),
   /** Bugs never appear closer than this to the player. */
   minSpawnDistance: z.number().min(0).max(20).default(5).meta({ label: 'min spawn distance', step: 0.5 }),
-  /** Player speed (blocks/s) that scares bugs — walking is fine, running is not. */
-  scareSpeed: z.number().min(0.5).max(20).default(4.2).meta({ label: 'scare speed', step: 0.1 }),
-  scareRadius: z.number().min(0.5).max(10).default(3.2).meta({ label: 'scare radius', step: 0.1 }),
+  /** A walking player scares bugs closer than this (blocks); sneaking never does. */
+  walkScareRadius: z.number().min(0).max(10).default(1).meta({ label: 'scare radius: walking', step: 0.1 }),
+  /** A running player scares bugs closer than this (blocks). */
+  runScareRadius: z.number().min(0).max(10).default(3).meta({ label: 'scare radius: running', step: 0.1 }),
+  /** A missed net swing scares bugs this close (blocks). */
+  missScareRadius: z.number().min(0).max(10).default(3).meta({ label: 'scare radius: miss', step: 0.1 }),
   /** The net catches bugs this close to the swing point in front of the player. */
   netReach: z.number().min(0.3).max(3).default(1.05).meta({ label: 'net reach', step: 0.05 }),
   scale: z.number().min(0.2).max(2).default(0.95).meta({ label: 'bug scale', step: 0.05 }),
@@ -268,13 +272,11 @@ export default definePlugin({
       if (id !== 'tools:net_swing') return
       const t = ctx.actor.transform
       if (!t) return
-      for (const b of bugs) if (Math.hypot(b.x - t.x, b.z - t.z) < cfg.scareRadius) flee(b)
+      for (const b of bugs) if (Math.hypot(b.x - t.x, b.z - t.z) < cfg.missScareRadius) flee(b)
     })
 
     // --- per frame -------------------------------------------------------------------------------
     let spawnIn = 0
-    let last: { x: number; z: number } | null = null
-    let playerSpeed = 0
     api.systems.add({
       id: 'bugs',
       phase: 'render',
@@ -283,8 +285,9 @@ export default definePlugin({
         if (!p || dt <= 0) return
         const px = p.transform.x
         const pz = p.transform.z
-        if (last) playerSpeed = playerSpeed * 0.7 + (Math.hypot(px - last.x, pz - last.z) / dt) * 0.3
-        last = { x: px, z: pz }
+        // how far the player's steps carry: nothing while sneaking (or standing)
+        const gait = p.player?.gait ?? 'walk'
+        const scare = gait === 'run' ? cfg.runScareRadius : gait === 'walk' ? cfg.walkScareRadius : 0
 
         if ((spawnIn -= dt) <= 0) {
           spawnIn = cfg.spawnEvery
@@ -300,7 +303,7 @@ export default definePlugin({
             remove(b)
             continue
           }
-          if (!b.fleeing && dist < cfg.scareRadius && playerSpeed > cfg.scareSpeed) flee(b)
+          if (!b.fleeing && dist < scare) flee(b)
           update(b, dt)
           if (b.fleeing > 2.2) remove(b)
         }

@@ -59,6 +59,34 @@ export const EngineConfigSchema = z.object({
       msaaDense: z.number().int().min(0).max(8).default(2).meta({ label: 'MSAA on dense screens', step: 1 }),
       ao: z.number().min(0).max(1).default(0.4).meta({ label: 'ambient occlusion', step: 0.05 }),
       waterOpacity: z.number().min(0).max(1).default(0.72).meta({ step: 0.01 }),
+      /** Round, plush characters: smooth parts, fur and hair, drawn faces. */
+      characters: z
+        .object({
+          round: z.boolean().default(true),
+          fur: z.boolean().default(true),
+          faces: z.boolean().default(true),
+          /** Weave of clothes close up (knit, denim…): procedural materials on characters. */
+          fabric: z.boolean().default(true),
+          /** Fur shells close up (more = denser, softer fur; costs drawing time). */
+          maxShells: z.number().int().min(2).max(32).default(14).meta({ label: 'fur shells', step: 1 }),
+          /** Fur appears from this many screen pixels per voxel… */
+          furFrom: z.number().min(0.5).max(20).default(2.4).meta({ label: 'fur from (px/voxel)', step: 0.1 }),
+          /** …and is fully grown at this many. */
+          furFull: z.number().min(0.5).max(40).default(6).meta({ label: 'fur full (px/voxel)', step: 0.1 }),
+        })
+        .prefault({}),
+      /** Close-up block textures: finer atlases (procedural materials) as the camera comes closer. */
+      detail: z
+        .object({
+          enabled: z.boolean().default(true),
+          /** Texels per screen pixel to aim for. */
+          bias: z.number().min(0.25).max(2).default(0.9).meta({ step: 0.05 }),
+          /** Finest level: texels per block (rounded down to a power of two). */
+          max: z.number().int().min(16).max(1024).default(256).meta({ label: 'max texels', step: 16 }),
+          /** Seconds a crossfade between levels takes. */
+          fade: z.number().min(0).max(3).default(0.45).meta({ step: 0.05 }),
+        })
+        .prefault({}),
       /** Soft color patches on blocks with `tint: true` (lawns). */
       tint: z
         .object({
@@ -194,5 +222,17 @@ export const WorldConfigSchema = z.object({
   chunksX: z.number().int().min(1).max(32).default(8).meta({ label: 'chunks X', step: 1 }),
   chunksZ: z.number().int().min(1).max(32).default(8).meta({ label: 'chunks Z', step: 1 }),
   height: z.number().int().min(8).max(128).default(32).meta({ step: 1 }),
+  /** Y a walker stands at on the lowest land (level 1). The sea surface is level with it. */
+  ground: z.number().int().min(2).max(64).default(8).meta({ step: 1 }),
+  /**
+   * Levels one can stand on, from the ground up. The last one only holds things put on top of the
+   * highest blocks, so blocks are built at most `levels - 1` high.
+   */
+  levels: z.number().int().min(2).max(16).default(5).meta({ step: 1 }),
+  /**
+   * Y of the sea surface, if not level with the ground. Islands made before 0.16 stood one block above
+   * the sea (their saves get `ground: 9, sea: 8`).
+   */
+  sea: z.number().int().min(1).max(64).optional(),
 })
 export type WorldConfig = z.infer<typeof WorldConfigSchema>

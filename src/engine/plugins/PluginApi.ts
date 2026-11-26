@@ -5,7 +5,7 @@ import type { RegistryEntry, RegistryView } from '../registry/Registry'
 import type { SystemDef } from '../loop/Scheduler'
 import type { Components, Entity, GameEvents, GameHooks, Registries, CommandDef, Services } from '../types'
 import type { ComponentType } from 'preact'
-import type { ReadonlySignal } from '@preact/signals'
+import type { ReadonlySignal, Signal } from '@preact/signals'
 import type { UiSlot, WindowDef } from '../ui/UiHost'
 import type { InteractionContext, InteractionDef } from '../interact/Interactions'
 import type { SaverDef } from '../save/SaveService'
@@ -18,6 +18,7 @@ import type { Logger } from '../util/log'
 import type { IsoCamera } from '../render/IsoCamera'
 import type { EngineConfig } from '../engineConfig'
 import type { ModInfo } from '../mods/ModManager'
+import type { FaceSlot } from '../models/ModelLibrary'
 import type { PlainObject } from '../util/objects'
 import type { VoxelWorld } from '../world/VoxelWorld'
 import type { PatternFn } from '../render/textures'
@@ -121,6 +122,10 @@ export interface PluginApi {
     setModel(entity: Entity, model: NonNullable<Entity['model']>): void
     /** Rebuild an entity's 3D view after changing its `model` (e.g. recolored clothes, another rig). */
     refreshView(entity: Entity): void
+    /** Every drawn face of round rigs in the scene (heads whose model has a `face`) — to paint expressions. */
+    eachFace(fn: (slot: FaceSlot) => void): void
+    /** Screen pixels per block at the current zoom (detail decisions: texture sizes, fur). */
+    readonly pixelsPerBlock: number
     /** Camera smoothly follows this entity (null = free camera). */
     follow(entity: Entity | null): void
     /**
@@ -140,6 +145,14 @@ export interface PluginApi {
     readonly AIR: string
     /** Seed of the current world (for deterministic placement). */
     readonly seed: number
+    /** Y a walker stands at on the lowest land (level 1); the sea surface is level with it. Buildings go here. */
+    readonly ground: number
+    /** Levels one can stand on from the ground up (level 1 = `ground`). Natural land is at most one block higher. */
+    readonly levels: number
+    /** Y one stands at on the top level, which only holds things put on top: blocks go no higher than `topY - 1`. */
+    readonly topY: number
+    /** Y of the sea surface: level with `ground`, except on islands made before 0.16 (one block lower). */
+    readonly sea: number
     /** The walking-blocker entity covering a cell (tree, rock, building), if any. */
     blockerAt(x: number, z: number): Entity | undefined
     /** Call after moving an entity that has a `blocker`. */
@@ -204,6 +217,8 @@ export interface PluginApi {
     toast(text: string, opts?: { icon?: string; ms?: number }): void
     /** True while a modal window is open — pause gameplay input. */
     readonly modalOpen: ReadonlySignal<boolean>
+    /** Cut-scene mode: set true and the HUD fades out (windows and the 'screen' slot stay). */
+    readonly cinema: Signal<boolean>
     /** Icon (data URL) of an item, drawn from its model. */
     itemIcon(id: string): Promise<string>
   }

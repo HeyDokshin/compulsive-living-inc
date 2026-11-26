@@ -103,6 +103,10 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
         const c = game.engineConfig.camera
         game.config.set('engine', 'camera.zoom', Math.min(c.maxZoom, Math.max(c.minZoom, zoom)))
       },
+      eachFace: (fn) => game.modelLibrary.eachFace(fn),
+      get pixelsPerBlock() {
+        return game.renderer.pixelsPerBlock
+      },
       follow: (entity) => {
         game.camera.follow = entity
         if (entity) game.camera.placed = true
@@ -142,6 +146,18 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       AIR,
       get seed() {
         return game.worldConfig.seed
+      },
+      get ground() {
+        return game.world.ground
+      },
+      get levels() {
+        return game.world.levels
+      },
+      get topY() {
+        return game.world.topY
+      },
+      get sea() {
+        return game.world.sea
       },
       pick: (clientX, clientY) => game.renderer.pick(clientX, clientY),
       blockerAt: (x, z) => game.blockers.at(x, z),
@@ -205,6 +221,7 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       toggle: (id) => game.ui.toggle(id),
       toast: (text, opts) => game.ui.toast(text, opts),
       modalOpen: game.ui.modalOpen,
+      cinema: game.ui.cinema,
       itemIcon: (id) => game.icons.item(id),
     },
     interactions: {

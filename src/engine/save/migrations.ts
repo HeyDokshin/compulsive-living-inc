@@ -5,7 +5,11 @@ import { SAVE_FORMAT, type SaveData } from './format'
  * Example when format 2 arrives:
  *   1: (d) => ({ ...d, format: 2, newField: defaultValue }),
  */
-const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {}
+const MIGRATIONS: Record<number, (data: SaveData) => SaveData> = {
+  // 0.16: world levels. Older islands stood one block above the sea (land at 9, sea at 8): keep them
+  // so, or buildings and newcomers find no ground level to stand on.
+  1: (d) => ({ ...d, format: 2, world: { ...d.world, config: { ground: 9, sea: 8, ...d.world.config } } }),
+}
 
 export function migrateSave(data: SaveData): SaveData {
   let d = data

@@ -62,6 +62,25 @@ export class WorldService {
     clearTimeout(this.regenTimer)
   }
 
+  /** Y a walker stands at on the lowest land (level 1). */
+  get ground(): number {
+    return this.cfg.ground
+  }
+
+  get levels(): number {
+    return this.cfg.levels
+  }
+
+  /** Y of the sea surface (level with the ground on islands made since 0.16). */
+  get sea(): number {
+    return this.cfg.sea ?? this.cfg.ground
+  }
+
+  /** Y one stands at on the top level: blocks go no higher than `topY - 1`. */
+  get topY(): number {
+    return this.cfg.ground + this.cfg.levels - 1
+  }
+
   getBlock(x: number, y: number, z: number): string {
     return this.voxels.getId(x, y, z)
   }
@@ -113,8 +132,9 @@ export class WorldService {
 
   private async run(): Promise<void> {
     this.signature = this.stepSignature()
-    const { seed, chunksX, chunksZ, height } = this.cfg
-    const report = await generateWorld(this.voxels, this.steps.all(), { seed, chunksX, chunksZ, height }, (...a) =>
+    const { seed, chunksX, chunksZ, height, ground, levels } = this.cfg
+    const sea = this.sea
+    const report = await generateWorld(this.voxels, this.steps.all(), { seed, chunksX, chunksZ, height, ground, levels, sea }, (...a) =>
       log.warn(...a),
     )
     this.lastReport = report

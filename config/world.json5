@@ -4,4 +4,8 @@
   chunksX: 8,
   chunksZ: 8,
   height: 32,
+  // Level 1: where one stands on the lowest land; the sea is level with it.
+  ground: 8,
+  // Levels from the ground up: natural land uses two, blocks stack up to 4 high, the 5th holds things put on top.
+  levels: 5,
 }

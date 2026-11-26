@@ -102,6 +102,8 @@ export class DebugPanel {
   private addFields(parent: Container, obj: PlainObject, fields: Record<string, FieldInfo>, id: string): void {
     for (const [key, f] of Object.entries(fields)) {
       if (f.meta.hidden) continue
+      // optional values that are not set (e.g. world.sea) have nothing to bind to
+      if (obj[key] === undefined) continue
       const label = f.meta.label ?? key
       if (f.kind === 'object') {
         const sub = parent.addFolder({ title: label, expanded: false })

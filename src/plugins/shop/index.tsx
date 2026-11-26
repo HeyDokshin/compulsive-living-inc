@@ -62,7 +62,7 @@ export default definePlugin({
   description: 'Лавка Тоши: товары дня, открытки с рецептами, саженцы, семена',
   dependsOn: ['items', 'economy'],
   // after the museum and the sell box: the stall takes the next free plot
-  optionalDependsOn: ['museum', 'decor', 'nature', 'garden', 'daily', 'tutorial'],
+  optionalDependsOn: ['museum', 'decor', 'nature', 'garden', 'daily', 'tutorial', 'cutscene'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -151,7 +151,7 @@ export default definePlugin({
     const stalls = () => [...api.entities.world.with('shopStall', 'transform')]
     const grass = (x: number, z: number) => {
       const y = api.world.surfaceY(x, z)
-      return y > 0 && api.world.getBlock(x, y - 1, z) === 'core:grass' && api.world.getBlock(x, y, z) === api.world.AIR ? y : null
+      return y === api.world.ground && api.world.getBlock(x, y - 1, z) === 'core:grass' && api.world.getBlock(x, y, z) === api.world.AIR ? y : null
     }
     const plotAt = (x0: number, z0: number): number | null => {
       const base = grass(x0, z0)
@@ -159,7 +159,7 @@ export default definePlugin({
       for (let dz = 0; dz < cfg.depth + cfg.frontRows; dz++)
         for (let dx = 0; dx < cfg.width; dx++) {
           const y = grass(x0 + dx, z0 + dz)
-          if (y === null || (dz < cfg.depth ? y !== base : Math.abs(y - base) > 1) || api.world.blockerAt(x0 + dx, z0 + dz)) return null
+          if (y === null || y !== base || api.world.blockerAt(x0 + dx, z0 + dz)) return null
         }
       const r = cfg.clearance
       for (let dz = -r; dz < cfg.depth + cfg.frontRows + r; dz++)
@@ -232,7 +232,8 @@ export default definePlugin({
           break
         }
         if (pl) {
-          const want = Math.atan2(pl.transform.x - keeper.position.x, pl.transform.z - keeper.position.z)
+          const face = Math.atan2(pl.transform.x - keeper.position.x, pl.transform.z - keeper.position.z)
+          const want = api.services.has('cutscene:talk') ? api.services.get('cutscene:talk').cheat(face) : face
           const d = Math.atan2(Math.sin(want - keeper.rotation.y), Math.cos(want - keeper.rotation.y))
           keeper.rotation.y += d * Math.min(1, dt * 5)
         }
@@ -259,6 +260,8 @@ export default definePlugin({
       label: 'Поговорить с Тошей',
       run: () => void api.ui.open('shop:counter'),
     })
+    // talking to Tosha is a close-up of the two of you
+    if (api.services.has('cutscene:talk')) api.services.get('cutscene:talk').conversation('shop:counter', () => keeper)
     api.ui.window({
       id: 'shop:counter',
       title: 'Лавка Тоши',

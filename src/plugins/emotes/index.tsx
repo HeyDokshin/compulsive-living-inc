@@ -31,6 +31,8 @@ declare module '@sdk' {
   }
   interface GameEvents {
     'emotes:shown': { entity: Entity; id: string }
+    /** A line was said over a head (as written, a leading [mood] tag included). */
+    'emotes:said': { entity: Entity; text: string }
   }
 }
 
@@ -136,8 +138,11 @@ export default definePlugin({
         if (d.anim && entity.biped && !entity.biped.action) entity.biped.action = { name: d.anim, t: 0 }
         api.events.emit('emotes:shown', { entity, id })
       },
-      say(entity, text, seconds) {
-        if (!entity.transform || !text) return
+      say(entity, said, seconds) {
+        if (!entity.transform || !said) return
+        // [mood] tags are for the speaker's face (faces plugin), not for the bubble
+        const text = said.replace(/\[[a-z]+\]\s*/g, '').trim()
+        api.events.emit('emotes:said', { entity, text: said })
         const canvas = textBubble(text)
         // rows of 54 px in the canvas → `textSize` blocks each
         put(entity, toTexture(canvas), (canvas.height / 54) * cfg.textSize, seconds ?? cfg.saySeconds + text.length * cfg.sayPerLetter, cfg.height, false)

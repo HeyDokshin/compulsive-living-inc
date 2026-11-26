@@ -20,6 +20,7 @@ export type { PluginMeta } from '../engine/plugins/PluginManager'
 export type { RegistryEntry, RegistryView, RegistryChange } from '../engine/registry/Registry'
 export type { SystemDef } from '../engine/loop/Scheduler'
 export type { Dispose } from '../engine/util/disposables'
+export type { FaceSlot } from '../engine/models/ModelLibrary'
 export type {
   Components,
   Entity,
@@ -79,4 +80,4 @@ export { downloadFile } from '../engine/ui/files'
 export { deepMerge } from '../engine/util/objects'
 export { default as JSON5 } from 'json5'
 export { SDK_VERSION } from '../engine/version'
-export { findPath, type Cell, type PathOptions } from '../engine/world/path'
+export { findPath, lineWalkable, type Cell, type PathOptions } from '../engine/world/path'

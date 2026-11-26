@@ -122,3 +122,60 @@ export function moveBody(b: Body, s: BodyShape, r: MoveRules, q: WorldQuery, dx:
     b.grounded = false
   }
 }
+
+export type Gait = 'sneak' | 'walk' | 'run'
+
+/** Speeds a little over a gait's own still count as that gait (easing in and out of it). */
+const GAIT_MARGIN = 1.1
+
+/** Which gait a horizontal speed looks like: creeping (and standing) is `sneak`. */
+export function gaitOf(speed: number, sneakSpeed: number, walkSpeed: number): Gait {
+  if (speed <= sneakSpeed * GAIT_MARGIN) return 'sneak'
+  return speed <= walkSpeed * GAIT_MARGIN ? 'walk' : 'run'
+}
+
+export interface Velocity {
+  vx: number
+  vz: number
+}
+
+export interface SteerRules {
+  /** How quickly speed rises towards the wanted one (1/s). */
+  acceleration: number
+  /** How quickly it falls (1/s): letting go, slowing down to arrive. */
+  deceleration: number
+  /** How fast the heading may turn (rad/s): new directions are arcs, not stops. */
+  turnRate: number
+}
+
+/**
+ * Bend the velocity towards the wanted one (tx, tz). Speed eases in and out on its own; the heading
+ * turns at most `turnRate` per second, and while it still points away from where one wants to go
+ * (a U-turn) the speed drops, so turning back is tight instead of a wide loop. Mutates `v`.
+ */
+export function steer(v: Velocity, tx: number, tz: number, r: SteerRules, dt: number): void {
+  const s = Math.hypot(v.vx, v.vz)
+  const want = Math.hypot(tx, tz)
+  let ns = s + (want - s) * Math.min(1, (want > s ? r.acceleration : r.deceleration) * dt)
+  if (ns < 1e-3) {
+    v.vx = v.vz = 0
+    return
+  }
+  if (want < 1e-6 || s < 1e-3) {
+    // stopping keeps the heading; starting takes the wanted one at once
+    const k = want < 1e-6 ? ns / s : ns / want
+    v.vx = (want < 1e-6 ? v.vx : tx) * k
+    v.vz = (want < 1e-6 ? v.vz : tz) * k
+    return
+  }
+  const a = Math.atan2(v.vx, v.vz)
+  let diff = Math.atan2(Math.sin(Math.atan2(tx, tz) - a), Math.cos(Math.atan2(tx, tz) - a))
+  const max = r.turnRate * dt
+  const left = Math.abs(diff) - max
+  if (left > 0) diff = Math.sign(diff) * max
+  // still facing more than sideways away: brake while turning
+  if (left > Math.PI / 2) ns = Math.min(ns, s * (1 - Math.min(1, r.deceleration * dt)))
+  const h = a + diff
+  v.vx = Math.sin(h) * ns
+  v.vz = Math.cos(h) * ns
+}

@@ -14,6 +14,12 @@ export const TextureSchema = z.looseObject({
   colors: z.array(z.string()).default(['#ff00ff']),
   seed: z.number().default(1),
   params: z.record(z.string(), z.number()).default({}),
+  /**
+   * A procedural material (the `materials` registry) shown instead of the pattern when the camera
+   * is close: from `materialFrom` texels per block up. Far away the pattern keeps its pixel look.
+   */
+  material: z.string().optional(),
+  materialFrom: z.number().int().min(16).max(1024).default(32),
 })
 export type TextureDef = z.infer<typeof TextureSchema>
 

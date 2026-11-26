@@ -233,7 +233,7 @@ export default definePlugin({
     const homes = () => [...api.entities.world.with('home', 'transform')]
     const grass = (x: number, zz: number) => {
       const y = api.world.surfaceY(x, zz)
-      return y > 0 && api.world.getBlock(x, y - 1, zz) === 'core:grass' && api.world.getBlock(x, y, zz) === api.world.AIR ? y : null
+      return y === api.world.ground && api.world.getBlock(x, y - 1, zz) === 'core:grass' && api.world.getBlock(x, y, zz) === api.world.AIR ? y : null
     }
     const plotAt = (x0: number, z0: number): number | null => {
       const base = grass(x0, z0)
@@ -241,7 +241,7 @@ export default definePlugin({
       for (let dz = 0; dz < cfg.size + cfg.frontRows; dz++)
         for (let dx = 0; dx < cfg.size + 1; dx++) {
           const y = grass(x0 + dx, z0 + dz)
-          if (y === null || (dz < cfg.size ? y !== base : Math.abs(y - base) > 1) || api.world.blockerAt(x0 + dx, z0 + dz)) return null
+          if (y === null || y !== base || api.world.blockerAt(x0 + dx, z0 + dz)) return null
         }
       const r = cfg.clearance
       for (let dz = -r; dz < cfg.size + cfg.frontRows + r; dz++)

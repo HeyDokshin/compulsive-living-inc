@@ -17,7 +17,7 @@ const ACTIONS = {
 
 /**
  * Where the camera looks: chases a followed entity (with look-ahead), or pans freely with keys.
- * Q/E rotate in 90° steps, the wheel zooms.
+ * Z/X rotate in 90° steps, the wheel zooms.
  */
 export class CameraController {
   /** Entity the camera follows (`api.render.follow`). */
@@ -43,14 +43,15 @@ export class CameraController {
     private entities: Entities,
     private world: WorldService,
   ) {
-    input.define(ACTIONS.rotL, ['KeyQ', 'Pad6'], 'engine', 'Камера: повернуть влево')
-    input.define(ACTIONS.rotR, ['KeyE', 'Pad7'], 'engine', 'Камера: повернуть вправо')
+    input.define(ACTIONS.rotL, ['KeyZ', 'Pad6'], 'engine', 'Камера: повернуть влево')
+    input.define(ACTIONS.rotR, ['KeyX', 'Pad7'], 'engine', 'Камера: повернуть вправо')
     input.define(ACTIONS.up, ['KeyW', 'ArrowUp'], 'engine')
     input.define(ACTIONS.down, ['KeyS', 'ArrowDown'], 'engine')
     input.define(ACTIONS.left, ['KeyA', 'ArrowLeft'], 'engine')
     input.define(ACTIONS.right, ['KeyD', 'ArrowRight'], 'engine')
-    input.on(ACTIONS.rotL, () => !this.cinematic && iso.rotate(-1))
-    input.on(ACTIONS.rotR, () => !this.cinematic && iso.rotate(1))
+    // the camera is the director's during a shot (dialogue close-ups)
+    input.on(ACTIONS.rotL, () => !this.cinematic && !iso.shotWeight && iso.rotate(-1))
+    input.on(ACTIONS.rotR, () => !this.cinematic && !iso.shotWeight && iso.rotate(1))
   }
 
   /** Point the camera at the middle of the island. */
@@ -113,7 +114,7 @@ export class CameraController {
       iso.target.y += (ground - iso.target.y) * Math.min(1, ctx.dt * 4)
     }
     const wheel = this.input.consumeWheel()
-    if (wheel && !this.cinematic) {
+    if (wheel && !this.cinematic && !iso.shotWeight) {
       iso.zoomBy(wheel)
       this.onZoom?.()
     }

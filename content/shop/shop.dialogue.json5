@@ -1,4 +1,5 @@
 // What Тоша, the red panda at the stall, says. One line per topic is picked at random.
+// A line may start with a face tag ([joy], [worried], [thinking]…): the speaker's face shows it, players never see it.
 // {name}, {price}, {bells} are filled in by the shop plugin.
 {
   entries: [
@@ -9,12 +10,12 @@
       'Заходи-заходи! Колокольчики любят движение.',
       'Утро доброе — или уже не утро? Всё равно добро пожаловать!',
     ] },
-    { id: 'shop:browse', lines: ['Выбирай, не торопись.', 'Всё свежее, всё сегодняшнее!'] },
+    { id: 'shop:browse', lines: ['[happy] Выбирай, не торопись.', 'Всё свежее, всё сегодняшнее!'] },
     { id: 'shop:thanks', lines: ['«{name}» — отличный выбор!', 'Держи! «{name}» тебе точно пригодится.', 'Спасибо за покупку! Приходи ещё.'] },
-    { id: 'shop:poor', lines: ['Ой, не хватает колокольчиков. «{name}» стоит {price}, а у тебя {bells}.', 'Колокольчиков маловато… Может, продашь что-нибудь в ящик?'] },
+    { id: 'shop:poor', lines: ['[worried] Ой, не хватает колокольчиков. «{name}» стоит {price}, а у тебя {bells}.', '[worried] Колокольчиков маловато… Может, продашь что-нибудь в ящик?'] },
     { id: 'shop:full', lines: ['Карманы-то полные! Освободи местечко.'] },
     { id: 'shop:sold_out', lines: ['Это на сегодня закончилось. Завтра привезу что-то другое!'] },
-    { id: 'shop:market', lines: ['Слушай, что говорят на рынке.', 'Я тут кое-что слышала про цены!'] },
+    { id: 'shop:market', lines: ['[wink] Слушай, что говорят на рынке.', '[wink] Я тут кое-что слышала про цены!'] },
     { id: 'shop:bye', lines: ['Пока-пока!', 'Заходи завтра — будет новое!', 'Удачи на острове!'] },
   ],
 }

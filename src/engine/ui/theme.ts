@@ -18,6 +18,11 @@ export const UI_CSS = /* css */ `
 .cl-ui * { box-sizing: border-box; }
 .cl-slot { position: absolute; display: flex; gap: 10px; pointer-events: none; }
 .cl-slot > * { pointer-events: auto; }
+.cl-slot-screen { inset: 0; }
+.cl-slot { transition: opacity 0.4s ease; }
+.cl-ui[data-cinema] .cl-slot:not(.cl-slot-screen) { opacity: 0; pointer-events: none; }
+.cl-ui[data-cinema] .cl-slot:not(.cl-slot-screen) > * { pointer-events: none; }
+.cl-slot-screen > * { pointer-events: none; }
 .cl-slot-hud\\.topLeft { top: 16px; left: 16px; flex-direction: column; align-items: flex-start; }
 .cl-slot-hud\\.topRight { top: 16px; right: 16px; flex-direction: column; align-items: flex-end; }
 .cl-slot-hud\\.bottomLeft { bottom: 18px; left: 18px; align-items: flex-end; }

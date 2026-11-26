@@ -85,13 +85,18 @@ export function Dialogue(props: {
   typeSpeed?: number
   onBlip?: () => void
   onTyping?: (typing: boolean) => void
+  /** Each new line, as written (a leading `[joy]` tag included) — conversations show it on faces. */
+  onLine?: (text: string) => void
   children?: ComponentChildren
 }) {
-  const { text, typeSpeed = 0.028 } = props
+  const { typeSpeed = 0.028 } = props
+  // [mood] tags are stage directions for the speaker's face, not something to show
+  const text = props.text.replace(/\[[a-z]+\]\s*/g, '').trim()
   const [shown, setShown] = useState(0)
   const [skipped, setSkipped] = useState(false)
   const timerRef = useRef(0)
   useEffect(() => {
+    props.onLine?.(props.text)
     setShown(0)
     setSkipped(uiPrefs.instantText.value)
     if (uiPrefs.instantText.value) return

@@ -75,7 +75,7 @@
     },
     {
       // A worker module has its default export made by Vite.
-      "files": ["src/engine/world/mesher/**"],
+      "files": ["src/engine/world/mesher/**", "src/engine/materials/**"],
       "rules": { "import/default": "off", "unicorn/require-post-message-target-origin": "off" }
     },
     {

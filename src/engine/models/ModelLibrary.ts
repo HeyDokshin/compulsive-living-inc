@@ -1,7 +1,10 @@
-import { BufferGeometry, Color, Float32BufferAttribute, Group, Mesh, MeshLambertMaterial, type Material, type Object3D } from 'three'
+import { BufferGeometry, Color, Float32BufferAttribute, Group, InstancedMesh, Mesh, MeshLambertMaterial, type Material, type Object3D, type Texture } from 'three'
 import type { Registry } from '../registry/Registry'
+import { createCharacterMaterial, createFaceUniforms, createFurMaterial, furUniforms, type FabricSlots, type FaceUniforms } from '../render/characterMaterial'
+import { fabricUniforms, type FabricTextures } from '../render/fabric'
 import { stylize } from '../render/style'
 import type { ModelDef, RigDef } from './defs'
+import { buildSmoothGeometry } from './smoothMesh'
 import { buildVoxelGeometry, defaultPivot, parseLayers, parseVox, type GeometryData, type VoxelModel } from './voxelModel'
 import { createLogger } from '../util/log'
 
@@ -16,6 +19,19 @@ export class ModelLibrary {
   private ready = new Map<string, VoxelModel | null>()
   private geometries = new Map<string, BufferGeometry>()
   readonly material: Material = stylize(new MeshLambertMaterial({ vertexColors: true }))
+  /** Round characters (`round` rigs): smooth parts, fur and drawn faces. Set from the engine config. */
+  look: CharacterLook = { round: true, fur: true, faces: true, fabric: true, maxShells: 12, furFrom: 2.4, furFull: 6 }
+  private characterMaterial = createCharacterMaterial()
+  /** Fabric detail textures (set by the game once materials exist). */
+  fabrics: FabricTextures | null = null
+  private fabricMaterials = new Map<string, Material>()
+  private furMaterials = new Map<string, Material>()
+  /** Fur shell meshes alive in the scene (their shell count follows the zoom). */
+  private furMeshes = new Set<InstancedMesh>()
+  private furShells = -1
+  private furFrame = 0
+  /** Drawn faces alive in the scene (the faces plugin paints them). */
+  private faceSlots = new Set<FaceSlot>()
 
   constructor(
     private models: Registry<ModelDef>,
@@ -25,6 +41,10 @@ export class ModelLibrary {
   /** Drop caches (content changed). Objects still showing an old geometry upload it again by themselves. */
   clear(): void {
     for (const geo of this.geometries.values()) geo.dispose()
+    for (const m of this.furMaterials.values()) m.dispose()
+    this.furMaterials.clear()
+    for (const m of this.fabricMaterials.values()) m.dispose()
+    this.fabricMaterials.clear()
     this.parsed.clear()
     this.ready.clear()
     this.geometries.clear()
@@ -54,6 +74,8 @@ export class ModelLibrary {
       return root
     }
     const scale = opts.scale ?? rig.scale
+    const round = rig.round && this.look.round ? rig.round : null
+    root.userData.rig = id
     const inner = new Group() // voxel space → world units
     inner.scale.setScalar(scale)
     root.add(inner)
@@ -74,11 +96,175 @@ export class ModelLibrary {
       } else inner.add(g)
       const modelId = opts.parts?.[part.name] ?? part.model
       this.withModel(modelId, (model, def) => {
+        if (round) {
+          for (const o of this.roundPart(modelId, model, part.pivot, opts.palette, def, round)) g.add(o)
+          return
+        }
         const mesh = this.mesh(modelId, model, part.pivot, opts.palette, def)
         if (mesh) g.add(mesh)
       })
     }
     return root
+  }
+
+  /**
+   * A part of a round rig: the smooth body (with a face where the model has one) and its fur shells.
+   * A face replaces the painted eyes and mouth (`face.erase`), so the plugin drawing faces owns them.
+   */
+  private roundPart(
+    id: string,
+    model: VoxelModel,
+    pivot: [number, number, number],
+    palette: Record<string, string> | undefined,
+    def: ModelDef,
+    round: NonNullable<RigDef['round']>,
+  ): Object3D[] {
+    const face = this.look.faces ? def.face : undefined
+    let colors = palette
+    if (face && Object.keys(face.erase).length) {
+      colors = { ...palette }
+      for (const [from, to] of Object.entries(face.erase)) colors[from] = palette?.[to] ?? def.palette[to] ?? '#ff00ff'
+    }
+    const key = `round|${id}|${pivot.join(',')}|${colors ? JSON.stringify(colors) : ''}|${round.subdiv},${round.smooth},${round.iso}`
+    let geo = this.geometries.get(key)
+    let furGeo = this.geometries.get(key + '|fur')
+    if (!geo) {
+      const data = buildSmoothGeometry(model, pivot, round)
+      geo = toGeometry(data, resolveColors(model, def, colors))
+      // fur amount per vertex from the palette character it was painted with
+      const chars = Object.keys(def.palette)
+      const amount = data.colorIndex.map((ci) => def.fur?.keys[chars[ci - 1] ?? ''] ?? 0)
+      geo.setAttribute('fur', new Float32BufferAttribute(amount, 1))
+      // fabric slot weights per vertex (one-hot from the painted character; blends between)
+      const fabricIds = def.fabric ? [...new Set(Object.values(def.fabric.keys))].slice(0, 3) : []
+      if (fabricIds.length) {
+        const w = new Float32Array(data.colorIndex.length * 3)
+        data.colorIndex.forEach((ci, i) => {
+          const slot = fabricIds.indexOf(def.fabric!.keys[chars[ci - 1] ?? ''] ?? '')
+          if (slot >= 0) w[i * 3 + slot] = 1
+        })
+        geo.setAttribute('fabric', new Float32BufferAttribute(w, 3))
+      }
+      this.geometries.set(key, geo)
+      // Shells: a coarser copy of the same surface (fluff hides the difference; ~half the
+      // triangles, drawn many times over), only where fur grows.
+      if (amount.some((a) => a > 0)) {
+        const coarse = round.subdiv > 2 ? buildSmoothGeometry(model, pivot, { ...round, subdiv: 2 }) : data
+        const shellGeo = coarse === data ? geo : toGeometry(coarse, resolveColors(model, def, colors))
+        const shellFur = coarse === data ? amount : coarse.colorIndex.map((ci) => def.fur?.keys[chars[ci - 1] ?? ''] ?? 0)
+        const idx: number[] = []
+        for (let t = 0; t < coarse.index.length; t += 3) {
+          const a = coarse.index[t]!
+          const b = coarse.index[t + 1]!
+          const c = coarse.index[t + 2]!
+          if (shellFur[a]! + shellFur[b]! + shellFur[c]! > 0) idx.push(a, b, c)
+        }
+        if (idx.length) {
+          furGeo = new BufferGeometry()
+          for (const name of ['position', 'normal', 'color']) furGeo.setAttribute(name, shellGeo.getAttribute(name))
+          furGeo.setAttribute('fur', new Float32BufferAttribute(shellFur, 1))
+          furGeo.setIndex(idx)
+          furGeo.computeBoundingSphere()
+          this.geometries.set(key + '|fur', furGeo)
+        }
+      }
+    }
+    if (!geo.index!.count) return []
+    const faceUniforms: FaceUniforms | undefined = face
+      ? createFaceUniforms(face.center[0] - pivot[0], face.center[1] - pivot[1], face.size[0], face.size[1], face.front - pivot[2] - 1.5)
+      : undefined
+    const fabric = this.fabricSlots(def, geo)
+    let bodyMat: Material = this.characterMaterial
+    if (faceUniforms) bodyMat = createCharacterMaterial(faceUniforms, fabric)
+    else if (fabric) {
+      bodyMat = this.fabricMaterials.get(id) ?? createCharacterMaterial(undefined, fabric)
+      this.fabricMaterials.set(id, bodyMat)
+    }
+    const body = new Mesh(geo, bodyMat)
+    body.castShadow = true
+    body.receiveShadow = true
+    if (face && faceUniforms) {
+      const slot: FaceSlot = {
+        mesh: body,
+        face,
+        model: id,
+        get root() {
+          let o: Object3D = body
+          while (o.parent && !o.userData.rig) o = o.parent
+          return o
+        },
+        picture(tex) {
+          faceUniforms.uFace.value = tex
+          faceUniforms.uFaceOn.value = tex ? 1 : 0
+        },
+      }
+      body.userData.face = slot
+      this.faceSlots.add(slot)
+    }
+    const out: Object3D[] = [body]
+    if (furGeo && def.fur && this.look.fur) {
+      let mat = faceUniforms ? undefined : this.furMaterials.get(id)
+      if (!mat) {
+        mat = createFurMaterial(def.fur, faceUniforms)
+        if (!faceUniforms) this.furMaterials.set(id, mat)
+      }
+      const shells = new InstancedMesh(furGeo, mat, this.look.maxShells)
+      shells.count = Math.max(0, this.furShells)
+      shells.visible = this.furShells > 0
+      shells.frustumCulled = false
+      shells.userData.fur = true
+      this.furMeshes.add(shells)
+      out.push(shells)
+    }
+    return out
+  }
+
+  /** Uniforms of a part's fabric materials (null: no fabric, or the look turned it off). */
+  private fabricSlots(def: ModelDef, geo: BufferGeometry): FabricSlots | undefined {
+    const f = def.fabric
+    if (!f || !this.fabrics || !this.look.fabric || !geo.getAttribute('fabric')) return undefined
+    const ids = [...new Set(Object.values(f.keys))].slice(0, 3)
+    const tex = (i: number) => this.fabrics!.uniform(ids[i] ?? ids[0]!)
+    return { uMat0: tex(0), uMat1: tex(1), uMat2: tex(2), uMatScale: { value: 1 / f.tile }, uMatStrength: { value: f.strength } }
+  }
+
+  /** Every drawn face in the scene (rig heads with a `face`), for the plugin that paints them. */
+  eachFace(fn: (slot: FaceSlot) => void): void {
+    const prune = this.furFrame % 60 === 30
+    for (const s of this.faceSlots) {
+      if (prune && !inScene(s.mesh)) {
+        this.faceSlots.delete(s)
+        continue
+      }
+      fn(s)
+    }
+  }
+
+  /**
+   * Once a frame: how many fur shells to draw for this many screen pixels per voxel. Fur grows in
+   * smoothly as the camera comes closer and disappears far away (where it would only shimmer).
+   */
+  updateFur(pixelsPerVoxel: number): void {
+    const l = this.look
+    const t = l.fur ? smoothstep(l.furFrom, l.furFull, pixelsPerVoxel) : 0
+    const shells = t > 0 ? Math.max(3, Math.round(l.maxShells * t)) : 0
+    furUniforms.uFurFade.value = t
+    furUniforms.uFurShells.value = shells
+    // fabric weave fades in with the fur; its texture is as fine as a tile shows on screen
+    const near = l.fabric ? smoothstep(l.furFrom, l.furFull, pixelsPerVoxel) : 0
+    fabricUniforms.uMatFade.value = near
+    if (this.fabrics && near > 0) this.fabrics.setLevel(Math.min(256, Math.max(32, 2 ** Math.ceil(Math.log2(Math.max(1, pixelsPerVoxel * 4))))))
+    const prune = ++this.furFrame % 60 === 0
+    if (shells === this.furShells && !prune) return
+    this.furShells = shells
+    for (const m of this.furMeshes) {
+      if (prune && !inScene(m)) {
+        this.furMeshes.delete(m)
+        continue
+      }
+      m.count = Math.min(shells, m.instanceMatrix.count)
+      m.visible = shells > 0
+    }
   }
 
   /** Parsed model + its definition (for icons, tools, previews). */
@@ -171,6 +357,43 @@ export class ModelLibrary {
     mesh.receiveShadow = true
     return mesh
   }
+}
+
+/** A drawn face on a round rig's head. */
+export interface FaceSlot {
+  /** The head's body mesh (its world matrix places the face). */
+  readonly mesh: Mesh
+  /** The rig object the head belongs to (an entity's view, or a plugin's rig model). */
+  readonly root: Object3D
+  readonly face: NonNullable<ModelDef['face']>
+  /** Model id of the head. */
+  readonly model: string
+  /** Show a picture on the face (null: none — the head is bare). */
+  picture(texture: Texture | null): void
+}
+
+export interface CharacterLook {
+  round: boolean
+  fur: boolean
+  faces: boolean
+  fabric: boolean
+  maxShells: number
+  /** Fur starts showing at this many screen pixels per voxel… */
+  furFrom: number
+  /** …and is full grown at this many. */
+  furFull: number
+}
+
+const smoothstep = (a: number, b: number, v: number) => {
+  const t = Math.min(1, Math.max(0, (v - a) / Math.max(1e-6, b - a)))
+  return t * t * (3 - 2 * t)
+}
+
+/** Still part of a scene (not removed with its entity)? */
+function inScene(o: Object3D): boolean {
+  let p: Object3D | null = o
+  while (p.parent) p = p.parent
+  return (p as { isScene?: boolean }).isScene === true
 }
 
 /** Palette overrides are keyed by the model's palette characters (e.g. recolor the shirt `t`). */

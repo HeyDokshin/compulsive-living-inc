@@ -123,6 +123,7 @@ export function Talk(props: Props) {
 
   const gifts = [...new Set((inv.of(actor)?.slots ?? []).filter((s) => s && (items.get(s.id)?.price ?? 0) > 0 && !items.isTagged(s.id, '#core:tools')).map((s) => s!.id))]
   const leaving = r.leaving >= 0
+  const scene = api.services.has('cutscene:talk') ? api.services.get('cutscene:talk') : undefined
   return (
     <div style={{ width: 'min(580px, 90vw)' }}>
       <ui.Dialogue
@@ -130,6 +131,8 @@ export function Talk(props: Props) {
         text={text}
         typeSpeed={pers?.speed ?? 0.028}
         onBlip={() => voiceBlip(api, pers?.voice ?? 320)}
+        onTyping={(on) => scene?.typing(on)}
+        onLine={(t) => scene?.line(t)}
       >
         {mode === 'gift' && (
           <ui.Grid columns={8}>

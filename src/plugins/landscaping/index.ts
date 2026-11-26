@@ -3,7 +3,8 @@
  * - Path kits (content/landscaping/landscaping.paths.json5) pave a cell of grass, sand or soil; the
  *   shovel's second action (F) on a path lifts it and gives the kit back.
  * - The shovel's second action elsewhere shapes the land: a column standing higher than you is dug
- *   down, one level with you gets a block on top — within a couple of blocks of how the island was made.
+ *   down, one level with you gets a block on top — up to the world's top level (4 blocks above the
+ *   ground; the 5th level only holds things put on top), never below the ground level.
  */
 import { definePlugin, z, type RegistryEntry } from '@sdk'
 import { terraformOp } from './terraform'
@@ -24,11 +25,9 @@ const Config = z.object({
   /** Blocks a path can replace. */
   pavable: z.array(z.string()).default(['core:grass', 'core:sand', 'core:dirt']),
   pathStack: z.number().int().min(1).max(99).default(30).meta({ label: 'path stack', step: 1 }),
-  maxUp: z.number().int().min(0).max(8).default(2).meta({ label: 'raise up to', step: 1 }),
+  /** Blocks on top of the island as made (the world's levels cap it: at most 4 above the ground). */
+  maxUp: z.number().int().min(0).max(8).default(4).meta({ label: 'raise up to', step: 1 }),
   maxDown: z.number().int().min(0).max(8).default(1).meta({ label: 'dig down to', step: 1 }),
-  maxHeight: z.number().int().min(4).max(31).default(24).meta({ label: 'max height', step: 1 }),
-  /** Never dig to this height or lower (water level). */
-  minHeight: z.number().int().min(0).max(31).default(8).meta({ label: 'min height', step: 1 }),
   /** Raised ground: grass on top, soil under it. */
   top: z.string().default('core:grass'),
   under: z.string().default('core:dirt'),
@@ -141,7 +140,9 @@ export default definePlugin({
       if (!outdoors() || !original || !cfg.pavable.includes(ctx.block) || occupied(ctx.x, ctx.z)) return null
       if (api.hooks.run('movement:blocked', false, { x: ctx.x, y: ctx.y + 1, z: ctx.z })) return null // a hole, a tree…
       const stand = ctx.y + 1
-      return terraformOp(stand, ctx.actor.transform?.y ?? stand, original[ctx.x + ctx.z * api.world.sizeX] ?? stand, cfg)
+      // the top level only holds things put on top; the ground level is where the sea is
+      const limits = { maxUp: cfg.maxUp, maxDown: cfg.maxDown, maxHeight: api.world.topY, minHeight: api.world.ground - 1 }
+      return terraformOp(stand, ctx.actor.transform?.y ?? stand, original[ctx.x + ctx.z * api.world.sizeX] ?? stand, limits)
     }
     interactions.register({
       id: 'landscaping:terraform',

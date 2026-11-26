@@ -54,6 +54,11 @@ export default definePlugin({
 | `api.world.regenerate(seed?)` / `regenerateSoon()` | пересоздать остров |
 | `api.registry('worldgen').register({ id, order, run(ctx) })` | шаг генерации мира |
 | `api.textures.pattern(name, fn)` | свой процедурный паттерн текстур |
+| `api.render.camera.shot` + `camera.cut(true, seconds)` | кинокадр поверх обычного вида: `target`, `zoom`, `pitch`, `yaw`, `clip` (срезать всё ближе к камере); `cut(false)` — обратно |
+| `api.render.pixelsPerBlock` / `api.render.eachFace(fn)` | детализация по зуму; нарисованные лица круглых ригов (`slot.picture(texture)`) |
+| `api.ui.cinema.value = true` | HUD уходит на время сцены |
+| сервис `faces:control` | `show(who, 'joy', сек)`, `mood`, `talk(who, on)`, `look(who, at)`, `ofLine(text)` — мимика (`neutral happy joy sad worried angry surprised sleepy love shy thinking wink`) |
+| сервис `cutscene:talk` | `conversation(windowId, () => собеседник)` — окно-разговор крупным планом; `line(text)`, `typing(on)`; `cheat(rotY)` — повернуть к камере |
 | `api.ui.slot('hud.bottomLeft', Component)` / `api.ui.window({ id, title, component })` / `api.ui.toast(text)` | интерфейс на Preact (TSX): слоты HUD, окна, сообщения; компоненты `ui.Pill`, `ui.Button`, `ui.ItemSlot`, `ui.Grid`… из `@sdk` |
 | `api.registry('interactions').register({ id, tool, block, entity, when, run, label, button })` | ячейка матрицы взаимодействий; `button: 'secondary'` — вторая кнопка (F) |
 | `api.interactions.at(actor, x, z)` → `find` / `perform` | что произойдёт / сделать действие в клетке |
@@ -103,7 +108,7 @@ export default definePlugin({
 
 | order | шаг (плагин `terrain`) | что делает |
 |---|---|---|
-| 100 | `terrain:shape` | маска острова под заданную площадь, одна суша без островков, уровни террас → `ctx.heightMap` |
+| 100 | `terrain:shape` | маска острова под заданную площадь, одна суша без островков, два уровня суши: земля (вровень с морем) и на блок выше → `ctx.heightMap` |
 | 200 | `terrain:rivers` | реки к морю с водопадами → `ctx.waterMap` |
 | 210 | `terrain:ponds` | пруды на ровных местах |
 | 300 | `terrain:surface` | верхний блок колонны: трава, пляж, дно → `ctx.surface` |
@@ -129,6 +134,20 @@ export default definePlugin({
 Положите `content/my_pack/textures/brick.png` (16×16), и картинка заменит процедурную текстуру `my_pack:brick`.
 `transparent: true` — блок рисуется в прозрачном проходе (вода, стекло); `liquid: true` — поверхность чуть ниже края блока и текстура течёт; `tint: true` — верх блока получает мягкие солнечные и тенистые пятна (настройка `engine → render.tint`); `solid: false` — сквозь него можно пройти.
 Мягкие паттерны: `soft`, `grass_top`, `grass_side` (волнистая кромка), `strata` (слои скалы), `water`.
+
+**Материалы вблизи.** У текстуры может быть `material` — процедурный материал из `materials.json5`; издалека остаётся пиксельный паттерн, а когда камера приближается (от `materialFrom` текселей на блок, по умолчанию 32), блок плавно получает настоящую поверхность:
+
+```json5
+// content/my_pack/materials.json5
+[{ id: 'my_pack:brick', shading: 1, occlusion: 0.5, layers: [
+  { kind: 'boards', colors: ['#8e3f2c', '#b5543c', '#c96a4e'], params: { rows: 6, lengths: 3, gap: 0.06 }, relief: 0.8 },
+  { kind: 'grain', colors: ['#7a3424', '#e4a08a'], scale: 128, blend: 'overlay', opacity: 0.35 },
+  { kind: 'noise', colors: ['#9fbf7a'], scale: 2, opacity: 0.6, mask: { scale: 3, threshold: 0.65, softness: 0.05 } },  // мох пятнами
+] }]
+// textures.json5: { id: 'my_pack:brick', pattern: 'planks', colors: ['#b5543c'], material: 'my_pack:brick' }
+```
+
+Слой — узор (`fill noise ridged cells cracks strata wood boards grain fibers knit pebbles twill weave`) через цветовую рампу `colors`, наложенный режимом `blend` (`normal multiply screen overlay soft add darken lighten`) с `opacity` и маской; `scale` — сколько деталей на тайл (целые — без швов), `octaves`, `roughness`, `warp`, `contrast`, `relief` (рельеф для запечённого света). Настройки детализации — `engine → render.detail`.
 
 ## Предметы и взаимодействия
 
@@ -248,6 +267,22 @@ silhouette: { color: '#fff6fb', opacity: 0.5 }  // виден сквозь ре�
 blobShadow: { radius: 0.36 }                     // мягкая круглая тень
 ```
 
+**Круглые персонажи.** `round: { subdiv: 3, smooth: 2, iso: 0.42 }` у рига — части рисуются гладкими и мягкими вместо кубиков. У моделей частей:
+
+```json5
+// мех или волосы на символах палитры: 0…1, длина и густота в вокселях
+fur: { keys: { s: 1, S: 0.7 }, length: 0.9, density: 6, droop: 0.3, thickness: 0.42 },
+// ткань вблизи: символ палитры → материал (берётся только его светотень, цвет остаётся из палитры)
+fabric: { keys: { t: 'core:knit', p: 'core:denim' }, tile: 2.5, strength: 0.7 },
+// нарисованное лицо: центр и размер на передней стороне (воксели), какие нарисованные вокселями черты оно заменяет
+face: { center: [4, 3.2], size: [7.6, 5.6], front: 7, erase: { e: 's', b: 's' },
+        style: { eyeGap: 1.5, eyeY: 3.5, eyeSize: 0.8, mouthY: 1.9, mouthWide: 1, lids: 0, mouth: 'none', blush: '#ff98ad', brows: false } },
+```
+
+Лицо рисует плагин `faces`: моргает, смотрит на собеседника, двигает губами, пока печатается реплика, и меняет выражение — по эмоциям (`emotes:shown`), по словам реплики или по просьбе любого плагина (`faces:control`). Реплика может начинаться с тега `[joy]` — его увидит только лицо. Всё выключается в `engine → render.characters` (`round`, `fur`, `faces`, `fabric`). Готовые ткани: `core:knit` (вязка), `core:denim` (саржа), `core:linen` (полотно), `core:tweed`.
+
+**Разговоры крупным планом.** Окно диалога становится сценой одной строкой: `api.services.get('cutscene:talk').conversation('my:talk', () => собеседник)` (сущность или объект рига). В компоненте передайте `ui.Dialogue` `onTyping` и `onLine` в `typing`/`line` сервиса — и лица заговорят. Игрок может выключить крупные планы в настройках.
+
 Статичные сущности, которых много (цветы, поделки), помечайте `model.instanced: true` (воксельные модели и риги): они рисуются одной пачкой на модель и палитру, но у них нет своего `view`. Чтобы такую сущность оживить, на время смените модель на обычную, как дерево, когда его трясут. Поверхности `api.render.blockSurface` с опцией `cull` рисуются, только когда попадают в кадр.
 
 ## Управление в dev-режиме
@@ -255,10 +290,10 @@ blobShadow: { radius: 0.36 }                     // мягкая круглая 
 | Клавиша | |
 |---|---|
 | `W A S D` / стрелки / левый стик | идти (камера следует за игроком) |
-| `Shift` / `Pad1` | бежать |
-| `Space` / `Enter` / `Pad0` | действие с клеткой перед персонажем (подсказка внизу экрана) |
+| `Space` / `Pad1` | бежать |
+| `E` / `Enter` / `Pad0` | действие с клеткой перед персонажем (подсказка внизу экрана); срабатывает, когда отпускаешь, а пока держишь — персонаж крадётся (насекомые не замечают) |
 | `F` / `Pad2` | второе действие: повернуть поделку, забрать верстак, свет у двери дома, лопатой — насыпать / срыть землю, снять дорожку |
-| ЛКМ | дойти до клетки и сделать с ней действие (или просто дойти); наведение показывает, что произойдёт |
+| ЛКМ | дойти до клетки и сделать с ней действие (или просто дойти); новые клики подхватываются на ходу, путь идёт по прямым; если держать — персонаж крадётся за курсором; наведение показывает, что произойдёт |
 | `I` / `Tab` / `Pad3` | карманы |
 | `R` / `Pad5` (`Pad4` — назад) | сменить инструмент в руках |
 | `G` | выбросить предмет из рук |
@@ -268,7 +303,7 @@ blobShadow: { radius: 0.36 }                     // мягкая круглая 
 | стрелки, `Enter` / крестовина, A, B | меню и окна без мыши |
 | `B` | энциклопедия (рыбы, насекомые, окаменелости) |
 | `Esc` / `Pad9` | закрыть окно, а если окон нет — меню (сохранения, новый остров) |
-| `Q` / `E` | повернуть камеру на 90° |
+| `Z` / `X` | повернуть камеру на 90° (раньше `Q` / `E`; `E` теперь — действие) |
 | колесо мыши | зум |
 | `` ` `` / `ё` | консоль (`help` — все команды) |
 | `F2` | показать/скрыть панель настроек |

@@ -135,7 +135,7 @@ export default definePlugin({
   description: 'Жители: характеры, распорядок, диалоги, дружба, подарки, просьбы, переезды',
   dependsOn: ['items', 'characters'],
   // homes go up after the big buildings; photos are decor pieces
-  optionalDependsOn: ['decor', 'museum', 'shop', 'house', 'economy', 'garden', 'terrain', 'weather', 'daily', 'tutorial', 'emotes'],
+  optionalDependsOn: ['decor', 'museum', 'shop', 'house', 'economy', 'garden', 'terrain', 'weather', 'daily', 'tutorial', 'emotes', 'cutscene'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -232,7 +232,7 @@ export default definePlugin({
 
     const grass = (x: number, zz: number) => {
       const y = api.world.surfaceY(x, zz)
-      return y > 0 && api.world.getBlock(x, y - 1, zz) === 'core:grass' && api.world.getBlock(x, y, zz) === api.world.AIR ? y : null
+      return y === api.world.ground && api.world.getBlock(x, y - 1, zz) === 'core:grass' && api.world.getBlock(x, y, zz) === api.world.AIR ? y : null
     }
     /** A flat 3 × 3 plot with a free row in front, away from other buildings and homes. */
     const plotAt = (x0: number, z0: number): number | null => {
@@ -241,7 +241,7 @@ export default definePlugin({
       for (let dz = 0; dz < 4; dz++)
         for (let dx = 0; dx < 3; dx++) {
           const y = grass(x0 + dx, z0 + dz)
-          if (y === null || (dz < 3 ? y !== base : Math.abs(y - base) > 1) || api.world.blockerAt(x0 + dx, z0 + dz)) return null
+          if (y === null || y !== base || api.world.blockerAt(x0 + dx, z0 + dz)) return null
         }
       for (let dz = -3; dz < 7; dz++) for (let dx = -3; dx < 6; dx++) if ((api.world.blockerAt(x0 + dx, z0 + dz)?.blocker?.w ?? 1) > 1) return null
       for (const h of homes) if (Math.hypot(h.transform.x - (x0 + 1.5), h.transform.z - (z0 + 1.5)) < 8) return null
@@ -575,7 +575,8 @@ export default definePlugin({
           }
           // in a conversation: stand and look at the player
           if (talkingTo === npc && pl) {
-            t.rotY = Math.atan2(pl.transform.x - t.x, pl.transform.z - t.z)
+            const face = Math.atan2(pl.transform.x - t.x, pl.transform.z - t.z)
+            t.rotY = api.services.has('cutscene:talk') ? api.services.get('cutscene:talk').cheat(face) : face
             npc.biped!.speed = 0
             continue
           }
@@ -689,6 +690,8 @@ export default definePlugin({
       talking.value = null
       talkingTo = null
     })
+    // a conversation is a close-up of the two of you
+    if (api.services.has('cutscene:talk')) api.services.get('cutscene:talk').conversation('villagers:talk', () => talking.value)
     api.ui.window({
       id: 'villagers:talk',
       title: 'Разговор',

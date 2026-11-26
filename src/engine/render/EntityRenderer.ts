@@ -166,7 +166,7 @@ export class EntityRenderer {
     const meshes: Mesh[] = []
     view.traverse((o) => {
       const m = o as Mesh
-      if (m.isMesh && !m.userData.silhouette && !this.silhouetted.has(m)) meshes.push(m)
+      if (m.isMesh && !m.userData.silhouette && !m.userData.fur && !this.silhouetted.has(m)) meshes.push(m)
     })
     for (const m of meshes) {
       this.silhouetted.add(m)

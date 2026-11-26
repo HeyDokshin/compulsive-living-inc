@@ -94,6 +94,8 @@ export interface Hall {
   refresh(): void
   /** The curator is speaking (nods while text appears). */
   setTalking(on: boolean): void
+  /** The curator's rig, while the hall is built. */
+  curator(): InstanceType<PluginApi['render']['three']['Object3D']> | null
   /** What is on display in a world cell, if it is a slot. */
   slotAt(x: number, z: number): { kind: 'fish' | 'bug' | 'fossil'; species?: SpeciesDef } | null
 }
@@ -168,7 +170,7 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
     dirty = true
   }
 
-  // Walls on the side facing the camera stay low (a cutaway, like a dollhouse); they follow Q/E.
+  // Walls on the side facing the camera stay low (a cutaway, like a dollhouse); they follow Z/X.
   const near = (x: number, z: number, p: HallPlan) => {
     const yaw = (api.render.camera.targetYaw * Math.PI) / 180
     const cx = Math.sin(yaw)
@@ -330,7 +332,8 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
       if (curator) {
         const pl = player()
         if (pl) {
-          const want = Math.atan2(pl.transform.x - curator.position.x, pl.transform.z - curator.position.z)
+          const face = Math.atan2(pl.transform.x - curator.position.x, pl.transform.z - curator.position.z)
+          const want = api.services.has('cutscene:talk') ? api.services.get('cutscene:talk').cheat(face) : face
           const d = Math.atan2(Math.sin(want - curator.rotation.y), Math.cos(want - curator.rotation.y))
           curator.rotation.y += d * Math.min(1, dt * 5)
         }
@@ -416,6 +419,7 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
     build,
     refresh: () => void (dirty = true),
     setTalking: (on) => void (talking = on),
+    curator: () => curator,
     slotAt,
   }
 }

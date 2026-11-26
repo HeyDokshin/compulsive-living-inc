@@ -2,13 +2,19 @@
  * The player: camera-relative movement (keyboard or gamepad), voxel collision with auto-step,
  * no walking off cliffs or into water, smooth turning, camera follow, a soft cursor on the
  * cell in front of the player, and the "use" button that runs the interaction matrix there.
+ *
+ * Three gaits: walking by default, running while the run key (Space) is held, sneaking while the
+ * use key or the left mouse button is held — the use key then acts when it is let go. The gait
+ * (by actual speed) is kept in the `player` component, so others (bugs) can tell how loud one is.
+ * Click-to-walk cuts the grid path's corners, takes new clicks without stopping, and follows the
+ * cursor while the button is held.
  */
-import { definePlugin, findPath, signal, ui, z, type Cell, type Entity, type PluginApi } from '@sdk'
-import { moveBody, type Body, type MoveRules, type WorldQuery } from './physics'
+import { definePlugin, findPath, lineWalkable, signal, ui, z, type Cell, type Entity, type PluginApi } from '@sdk'
+import { gaitOf, moveBody, steer, type Body, type Gait, type MoveRules, type SteerRules, type WorldQuery } from './physics'
 
 declare module '@sdk' {
   interface Components {
-    player?: { vx: number; vz: number; vy: number; grounded: boolean }
+    player?: { vx: number; vz: number; vy: number; grounded: boolean; gait: Gait }
   }
   interface GameEvents {
     /** The cell in front of the player changed. */
@@ -28,21 +34,38 @@ interface Walk {
 }
 
 /** State shared by setup() and start() of one plugin instance. */
-const shared = new WeakMap<object, { walk: Walk | null }>()
+interface Shared {
+  walk: Walk | null
+  /** The use key is held (sneak; it acts on release). */
+  useHeld: boolean
+  /** The left button is held since `clickAt` (performance.now()). */
+  clickHeld: boolean
+  clickAt: number
+  /** Seconds until the grid path is next checked for corners to cut. */
+  lookIn: number
+  /** Step rule between columns for click-to-walk (set in start). */
+  canStep: ((a: Cell, b: Cell) => boolean) | null
+}
+const shared = new WeakMap<object, Shared>()
 const stateOf = (api: PluginApi) => {
   let st = shared.get(api)
-  if (!st) shared.set(api, (st = { walk: null }))
+  if (!st) shared.set(api, (st = { walk: null, useHeld: false, clickHeld: false, clickAt: 0, lookIn: 0, canStep: null }))
   return st
 }
 
 const Config = z.object({
-  walkSpeed: z.number().min(0.5).max(12).default(3.1).meta({ label: 'walk speed', step: 0.1 }),
-  runSpeed: z.number().min(0.5).max(20).default(5.6).meta({ label: 'run speed', step: 0.1 }),
-  /** How quickly the character reaches walking speed (gentle start). */
-  acceleration: z.number().min(1).max(60).default(10).meta({ step: 0.5 }),
-  /** How quickly the character stops when you let go (no sliding). */
-  deceleration: z.number().min(1).max(80).default(22).meta({ step: 0.5 }),
-  turnSpeed: z.number().min(1).max(40).default(14).meta({ label: 'turn speed', step: 0.5 }),
+  /** Holding the use key or the left mouse button: bugs don't notice. */
+  sneakSpeed: z.number().min(0.2).max(6).default(1.2).meta({ label: 'sneak speed', step: 0.1 }),
+  walkSpeed: z.number().min(0.5).max(12).default(2.4).meta({ label: 'walk speed', step: 0.1 }),
+  runSpeed: z.number().min(0.5).max(20).default(4.4).meta({ label: 'run speed', step: 0.1 }),
+  /** How quickly the character reaches its speed (gentle start). */
+  acceleration: z.number().min(1).max(60).default(6).meta({ step: 0.5 }),
+  /** How quickly the character slows down when you let go. */
+  deceleration: z.number().min(1).max(80).default(9).meta({ step: 0.5 }),
+  /** How fast the direction of movement turns (rad/s): changes of direction are arcs. */
+  steerRate: z.number().min(1).max(60).default(9).meta({ label: 'steer rate', step: 0.5 }),
+  /** How quickly the body turns to face where it goes. */
+  turnSpeed: z.number().min(1).max(40).default(10).meta({ label: 'turn speed', step: 0.5 }),
   radius: z.number().min(0.1).max(0.49).default(0.3).meta({ step: 0.01 }),
   height: z.number().min(0.5).max(3).default(1.3).meta({ step: 0.05 }),
   step: z.number().int().min(0).max(3).default(1).meta({ label: 'step height', step: 1 }),
@@ -52,6 +75,22 @@ const Config = z.object({
   /** Footstep spacing in blocks (walking / running). */
   stride: z.number().min(0.3).max(3).default(0.9).meta({ step: 0.05 }),
   runStride: z.number().min(0.3).max(3).default(1.15).meta({ label: 'run stride', step: 0.05 }),
+  /** Footsteps are this loud while sneaking (walking 0.8, running 1). */
+  sneakVolume: z.number().min(0).max(1).default(0.4).meta({ label: 'sneak volume', step: 0.05 }),
+  /** Left button held this long (s): sneak towards the cursor and follow it. */
+  holdDelay: z.number().min(0.05).max(1).default(0.2).meta({ label: 'hold delay (s)', step: 0.01 }),
+  /** While following the cursor, a new path at most this often (s). */
+  repathEvery: z.number().min(0.02).max(1).default(0.12).meta({ label: 'repath every (s)', step: 0.01 }),
+  /** Corners of the click path are cut this often (s): it goes in straight lines where it can. */
+  lookEvery: z.number().min(0.02).max(1).default(0.08).meta({ label: 'look ahead every (s)', step: 0.01 }),
+  /** A waypoint on the way counts as passed this close (blocks). */
+  cornerRadius: z.number().min(0.05).max(1).default(0.45).meta({ label: 'corner radius', step: 0.05 }),
+  /** Slows down this far before the end of a click path (blocks). */
+  arriveDistance: z.number().min(0.1).max(3).default(0.7).meta({ label: 'arrive distance', step: 0.05 }),
+  /** The end of a click path counts as reached this close (blocks). */
+  arriveRadius: z.number().min(0.02).max(0.5).default(0.1).meta({ label: 'arrive radius', step: 0.01 }),
+  /** A use key press this soon after a window closed (s) is the one that closed it, not a new action. */
+  menuGrace: z.number().min(0).max(1).default(0.25).meta({ label: 'menu grace (s)', step: 0.05 }),
   /** Seconds the mouse cursor keeps showing the hovered cell after it stops moving. */
   hoverTimeout: z.number().min(0).max(30).default(4).meta({ label: 'hover timeout (s)', step: 0.5 }),
   cursor: z.boolean().default(true),
@@ -70,7 +109,13 @@ export default definePlugin({
     const cfg = api.config.define(Config)
     api.components.define(
       'player',
-      z.object({ vx: z.number().default(0), vz: z.number().default(0), vy: z.number().default(0), grounded: z.boolean().default(false) }),
+      z.object({
+        vx: z.number().default(0),
+        vz: z.number().default(0),
+        vy: z.number().default(0),
+        grounded: z.boolean().default(false),
+        gait: z.enum(['sneak', 'walk', 'run']).default('sneak'),
+      }),
     )
 
     const keys = {
@@ -78,7 +123,8 @@ export default definePlugin({
       down: api.input.action('down', ['KeyS', 'ArrowDown', 'Pad13'], 'Идти вниз'),
       left: api.input.action('left', ['KeyA', 'ArrowLeft', 'Pad14'], 'Идти влево'),
       right: api.input.action('right', ['KeyD', 'ArrowRight', 'Pad15'], 'Идти вправо'),
-      run: api.input.action('run', ['ShiftLeft', 'ShiftRight', 'Pad1'], 'Бежать'),
+      run: api.input.action('run', ['Space', 'Pad1'], 'Бежать'),
+      click: api.input.action('click', ['Mouse0']),
     }
 
     const blocks = api.registry('blocks')
@@ -93,7 +139,11 @@ export default definePlugin({
         return v
       },
     }
-    const rules = (): MoveRules => ({ step: cfg.step, maxDrop: cfg.maxDrop, gravity: cfg.gravity, waterBlocks: cfg.waterBlocks })
+    // Reused every tick (no garbage in the hot path).
+    const rules: MoveRules = { step: 0, maxDrop: 0, gravity: 0, waterBlocks: true }
+    const steering: SteerRules = { acceleration: 0, deceleration: 0, turnRate: 0 }
+    const shape = { radius: 0, height: 0 }
+    const body: Body = { x: 0, y: 0, z: 0, vy: 0, grounded: false }
 
     const dir = new api.render.three.Vector3()
     let stepDist = 0
@@ -101,6 +151,16 @@ export default definePlugin({
       id: 'move',
       phase: 'update',
       run: ({ dt }) => {
+        rules.step = cfg.step
+        rules.maxDrop = cfg.maxDrop
+        rules.gravity = cfg.gravity
+        rules.waterBlocks = cfg.waterBlocks
+        steering.acceleration = cfg.acceleration
+        steering.deceleration = cfg.deceleration
+        steering.turnRate = cfg.steerRate
+        shape.radius = cfg.radius
+        shape.height = cfg.height
+        const st = stateOf(api)
         for (const e of api.entities.world.with('player', 'transform')) {
           const p = e.player
           const t = e.transform
@@ -111,10 +171,11 @@ export default definePlugin({
           let u = locked ? 0 : Number(api.input.isDown(keys.up)) - Number(api.input.isDown(keys.down)) - api.input.stick.y
           const mag = Math.hypot(r, u)
           if (mag > 1) (r /= mag), (u /= mag)
-          let speed = api.input.isDown(keys.run) ? cfg.runSpeed : cfg.walkSpeed
+          // Gait: run on its key; sneak while the use key or the left button is held; walk otherwise.
+          const dragging = st.clickHeld && api.input.isDown(keys.click) && performance.now() - st.clickAt > cfg.holdDelay * 1000
+          const speed = api.input.isDown(keys.run) ? cfg.runSpeed : st.useHeld || dragging ? cfg.sneakSpeed : cfg.walkSpeed
           let tx = 0
           let tz = 0
-          const st = stateOf(api)
           if (mag > 0.01) {
             st.walk = null // keys/stick take over from click-to-walk
             api.render.camera.screenToWorldDir(r, u, dir)
@@ -124,16 +185,27 @@ export default definePlugin({
             tz = (dir.z / len) * k
           } else if (st.walk && !locked) {
             const w = st.walk
-            // drop reached waypoints
-            while (w.path.length && Math.hypot(w.path[0]!.x + 0.5 - t.x, w.path[0]!.z + 0.5 - t.z) < 0.2) w.path.shift()
+            // Cut corners: skip a waypoint when the next one is in a straight, walkable line.
+            if ((st.lookIn -= dt) <= 0 && st.canStep) {
+              st.lookIn = cfg.lookEvery
+              while (w.path.length > 1 && lineWalkable(t.x, t.z, w.path[1]!.x + 0.5, w.path[1]!.z + 0.5, cfg.radius, st.canStep)) w.path.shift()
+            }
+            // Drop passed waypoints: corners loosely (no slowing down on the way), the end exactly.
+            while (w.path.length) {
+              const c = w.path[0]!
+              const d = Math.hypot(c.x + 0.5 - t.x, c.z + 0.5 - t.z)
+              if (d >= (w.path.length > 1 ? cfg.cornerRadius : cfg.arriveRadius)) break
+              w.path.shift()
+            }
             const next = w.path[0]
             if (next) {
-              if (w.path.length > 6) speed = cfg.runSpeed
               const dx = next.x + 0.5 - t.x
               const dz = next.z + 0.5 - t.z
               const len = Math.hypot(dx, dz) || 1
-              tx = (dx / len) * speed
-              tz = (dz / len) * speed
+              // ease in to the last cell instead of stopping dead on it
+              const k = w.path.length === 1 ? speed * Math.min(1, Math.max(0.25, len / cfg.arriveDistance)) : speed
+              tx = (dx / len) * k
+              tz = (dz / len) * k
             } else {
               st.walk = null
               if (w.target) {
@@ -142,14 +214,15 @@ export default definePlugin({
               }
             }
           }
-          const speeding = tx * p.vx + tz * p.vz > 0 && Math.hypot(tx, tz) >= Math.hypot(p.vx, p.vz)
-          const a = Math.min(1, (speeding ? cfg.acceleration : cfg.deceleration) * dt)
-          p.vx += (tx - p.vx) * a
-          p.vz += (tz - p.vz) * a
-          if (!mag && Math.hypot(p.vx, p.vz) < 0.05) p.vx = p.vz = 0
+          steer(p, tx, tz, steering, dt)
+          if (!mag && !st.walk && Math.hypot(p.vx, p.vz) < 0.05) p.vx = p.vz = 0
 
-          const body: Body = { x: t.x, y: t.y, z: t.z, vy: p.vy, grounded: p.grounded }
-          moveBody(body, { radius: cfg.radius, height: cfg.height }, rules(), query, p.vx * dt, p.vz * dt, dt)
+          body.x = t.x
+          body.y = t.y
+          body.z = t.z
+          body.vy = p.vy
+          body.grounded = p.grounded
+          moveBody(body, shape, rules, query, p.vx * dt, p.vz * dt, dt)
           // Velocity that actually happened (so walking into a wall doesn't keep the legs running).
           const realVx = (body.x - t.x) / dt
           const realVz = (body.z - t.z) / dt
@@ -160,25 +233,27 @@ export default definePlugin({
           p.grounded = body.grounded
 
           const hs = Math.hypot(realVx, realVz)
+          const gait = gaitOf(hs, cfg.sneakSpeed, cfg.walkSpeed)
+          if (p.gait !== gait) p.gait = gait
           // Give up a click-walk that can't make progress (blocked by something new).
           if (st.walk) {
             st.walk.stuckFor = hs < 0.3 && Math.hypot(tx, tz) > 0.1 ? st.walk.stuckFor + dt : 0
             if (st.walk.stuckFor > 0.8) st.walk = null
           }
-          // Footsteps (and puffs of dust when running) by the block underfoot.
+          // Footsteps (and puffs of dust when running) by the block underfoot; soft when sneaking.
           if (p.grounded && hs > 0.3) {
             stepDist += hs * dt
-            const running = hs > cfg.walkSpeed * 1.2
-            if (stepDist >= (running ? cfg.runStride : cfg.stride)) {
+            if (stepDist >= (gait === 'run' ? cfg.runStride : cfg.stride)) {
               stepDist = 0
               const under = api.world.getBlock(Math.floor(t.x), Math.round(t.y) - 1, Math.floor(t.z))
               const sound = blocks.get(under)?.sounds?.step
-              if (sound) api.audio.play(sound, { at: t, volume: running ? 1 : 0.8 })
-              if (running) api.fx.burst('core:dust', { x: t.x, y: t.y + 0.05, z: t.z })
+              if (sound) api.audio.play(sound, { at: t, volume: gait === 'run' ? 1 : gait === 'walk' ? 0.8 : cfg.sneakVolume })
+              if (gait === 'run') api.fx.burst('core:dust', { x: t.x, y: t.y + 0.05, z: t.z })
             }
           } else stepDist = 0.6
-          if (Math.hypot(tx, tz) > 0.1) {
-            const want = Math.atan2(tx, tz)
+          // Face where the body actually goes.
+          if (Math.hypot(p.vx, p.vz) > 0.1) {
+            const want = Math.atan2(p.vx, p.vz)
             const diff = Math.atan2(Math.sin(want - t.rotY), Math.cos(want - t.rotY))
             t.rotY += diff * Math.min(1, cfg.turnSpeed * dt)
           }
@@ -227,22 +302,26 @@ export default definePlugin({
 
     const cursor = new Cursor(api, cfg)
     const st = stateOf(api)
-    // Mouse hover: show the hovered cell for a while after the mouse moves.
-    // Re-pick only when the mouse or the camera moved (the ray walk is cheap, but not free).
-    let hoverKey = ''
-    let hoverCell: Cell | null = null
-    const hovered = (): Cell | null => {
+    // The cell under the mouse. Re-pick only when the mouse or the camera moved (the ray walk is cheap, but not free).
+    let pickKey = ''
+    let pickCell: Cell | null = null
+    const pointed = (): Cell | null => {
       const ptr = api.input.pointer
-      if (!ptr.inside || api.ui.modalOpen.value || performance.now() - ptr.movedAt > cfg.hoverTimeout * 1000) return null
+      if (!ptr.inside) return null
       const c = api.render.camera.target
       const f = api.render.camera.forwardXZ()
       const key = `${ptr.x},${ptr.y},${c.x.toFixed(2)},${c.y.toFixed(2)},${c.z.toFixed(2)},${f.x.toFixed(3)},${api.engineConfig.camera.zoom}`
-      if (key !== hoverKey) {
-        hoverKey = key
+      if (key !== pickKey) {
+        pickKey = key
         const hit = api.world.pick(ptr.x, ptr.y)
-        hoverCell = hit ? { x: hit.x, z: hit.z } : null
+        pickCell = hit ? { x: hit.x, z: hit.z } : null
       }
-      return hoverCell
+      return pickCell
+    }
+    // Mouse hover: show the hovered cell for a while after the mouse moves.
+    const hovered = (): Cell | null => {
+      if (api.ui.modalOpen.value || performance.now() - api.input.pointer.movedAt > cfg.hoverTimeout * 1000) return null
+      return pointed()
     }
     api.systems.add({
       id: 'cursor',
@@ -259,9 +338,28 @@ export default definePlugin({
       if (def && player.biped && def.anim !== 'none') player.biped.action = { name: def.anim ?? 'swing', t: 0 }
     }
 
-    // Use: whatever the interaction matrix says for (held item × cell in front).
-    const useKey = api.input.action('use', ['Space', 'Enter', 'Pad0'], 'Действие')
-    api.input.on(useKey, () => act(cursor.front.x, cursor.front.z))
+    // Use: whatever the interaction matrix says for (held item × cell in front). Holding the key
+    // sneaks (bugs don't notice); it acts when let go — like walking up to a bug with the net raised.
+    const useKey = api.input.action('use', ['KeyE', 'Enter', 'Pad0'], 'Действие')
+    let modalAt = -Infinity
+    api.input.on(useKey, () => {
+      // the press that closed a window (or answered it) is not a new action
+      if (!api.ui.modalOpen.value && performance.now() - modalAt > cfg.menuGrace * 1000) st.useHeld = true
+    })
+    api.systems.add({
+      id: 'use',
+      phase: 'preUpdate',
+      run: () => {
+        if (api.ui.modalOpen.value) {
+          modalAt = performance.now()
+          st.useHeld = false
+        }
+        if (st.useHeld && !api.input.isDown(useKey)) {
+          st.useHeld = false
+          act(cursor.front.x, cursor.front.z)
+        }
+      },
+    })
     // The second action: rotate, take, put away… (shown next to the main one in the hint).
     const altKey = api.input.action('useAlt', ['KeyF', 'Pad2'], 'Второе действие')
     api.input.on(altKey, () => act(cursor.front.x, cursor.front.z, 'secondary'))
@@ -278,20 +376,48 @@ export default definePlugin({
       const hb = standY(b.x, b.z)
       return hb !== null && hb - ha <= cfg.step && ha - hb <= cfg.maxDrop
     }
-    const clickKey = api.input.action('click', ['Mouse0'])
-    api.input.on(clickKey, () => {
-      if (api.ui.modalOpen.value) return
-      const hit = api.world.pick(api.input.pointer.x, api.input.pointer.y)
-      if (!hit) return
-      const target = { x: hit.x, z: hit.z }
+    st.canStep = canStep
+    /** Where the last click-walk went (holding the button walks on only when the cursor moves on). */
+    let lastGoal: Cell | null = null
+    /** Path to the cell (next to it when there is something to do there); keeps the current pace. */
+    const walkTo = (target: Cell): boolean => {
       const t = player.transform!
       const start = { x: Math.floor(t.x), z: Math.floor(t.z) }
       const actsThere = !!api.interactions.find(api.interactions.at(player, target.x, target.z))
       const adjacent = (c: Cell) => Math.abs(c.x - target.x) + Math.abs(c.z - target.z) === 1
       const isGoal = actsThere || standY(target.x, target.z) === null ? adjacent : (c: Cell) => c.x === target.x && c.z === target.z
       const path = findPath(start, { canStep, isGoal, target, maxNodes: 5000 })
-      if (!path) return api.audio.play('ui:close')
+      if (!path) return false
       st.walk = { path, target, act: actsThere, stuckFor: 0 }
+      lastGoal = target
+      st.lookIn = 0 // straighten the new path right away
+      return true
+    }
+    api.input.on('player:click', () => {
+      if (api.ui.modalOpen.value) return
+      st.clickHeld = true
+      st.clickAt = performance.now()
+      const cell = pointed()
+      if (cell && !walkTo(cell)) api.audio.play('ui:close')
+    })
+    // Holding the button: sneak after the cursor, like dragging the character along.
+    let repathIn = 0
+    api.systems.add({
+      id: 'drag',
+      phase: 'preUpdate',
+      run: ({ dt }) => {
+        if (!st.clickHeld) return
+        if (!api.input.isDown('player:click') || api.ui.modalOpen.value) {
+          st.clickHeld = false
+          return
+        }
+        if (performance.now() - st.clickAt < cfg.holdDelay * 1000 || (repathIn -= dt) > 0) return
+        const cell = pointed()
+        // only a new cell under the cursor (the one reached is not acted on again)
+        if (!cell || (lastGoal && lastGoal.x === cell.x && lastGoal.z === cell.z)) return
+        repathIn = cfg.repathEvery
+        walkTo(cell)
+      },
     })
     api.events.on('player:arrived', ({ x, z }) => act(x, z))
   },
@@ -344,7 +470,7 @@ class Cursor {
   private last = ''
   private pos = { x: 0, y: 0, z: 0 }
   private time = 0
-  /** Cell (column) in front of the player — what Space acts on. */
+  /** Cell (column) in front of the player — what the use key acts on. */
   front = { x: 0, z: 0 }
   /** Cell the marker shows (front, or the mouse-hovered / clicked one). */
   cell = { x: 0, z: 0 }

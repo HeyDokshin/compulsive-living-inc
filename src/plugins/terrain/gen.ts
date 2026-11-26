@@ -5,7 +5,6 @@
 import { z, type SurfaceRect, type WorldGenContext } from '@sdk'
 
 export const Config = z.object({
-  waterLevel: z.number().int().min(2).max(60).default(8).meta({ label: 'water level', step: 1 }),
   island: z
     .object({
       /** Share of the world covered by the island (0.4 of 128×128 ≈ 6 500 cells), same for every seed. */
@@ -15,12 +14,14 @@ export const Config = z.object({
       oceanDepth: z.number().int().min(1).max(10).default(3).meta({ label: 'ocean depth', step: 1 }),
     })
     .prefault({}),
+  /** Land levels: the ground (level 1) and, where `count` is 2, raised land one block higher — never more. */
   tiers: z
     .object({
-      count: z.number().int().min(1).max(6).default(3).meta({ step: 1 }),
-      height: z.number().int().min(1).max(8).default(3).meta({ label: 'cliff height', step: 1 }),
+      count: z.number().int().min(1).max(2).default(2).meta({ step: 1 }),
       scale: z.number().min(0.005).max(0.2).default(0.03).meta({ step: 0.005 }),
       inlandBias: z.number().min(0).max(2).default(0.9).meta({ label: 'inland bias', step: 0.05 }),
+      /** Raises or lowers all land: below 0 more of the island stays on the ground level. */
+      offset: z.number().min(-1).max(1).default(-0.45).meta({ step: 0.05 }),
       smoothing: z.number().int().min(0).max(6).default(2).meta({ step: 1 }),
     })
     .prefault({}),
@@ -113,12 +114,13 @@ export function tileRects(rects: readonly SurfaceRect[], cells: number): Surface
 }
 
 /** Height of the sea bed surface outside the world (matches the in-world floor near the edge). */
-export function seaBedY(cfg: Config): number {
-  return Math.max(1, cfg.waterLevel - cfg.island.oceanDepth - 1)
+export function seaBedY(sea: number, cfg: Config): number {
+  return Math.max(1, sea - cfg.island.oceanDepth - 1)
 }
 
-export function groundOfTier(cfg: Config, tier: number): number {
-  return cfg.waterLevel + 1 + tier * cfg.tiers.height
+/** Where one stands on a land level: the ground, or one block higher. The sea is level with the ground. */
+export function groundOfTier(ground: number, tier: number): number {
+  return ground + Math.min(1, Math.max(0, tier))
 }
 
 export function shape(ctx: WorldGenContext, cfg: Config): void {
@@ -163,7 +165,7 @@ export function shape(ctx: WorldGenContext, cfg: Config): void {
       const i = ctx.index(x, z)
       if (land[i]) {
         const inland = Math.max(0, Math.min(1, 1 - r[i]! / threshold))
-        const v = (tierNoise(x * cfg.tiers.scale, z * cfg.tiers.scale) * 0.5 + 0.5) * 0.8 + inland * cfg.tiers.inlandBias - 0.45
+        const v = (tierNoise(x * cfg.tiers.scale, z * cfg.tiers.scale) * 0.5 + 0.5) * 0.8 + inland * cfg.tiers.inlandBias + cfg.tiers.offset
         tier[i] = Math.max(0, Math.min(tiers - 1, Math.floor(v * tiers)))
       } else {
         tier[i] = -1
@@ -171,8 +173,8 @@ export function shape(ctx: WorldGenContext, cfg: Config): void {
         const edgeDist = Math.min(x, z, sizeX - 1 - x, sizeZ - 1 - z)
         const vary = Math.min(1, edgeDist / 8)
         const depth = oceanDepth + 1 + Math.round(floorNoise(x * 0.08, z * 0.08) * 1.2 * vary)
-        ctx.heightMap[i] = Math.max(1, cfg.waterLevel - depth)
-        ctx.waterMap[i] = cfg.waterLevel
+        ctx.heightMap[i] = Math.max(1, ctx.sea - depth)
+        ctx.waterMap[i] = ctx.sea
       }
     }
   }
@@ -203,7 +205,7 @@ export function shape(ctx: WorldGenContext, cfg: Config): void {
   for (let i = 0; i < n; i++) {
     if (!land[i]) continue
     area++
-    ctx.heightMap[i] = groundOfTier(cfg, tier[i]!)
+    ctx.heightMap[i] = groundOfTier(ctx.ground, tier[i]!)
   }
   ctx.data.terrain = {
     land,
@@ -343,7 +345,7 @@ export function rivers(ctx: WorldGenContext, cfg: Config): void {
       if (xi < 1 || zi < 1 || xi >= ctx.sizeX - 1 || zi >= ctx.sizeZ - 1) break
       const i = ctx.index(xi, zi)
       if (!t.land[i]) break
-      const ground = Math.min(prevGround, groundOfTier(cfg, Math.max(0, t.tier[i]!)))
+      const ground = Math.min(prevGround, groundOfTier(ctx.ground, t.tier[i]!))
       carve(ctx, xi, zi, r, ground)
       // Waterfall: where the river drops a terrace, stack water up to the level above.
       if (prevWater && ground < prevWater) ctx.waterMap[i] = Math.max(ctx.waterMap[i]!, prevWater)
@@ -381,7 +383,7 @@ export function ponds(ctx: WorldGenContext, cfg: Config): void {
       }
     }
     if (!flat) continue
-    carve(ctx, x, z, r, groundOfTier(cfg, tier), WATER_POND)
+    carve(ctx, x, z, r, groundOfTier(ctx.ground, tier), WATER_POND)
     made++
   }
 }

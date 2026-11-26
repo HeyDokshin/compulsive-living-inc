@@ -1,0 +1,104 @@
+// Procedural materials: layers of tileable patterns, each through a color ramp, blended over the
+// ones below. Rendered at any size — textures that name a material (textures.json5: `material`) show
+// it when the camera is close; far away they keep their pixel look. Patterns: fill, noise, ridged,
+// cells, cracks, strata, wood, boards, grain, fibers, knit, pebbles, twill, weave. Blend: normal, multiply, screen,
+// overlay, soft, add, darken, lighten. `relief` adds a layer to the surface height (baked light and shade).
+[
+  {
+    id: 'core:stone',
+    shading: 0.8,
+    occlusion: 0.35,
+    layers: [
+      { kind: 'noise', colors: ['#a7abb7', '#bcc0ca', '#cfd2d9'], scale: 3, octaves: 6, roughness: 0.55, relief: 0.8, seed: 3 },
+      { kind: 'ridged', colors: ['#aeb2bd', '#ffffff'], scale: 2, octaves: 4, blend: 'multiply', opacity: 0.3, relief: 0.3, seed: 8 },
+      { kind: 'cracks', colors: ['#959aa7', '#ffffff'], scale: 3, blend: 'multiply', opacity: 0.7, relief: 0.35, params: { width: 0.03 }, seed: 5,
+        mask: { kind: 'noise', scale: 2, threshold: 0.55, softness: 0.12, seed: 2 } },
+      { kind: 'grain', colors: ['#959aa7', '#e4e6eb'], scale: 128, blend: 'overlay', opacity: 0.3, seed: 4 },
+      { kind: 'noise', colors: ['#b8c9a0', '#cbd8b2'], scale: 2, octaves: 5, blend: 'soft', opacity: 0.45, seed: 9,
+        mask: { kind: 'noise', scale: 2, octaves: 4, threshold: 0.66, softness: 0.06, seed: 12 } },
+    ],
+  },
+  {
+    id: 'core:cliff',
+    shading: 0.9,
+    occlusion: 0.35,
+    layers: [
+      { kind: 'strata', colors: ['#b0855f', '#c49a76', '#d3ad87'], scale: 4, octaves: 5, relief: 0.8, params: { bands: 5, waves: 2, wobble: 0.5, soft: 0.12 }, seed: 15 },
+      { kind: 'ridged', colors: ['#ad8565', '#ffffff'], scale: 3, octaves: 5, blend: 'multiply', opacity: 0.25, relief: 0.4, seed: 16 },
+      { kind: 'pebbles', colors: ['#c49d79', '#e0c19f'], scale: 6, opacity: 0.7, relief: 0.35, params: { size: 0.2 }, seed: 17,
+        mask: { kind: 'pebbles', scale: 6, threshold: 0.05, softness: 0.05, params: { size: 0.2 }, seed: 17 } },
+      { kind: 'grain', colors: ['#9b7454', '#e8cba8'], scale: 128, blend: 'overlay', opacity: 0.3, seed: 18 },
+    ],
+  },
+  {
+    id: 'core:planks',
+    shading: 0.7,
+    occlusion: 0.5,
+    layers: [
+      { kind: 'boards', colors: ['#a9744a', '#d6a26d', '#e6b884', '#f0c999'], scale: 2, octaves: 4, relief: 0.6, params: { rows: 4, lengths: 2, gap: 0.035, stagger: 0.5 }, seed: 18 },
+      { kind: 'wood', colors: ['#c08a5a', '#ffffff'], scale: 2, octaves: 3, blend: 'multiply', opacity: 0.4, relief: 0.15, params: { rings: 10, aspect: 6, wobble: 1.4 }, seed: 19 },
+      { kind: 'fibers', colors: ['#a36f43', '#f6d7ad'], scale: 3, octaves: 4, blend: 'overlay', opacity: 0.25, params: { stretch: 12 }, seed: 20 },
+    ],
+  },
+  {
+    id: 'core:sand',
+    shading: 0.7,
+    occlusion: 0.2,
+    layers: [
+      { kind: 'noise', colors: ['#eedaa7', '#f6e7bd', '#fbf1d3'], scale: 2, octaves: 4, relief: 0.4, seed: 14 },
+      { kind: 'wood', colors: ['#ead5a2', '#ffffff'], scale: 2, octaves: 3, blend: 'multiply', opacity: 0.18, relief: 0.25, params: { rings: 5, aspect: 1, wobble: 1.2, sharp: 1 }, seed: 21 },
+      { kind: 'grain', colors: ['#d9c08a', '#fffaf0'], scale: 160, blend: 'overlay', opacity: 0.5, seed: 22 },
+      { kind: 'pebbles', colors: ['#f2c9b8', '#ffe3d6'], scale: 6, opacity: 0.85, relief: 0.25, params: { size: 0.1 }, seed: 23,
+        mask: { kind: 'pebbles', scale: 6, threshold: 0.05, softness: 0.04, params: { size: 0.1 }, seed: 23 } },
+    ],
+  },
+  {
+    id: 'core:dirt',
+    shading: 0.8,
+    occlusion: 0.35,
+    layers: [
+      { kind: 'noise', colors: ['#b08159', '#c79a72', '#d6ab84'], scale: 3, octaves: 6, relief: 0.6, seed: 13 },
+      { kind: 'pebbles', colors: ['#b9a493', '#d9cabd'], scale: 6, relief: 0.3, params: { size: 0.13 }, seed: 24,
+        mask: { kind: 'pebbles', scale: 6, threshold: 0.05, softness: 0.05, params: { size: 0.13 }, seed: 24 } },
+      { kind: 'grain', colors: ['#8f6545', '#e2bf98'], scale: 128, blend: 'overlay', opacity: 0.35, seed: 25 },
+    ],
+  },
+  // --- fabrics for characters (model `fabric`): only their light and shade is used, over the painted color ---
+  {
+    id: 'core:knit',
+    shading: 0.8,
+    occlusion: 0.4,
+    layers: [
+      { kind: 'knit', colors: ['#7c7c7c', '#cfcfcf'], scale: 6, relief: 0.8, params: { rowsPerCol: 1.2 }, seed: 31 },
+      { kind: 'fibers', colors: ['#959595', '#c8c8c8'], scale: 6, octaves: 3, blend: 'overlay', opacity: 0.3, params: { stretch: 3 }, seed: 32 },
+    ],
+  },
+  {
+    id: 'core:denim',
+    shading: 0.6,
+    occlusion: 0.25,
+    layers: [
+      { kind: 'twill', colors: ['#8c8c8c', '#c9c9c9'], scale: 20, relief: 0.5, params: { wobble: 0.5 }, seed: 33 },
+      { kind: 'noise', colors: ['#9a9a9a', '#d2d2d2'], scale: 3, octaves: 4, blend: 'overlay', opacity: 0.45, seed: 35 },
+    ],
+  },
+  {
+    id: 'core:linen',
+    shading: 0.6,
+    occlusion: 0.3,
+    layers: [
+      { kind: 'weave', colors: ['#8e8e8e', '#cdcdcd'], scale: 14, relief: 0.5, seed: 36 },
+      { kind: 'noise', colors: ['#a5a5a5', '#d0d0d0'], scale: 2, octaves: 3, blend: 'overlay', opacity: 0.3, seed: 37 },
+    ],
+  },
+  {
+    id: 'core:tweed',
+    shading: 0.6,
+    occlusion: 0.3,
+    layers: [
+      { kind: 'twill', colors: ['#888888', '#c4c4c4'], scale: 10, relief: 0.4, params: { wobble: 1 }, seed: 38 },
+      { kind: 'grain', colors: ['#5a5a5a', '#f0f0f0'], scale: 96, blend: 'overlay', opacity: 0.5, seed: 39 },
+      { kind: 'noise', colors: ['#8a8a8a', '#d6d6d6'], scale: 6, octaves: 3, blend: 'soft', opacity: 0.5, seed: 40 },
+    ],
+  },
+]
