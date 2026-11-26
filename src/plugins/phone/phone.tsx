@@ -7,14 +7,14 @@ export type Screen = 'home' | 'milestones'
 const CSS = `
 .cl-phone { position: relative; isolation: isolate; width: min(310px, 86vw); height: min(500px, 70vh); margin: 0 0 110px 28px; display: flex; flex-direction: column;
   border-radius: 42px; padding: 16px; filter: drop-shadow(0 18px 30px rgba(70, 50, 30, 0.3)); color: var(--ui-text); font-family: var(--ui-font); }
-.cl-phone::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: #fffaf0;
+.cl-phone::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--ui-pat-sprinkles), #fffaf0;
   box-shadow: inset 0 0 0 7px #f3e6d0; filter: url(#cl-wave); }
 .cl-phone-screen { animation: cl-phone-in .28s cubic-bezier(.3, 1.2, .5, 1); }
 @keyframes cl-phone-in { from { transform: translateX(18px); opacity: 0 } to { transform: none; opacity: 1 } }
 .cl-phone-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px 10px; font-size: 13px; font-weight: 800; }
 .cl-phone-chips { display: flex; gap: 6px; }
 .cl-phone-chip { padding: 3px 9px; border-radius: 999px; background: #f4ead8; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.cl-phone-body { flex: 1; overflow-y: auto; padding: 6px 4px 4px; border-radius: 30px; background: linear-gradient(180deg, #fdf3e1, #f7ead4); }
+.cl-phone-body { flex: 1; overflow-y: auto; padding: 6px 4px 4px; border-radius: 30px; background: var(--ui-pat-flowers), linear-gradient(180deg, #fdf3e1, #f7ead4); }
 .cl-phone-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 8px; padding: 14px 6px; }
 .cl-phone-app { display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: none; cursor: pointer;
   font: inherit; color: inherit; padding: 4px; border-radius: 18px; }
@@ -24,7 +24,7 @@ const CSS = `
 .cl-phone-label { font-size: 12px; font-weight: 700; text-align: center; line-height: 1.15; }
 .cl-phone-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px 4px; font-weight: 800; font-size: 16px; }
 .cl-phone-back { border: none; background: #f1e4cc; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; color: inherit; }
-.cl-ms { margin: 8px 6px; padding: 10px 12px; border-radius: 22px; background: #fffaf0; box-shadow: 0 2px 8px rgba(90, 60, 30, 0.1); }
+.cl-ms { margin: 8px 6px; padding: 10px 12px; border-radius: 22px; background: var(--ui-pat-stars), #fffaf0; box-shadow: 0 2px 8px rgba(90, 60, 30, 0.1); }
 .cl-ms-top { display: flex; gap: 10px; align-items: center; }
 .cl-ms-icon { font-size: 24px; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 34%; background: #fff0c8; }
 .cl-ms-name { font-weight: 800; font-size: 14px; }

@@ -20,7 +20,16 @@ export const terrainUniforms = {
   /** Linear colors of the water (deep and shallow parts of the swell). */
   uWaterDeep: { value: [0.09, 0.42, 0.62] as [number, number, number] },
   uWaterShallow: { value: [0.3, 0.75, 0.82] as [number, number, number] },
+  /** Progress (0…1) of the dissolve being drawn; set per mesh just before it is drawn. */
+  uDissolve: { value: 0 },
 }
+
+/**
+ * Edited ground does not jump: the new shape dissolves in pixel by pixel while the old one dissolves
+ * out over the very same pixels (one screen-space noise, complementary thresholds), so the surface
+ * is never doubled or holed.
+ */
+export type Dissolve = 'in' | 'out'
 
 const DECLS = `
 uniform sampler2D uDetailAtlas;
@@ -38,8 +47,15 @@ vec3 detailTap(vec2 p, vec2 tile) {
 }
 `
 
-export function createTerrainMaterial(): MeshLambertMaterial {
+export function createTerrainMaterial(dissolve?: Dissolve): MeshLambertMaterial {
   const mat = new MeshLambertMaterial({ vertexColors: true })
+  const cut = dissolve
+    ? `{
+        float h = fract(sin(dot(floor(gl_FragCoord.xy), vec2(12.9898, 78.233))) * 43758.5453);
+        if (${dissolve === 'in' ? 'h >= uDissolve' : 'h < uDissolve'}) discard;
+      }
+`
+    : ''
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, terrainUniforms)
     shader.vertexShader = shader.vertexShader
@@ -48,9 +64,9 @@ export function createTerrainMaterial(): MeshLambertMaterial {
         '#include <begin_vertex>',
         '#include <begin_vertex>\nvDetail = detail;\nvWPos = (modelMatrix * vec4(position, 1.0)).xyz;\nvWNormal = normal;',
       )
-    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\n' + DECLS).replace(
+    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uDissolve;\n' + DECLS).replace(
       '#include <color_fragment>',
-      `#include <color_fragment>
+      `${cut}#include <color_fragment>
       if (vDetail > -0.5 && uDetailStrength > 0.0) {
         float slot = floor(vDetail + 0.5);
         vec2 tile = vec2(mod(slot, uDetailGrid.x), floor(slot / uDetailGrid.x));
@@ -62,7 +78,7 @@ export function createTerrainMaterial(): MeshLambertMaterial {
       }`,
     )
   }
-  mat.customProgramCacheKey = () => 'terrain-round'
+  mat.customProgramCacheKey = () => 'terrain-round' + (dissolve ?? '')
   return stylize(mat)
 }
 

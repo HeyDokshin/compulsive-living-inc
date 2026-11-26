@@ -59,6 +59,7 @@ export default definePlugin({
 | `api.ui.cinema.value = true` | HUD уходит на время сцены |
 | `ui.Quiet watch={значение}` / `api.ui.peek` | «тихая» часть HUD: видна несколько секунд после изменения и пока HUD «подглядывают» (телефон) |
 | `api.ui.window({ …, bare: true })` / `api.ui.hasWindow(id)` | окно без рамки (рисует себя само) / есть ли такое окно |
+| `api.ui.window({ …, pattern: 'stars' })` | узор за текстом окна (`dots stars hearts flowers waves checks sprinkles leaves`; по умолчанию — по id окна). В своём CSS: `background: var(--ui-pat-<узор>), <цвет>` (или `-light` на тёмном) |
 | реестр `phone:apps` | приложение телефона: `{ id, name, icon, color, order, window }` — открывает окно любого плагина |
 | сервис `quests:progress` | `points` (листики), `milestones()` — достижения как дорожки ступеней |
 | сервис `faces:control` | `show(who, 'joy', сек)`, `mood`, `talk(who, on)`, `look(who, at)`, `ofLine(text)` — мимика (`neutral happy joy sad worried angry surprised sleepy love shy thinking wink`) |

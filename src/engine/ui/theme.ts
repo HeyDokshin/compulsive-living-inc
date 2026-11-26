@@ -1,5 +1,8 @@
-/** Shared look of all game UI: cream panels, warm brown text, rounded font, soft shadows. */
+import { patternCss } from './patterns'
+
+/** Shared look of all game UI: cream panels, warm brown text, rounded font, soft shadows, quiet patterns behind text. */
 export const UI_CSS = /* css */ `
+${patternCss('rgba(176, 124, 72, .09)', 'rgba(255, 255, 255, .2)')}
 :root {
   --ui-bg: #fffaf0;
   --ui-bg-2: #f7eedc;
@@ -43,7 +46,7 @@ export const UI_CSS = /* css */ `
 .cl-pill { position: relative; isolation: isolate; border-radius: 999px; padding: 7px 16px; font-weight: 700; font-size: 14px;
   filter: drop-shadow(0 4px 8px rgba(110, 80, 70, .16)); display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .cl-pill::before, .cl-toast::before, .cl-clock-date::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
-  background: rgba(255, 250, 240, .94); filter: url(#cl-wave-small); }
+  background: var(--ui-pat-dots), rgba(255, 250, 240, .94); background-size: 14px; filter: url(#cl-wave-small); }
 .cl-key { display: inline-block; min-width: 22px; padding: 1px 7px; border-radius: 8px; background: var(--ui-bg-2);
   border: 1.5px solid var(--ui-line); font-size: 12px; font-weight: 800; text-align: center; color: var(--ui-text-soft); }
 
@@ -55,7 +58,7 @@ export const UI_CSS = /* css */ `
 .cl-backdrop.bottom { align-items: flex-end; padding-bottom: 5vh; }
 .cl-window { position: relative; isolation: isolate; border-radius: 28px; filter: drop-shadow(0 14px 26px rgba(110, 80, 70, .24));
   min-width: 300px; max-width: min(calc(92vw / var(--ui-zoom)), 720px); animation: cl-pop .26s cubic-bezier(.3, 1.4, .5, 1); }
-.cl-window::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--ui-bg);
+.cl-window::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--ui-pat), var(--ui-bg);
   box-shadow: inset 0 0 0 3px #fff; filter: url(#cl-wave); }
 .cl-window-inner { max-height: calc(86vh / var(--ui-zoom)); overflow: auto; border-radius: inherit; }
 .cl-window.wide { max-width: min(calc(96vw / var(--ui-zoom)), 1040px); }
@@ -68,10 +71,10 @@ export const UI_CSS = /* css */ `
 .cl-close:hover { background: var(--ui-accent-2); color: #fff; }
 
 .cl-btn { border: 0; border-radius: 999px; padding: 8px 18px; font: 800 14px var(--ui-font); cursor: pointer;
-  background: var(--ui-accent); color: #fff; box-shadow: 0 3px 0 rgba(0, 0, 0, .08); transition: transform .08s; }
+  background: var(--ui-pat-dots-light) 0 0 / 12px, var(--ui-accent); color: #fff; box-shadow: 0 3px 0 rgba(0, 0, 0, .08); transition: transform .08s; }
 .cl-btn:hover { transform: translateY(-1px); filter: brightness(1.04); }
 .cl-btn:active { transform: translateY(1px); }
-.cl-btn.secondary { background: var(--ui-bg-2); color: var(--ui-text); }
+.cl-btn.secondary { background: var(--ui-pat-dots) 0 0 / 12px, var(--ui-bg-2); color: var(--ui-text); }
 .cl-btn:disabled { opacity: .45; cursor: default; transform: none; }
 
 .cl-grid { display: grid; gap: 8px; }
@@ -105,7 +108,7 @@ export const UI_CSS = /* css */ `
 /* whatever joins the HUD slides in softly */
 .cl-slot > * { animation: cl-rise .35s cubic-bezier(.3, 1.2, .5, 1); }
 .cl-dialogue { position: relative; isolation: isolate; }
-.cl-dialogue::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: #fffaf0;
+.cl-dialogue::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--ui-pat-hearts), #fffaf0;
   box-shadow: inset 0 0 0 2px rgba(201, 150, 106, .25); filter: url(#cl-wave-small); }
 .cl-bells-float { position: absolute; right: 12px; top: 100%; font-weight: 800; font-size: 14px; white-space: nowrap; pointer-events: none;
   text-shadow: 0 1px 0 #fff, 0 0 6px #fff; animation: cl-float 1.4s ease-out forwards; }
@@ -126,15 +129,15 @@ export const UI_CSS = /* css */ `
 .cl-title-logo { margin: 0; font-size: clamp(44px, 7vw, 84px); line-height: .95; font-weight: 900; letter-spacing: -.02em; color: #fffaf0;
   -webkit-text-stroke: 10px #8a6a55; paint-order: stroke fill; filter: drop-shadow(0 6px 0 rgba(110, 80, 70, .28)); animation: cl-bob 5s ease-in-out infinite; }
 .cl-title-menu { display: flex; flex-direction: column; gap: 10px; width: 270px; }
-.cl-title-btn { border: 3px solid #fff; border-radius: 22px; padding: 11px 22px; text-align: left; cursor: pointer; background: rgba(255, 250, 240, .94);
+.cl-title-btn { border: 3px solid #fff; border-radius: 22px; padding: 11px 22px; text-align: left; cursor: pointer; background: var(--ui-pat-stars), rgba(255, 250, 240, .94);
   color: var(--ui-text); font: 800 18px var(--ui-font); box-shadow: var(--ui-shadow); transition: transform .12s; }
 .cl-title-btn small { display: block; font-size: 12px; font-weight: 700; opacity: .85; margin-top: 2px; }
 .cl-title-btn:hover, .cl-title-btn.on { transform: translateX(8px); }
 .cl-title-btn.on { border-color: var(--ui-accent); }
-.cl-title-btn.main { background: var(--ui-accent); color: #fff; }
+.cl-title-btn.main { background: var(--ui-pat-stars-light), var(--ui-accent); color: #fff; }
 .cl-title-btn:focus-visible, .cl-btn:focus-visible, .cl-slotbox:focus-visible, .cl-close:focus-visible, .cl-row:focus-visible, input:focus-visible { outline: 3px solid var(--ui-gold); outline-offset: 2px; }
 .cl-title-panel { margin: auto; max-height: calc(88vh / var(--ui-zoom)); }
-.cl-title-busy { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 18px; background: rgba(255, 250, 240, .94);
+.cl-title-busy { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 18px; background: var(--ui-pat-dots) 0 0 / 14px, rgba(255, 250, 240, .94);
   border-radius: 999px; padding: 12px 24px; box-shadow: var(--ui-shadow); }
 .cl-title-dots { display: inline-flex; gap: 5px; }
 .cl-title-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--ui-accent); }

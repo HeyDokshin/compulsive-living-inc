@@ -79,6 +79,8 @@ export const EngineConfigSchema = z.object({
           detail: z.number().min(0).max(1).default(0.7).meta({ label: 'material detail', step: 0.05 }),
           /** Material tiles per block. */
           detailScale: z.number().min(0.05).max(4).default(0.5).meta({ label: 'detail tiles per block', step: 0.05 }),
+          /** Seconds an edited piece of ground takes to dissolve into its new shape (0 = at once). */
+          editFade: z.number().min(0).max(2).default(0.4).meta({ label: 'edit fade (s)', step: 0.05 }),
         })
         .prefault({}),
       /** Round, plush characters: smooth parts, fur and hair, drawn faces. */

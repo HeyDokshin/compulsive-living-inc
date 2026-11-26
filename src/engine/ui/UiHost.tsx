@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'preact/hooks'
 import { keyCodeOf } from '../input/Input'
 import type { Dispose } from '../util/disposables'
 import { focusFirst, focusables, moveFocus, nudgeSlider, typingIn, type Dir } from './focus'
+import { patternFor, type UiPattern } from './patterns'
 import { UI_CSS } from './theme'
 
 /** Places on screen where plugins can put UI. */
@@ -33,6 +34,8 @@ export interface WindowDef {
   wide?: boolean
   /** No frame or title: the component draws all of itself (a phone, a card). */
   bare?: boolean
+  /** The quiet pattern behind the window's text (default: one chosen from the id). */
+  pattern?: UiPattern
 }
 
 const NAV: Record<string, Dir> = {
@@ -268,7 +271,7 @@ function WindowView({ host, win, leaving }: { host: UiHost; win: WindowDef; leav
           <win.component />
         </div>
       ) : (
-        <div class={`cl-window${win.wide ? ' wide' : ''}`} role="dialog" aria-label={win.title}>
+        <div class={`cl-window${win.wide ? ' wide' : ''}`} data-pattern={win.pattern ?? patternFor(win.id)} role="dialog" aria-label={win.title}>
           <div class="cl-window-inner">
             <div class="cl-window-title">
               <span>{win.title}</span>

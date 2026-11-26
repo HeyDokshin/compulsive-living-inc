@@ -41,6 +41,7 @@ export type {
 export type { ItemDef } from '../engine/items/defs'
 export type { InteractionDef, InteractionContext } from '../engine/interact/Interactions'
 export type { UiSlot, WindowDef } from '../engine/ui/UiHost'
+export type { UiPattern } from '../engine/ui/patterns'
 export type { ModelDef, RigDef } from '../engine/models/defs'
 export type { ModInfo } from '../engine/mods/ModManager'
 export type { OptionDef } from '../engine/session/options'
