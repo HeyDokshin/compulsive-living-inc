@@ -7,7 +7,7 @@
  */
 import { definePlugin, z, type Entity, type FaceSlot, type PluginApi } from '@sdk'
 import { drawFace, type FacePose } from './draw'
-import { EXPRESSIONS, moodOfLine, mouthFrame, stepBlink, stripTag, type Expression, type FaceClock } from './mood'
+import { blinkAmount, EXPRESSIONS, moodOfLine, mouthOpen, stepBlink, stripTag, type Expression, type FaceClock } from './mood'
 
 export type { Expression } from './mood'
 
@@ -81,6 +81,12 @@ interface FaceState extends FaceClock {
   texture: InstanceType<PluginApi['render']['three']['CanvasTexture']> | null
   /** What the picture shows now (redraw only when it changes). */
   key: number
+  /** The expression drawn last, and the picture it is fading from (no jumps between faces). */
+  shownExpr: Expression | null
+  prevCanvas: HTMLCanvasElement | null
+  prevTexture: InstanceType<PluginApi['render']['three']['CanvasTexture']> | null
+  /** 0 → 1 while fading from the previous expression. */
+  fade: number
 }
 
 export default definePlugin({
@@ -117,6 +123,10 @@ export default definePlugin({
           canvas: null,
           texture: null,
           key: -1,
+          shownExpr: null,
+          prevCanvas: null,
+          prevTexture: null,
+          fade: 1,
         }
         states.set(root, s)
       }
@@ -155,7 +165,7 @@ export default definePlugin({
     })
 
     // --- every frame: pose, then repaint the faces whose picture changed -----------------------------
-    const pose: FacePose = { expr: 'neutral', blink: false, mouth: 0, lookX: 0, lookY: 0 }
+    const pose: FacePose = { expr: 'neutral', blink: 0, mouth: 0, lookX: 0, lookY: 0 }
     const v = new T.Vector3()
     const blinkRange: [number, number] = [2, 5]
     const paint = (slot: FaceSlot) => {
@@ -185,14 +195,24 @@ export default definePlugin({
       s.lookY += (ly - s.lookY) * 0.2
       if (s.expr && time > s.until) s.expr = null
       pose.expr = s.expr ?? s.mood
-      pose.blink = pose.expr !== 'happy' && pose.expr !== 'joy' && stepBlink(s, frameDt, Math.random, blinkRange)
+      stepBlink(s, frameDt, Math.random, blinkRange)
+      // all continuous: a blink closes and opens, lips move smoothly, eyes glide (fine steps)
+      const blink = pose.expr === 'happy' || pose.expr === 'joy' ? 0 : blinkAmount(s)
       if (s.talking) s.talkTime += frameDt
-      pose.mouth = mouthFrame(s.talking, s.talkTime)
-      const qx = Math.round(s.lookX * 4)
-      const qy = Math.round(s.lookY * 4)
-      pose.lookX = qx / 4
-      pose.lookY = qy / 4
-      const key = ((((EXPRESSIONS.indexOf(pose.expr) * 2 + (pose.blink ? 1 : 0)) * 3 + pose.mouth) * 9 + qx + 4) * 9 + qy + 4) * 2048 + res
+      const bq = Math.round(blink * 8)
+      const mq = Math.round(mouthOpen(s.talking, s.talkTime) * 8)
+      const qx = Math.round(s.lookX * 16)
+      const qy = Math.round(s.lookY * 16)
+      pose.blink = bq / 8
+      pose.mouth = mq / 8
+      pose.lookX = qx / 16
+      pose.lookY = qy / 16
+      // a new expression fades in over the old one
+      if (s.fade < 1) {
+        s.fade = Math.min(1, s.fade + frameDt / 0.2)
+        slot.fadeFrom(s.prevTexture, s.fade)
+      }
+      const key = ((((EXPRESSIONS.indexOf(pose.expr) * 9 + bq) * 17 + mq) * 33 + qx + 16) * 33 + qy + 16) * 2048 + res
       if (key === s.key) return
       s.key = key
       const h = Math.max(8, Math.round((res * slot.face.size[1]) / slot.face.size[0]))
@@ -207,6 +227,26 @@ export default definePlugin({
         s.texture.minFilter = T.LinearFilter
         textures.set(s, root)
       }
+      if (s.shownExpr !== null && s.shownExpr !== pose.expr && s.canvas.width === res) {
+        // keep the old face to fade from
+        s.prevCanvas ??= document.createElement('canvas')
+        if (s.prevCanvas.width !== res || s.prevCanvas.height !== h) {
+          s.prevCanvas.width = res
+          s.prevCanvas.height = h
+          s.prevTexture?.dispose()
+          s.prevTexture = new T.CanvasTexture(s.prevCanvas)
+          s.prevTexture.colorSpace = T.SRGBColorSpace
+          s.prevTexture.generateMipmaps = false
+          s.prevTexture.minFilter = T.LinearFilter
+        }
+        const pg = s.prevCanvas.getContext('2d')!
+        pg.clearRect(0, 0, res, h)
+        pg.drawImage(s.canvas, 0, 0)
+        s.prevTexture!.needsUpdate = true
+        s.fade = 0
+        slot.fadeFrom(s.prevTexture, 0)
+      }
+      s.shownExpr = pose.expr
       drawFace(s.canvas.getContext('2d')!, res, h, slot.face, pose)
       s.texture!.needsUpdate = true
       slot.picture(s.texture)
@@ -230,7 +270,10 @@ export default definePlugin({
             while (top.parent) top = top.parent
             if ((top as { isScene?: boolean }).isScene) continue
             s.texture?.dispose()
+            s.prevTexture?.dispose()
             s.texture = null
+            s.prevTexture = null
+            s.prevCanvas = null
             s.canvas = null
             s.key = -1
             textures.delete(s)
@@ -242,7 +285,10 @@ export default definePlugin({
       },
     })
     api.onDispose(() => {
-      for (const s of textures.keys()) s.texture?.dispose()
+      for (const s of textures.keys()) {
+        s.texture?.dispose()
+        s.prevTexture?.dispose()
+      }
       textures.clear()
     })
   },

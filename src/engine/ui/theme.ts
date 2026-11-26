@@ -22,8 +22,8 @@ export const UI_CSS = /* css */ `
 .cl-clock { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; pointer-events: none; }
 .cl-clock-time { font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; color: #fffdf7; font-variant-numeric: tabular-nums;
   text-shadow: 0 2px 0 rgba(90, 70, 60, 0.35), 0 6px 18px rgba(60, 40, 30, 0.3); }
-.cl-clock-date { display: flex; gap: 6px; align-items: center; padding: 4px 12px; border-radius: 999px; background: var(--ui-bg); color: var(--ui-text);
-  font-size: 13px; font-weight: 700; box-shadow: 0 4px 14px rgba(80, 60, 40, 0.18); }
+.cl-clock-date { position: relative; isolation: isolate; display: flex; gap: 6px; align-items: center; padding: 4px 12px; border-radius: 999px; color: var(--ui-text);
+  font-size: 13px; font-weight: 700; filter: drop-shadow(0 4px 8px rgba(80, 60, 40, 0.18)); }
 .cl-slot { transition: opacity 0.4s ease; }
 .cl-bare { pointer-events: auto; animation: cl-pop 0.22s ease-out; }
 .cl-quiet { transition: opacity 0.5s ease, transform 0.5s ease; }
@@ -40,8 +40,10 @@ export const UI_CSS = /* css */ `
 .cl-slot-hud\\.bottom > * { pointer-events: none; }
 .cl-slot-hud\\.center { top: 50%; left: 50%; transform: translate(-50%, -50%); flex-direction: column; align-items: center; }
 
-.cl-pill { background: rgba(255, 250, 240, .9); border-radius: 999px; padding: 7px 16px; font-weight: 700; font-size: 14px;
-  box-shadow: var(--ui-shadow); display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.cl-pill { position: relative; isolation: isolate; border-radius: 999px; padding: 7px 16px; font-weight: 700; font-size: 14px;
+  filter: drop-shadow(0 4px 8px rgba(110, 80, 70, .16)); display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.cl-pill::before, .cl-toast::before, .cl-clock-date::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  background: rgba(255, 250, 240, .94); filter: url(#cl-wave-small); }
 .cl-key { display: inline-block; min-width: 22px; padding: 1px 7px; border-radius: 8px; background: var(--ui-bg-2);
   border: 1.5px solid var(--ui-line); font-size: 12px; font-weight: 800; text-align: center; color: var(--ui-text-soft); }
 
@@ -51,9 +53,11 @@ export const UI_CSS = /* css */ `
 .cl-backdrop.left { justify-content: flex-start; padding-left: 4vw; }
 .cl-backdrop.right { justify-content: flex-end; padding-right: 4vw; }
 .cl-backdrop.bottom { align-items: flex-end; padding-bottom: 5vh; }
-.cl-window { background: var(--ui-bg); border-radius: 26px; box-shadow: 0 14px 40px rgba(110, 80, 70, .28);
-  border: 3px solid #fff; min-width: 300px; max-width: min(calc(92vw / var(--ui-zoom)), 720px); max-height: calc(86vh / var(--ui-zoom)); overflow: auto;
-  animation: cl-pop .22s cubic-bezier(.3, 1.4, .5, 1); }
+.cl-window { position: relative; isolation: isolate; border-radius: 28px; filter: drop-shadow(0 14px 26px rgba(110, 80, 70, .24));
+  min-width: 300px; max-width: min(calc(92vw / var(--ui-zoom)), 720px); animation: cl-pop .26s cubic-bezier(.3, 1.4, .5, 1); }
+.cl-window::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--ui-bg);
+  box-shadow: inset 0 0 0 3px #fff; filter: url(#cl-wave); }
+.cl-window-inner { max-height: calc(86vh / var(--ui-zoom)); overflow: auto; border-radius: inherit; }
 .cl-window.wide { max-width: min(calc(96vw / var(--ui-zoom)), 1040px); }
 .cl-window-body > * { max-width: 100%; }
 .cl-window-title { display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -71,8 +75,7 @@ export const UI_CSS = /* css */ `
 .cl-btn:disabled { opacity: .45; cursor: default; transform: none; }
 
 .cl-grid { display: grid; gap: 8px; }
-.cl-dialogue { background: #fffaf0; border-radius: 18px; padding: 14px 16px; min-height: 84px; font-size: 15px; line-height: 1.45;
-  box-shadow: inset 0 0 0 2px rgba(201, 150, 106, .25); }
+.cl-dialogue { border-radius: 18px; padding: 14px 16px; min-height: 84px; font-size: 15px; line-height: 1.45; }
 .cl-dialogue-speaker { font-weight: 800; font-size: 12px; color: var(--ui-accent); margin-bottom: 4px; }
 .cl-slotbox { position: relative; width: 64px; height: 64px; border-radius: 18px; background: var(--ui-bg-2);
   border: 3px solid transparent; display: flex; align-items: center; justify-content: center; cursor: pointer;
@@ -86,11 +89,24 @@ export const UI_CSS = /* css */ `
 
 .cl-toasts { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column;
   gap: 8px; align-items: center; }
-.cl-toast { background: var(--ui-bg); border-radius: 999px; padding: 9px 20px; font-weight: 700; font-size: 15px;
-  box-shadow: var(--ui-shadow); animation: cl-pop .25s cubic-bezier(.3, 1.4, .5, 1); display: flex; gap: 8px; align-items: center; }
+.cl-toast { position: relative; isolation: isolate; border-radius: 999px; padding: 9px 20px; font-weight: 700; font-size: 15px;
+  filter: drop-shadow(0 6px 12px rgba(110, 80, 70, .18)); animation: cl-pop .28s cubic-bezier(.3, 1.4, .5, 1); display: flex; gap: 8px; align-items: center;
+  transition: transform .25s ease; }
+.cl-toast.leaving { animation: cl-pop-out .22s ease-in forwards; }
 .cl-toast img { width: 28px; height: 28px; image-rendering: pixelated; }
 @keyframes cl-pop { from { transform: scale(.85); opacity: 0 } to { transform: scale(1); opacity: 1 } }
 @keyframes cl-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes cl-fade-out { to { opacity: 0 } }
+.cl-veil { position: absolute; inset: 0; background: #fff8ec; pointer-events: none; animation: cl-fade-out .65s ease-out forwards; }
+@keyframes cl-pop-out { to { transform: scale(.9); opacity: 0 } }
+@keyframes cl-rise { from { transform: translateY(8px); opacity: 0 } to { transform: none; opacity: 1 } }
+.cl-backdrop.leaving { animation: cl-fade-out .22s ease-in forwards; pointer-events: none; background: transparent; backdrop-filter: none; }
+.cl-backdrop.leaving > * { animation: cl-pop-out .22s ease-in forwards; }
+/* whatever joins the HUD slides in softly */
+.cl-slot > * { animation: cl-rise .35s cubic-bezier(.3, 1.2, .5, 1); }
+.cl-dialogue { position: relative; isolation: isolate; }
+.cl-dialogue::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: #fffaf0;
+  box-shadow: inset 0 0 0 2px rgba(201, 150, 106, .25); filter: url(#cl-wave-small); }
 .cl-bells-float { position: absolute; right: 12px; top: 100%; font-weight: 800; font-size: 14px; white-space: nowrap; pointer-events: none;
   text-shadow: 0 1px 0 #fff, 0 0 6px #fff; animation: cl-float 1.4s ease-out forwards; }
 @keyframes cl-float { 0% { transform: translateY(6px); opacity: 0 } 15% { transform: translateY(0); opacity: 1 } 100% { transform: translateY(-34px); opacity: 0 } }

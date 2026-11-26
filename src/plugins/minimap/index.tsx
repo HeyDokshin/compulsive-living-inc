@@ -150,7 +150,7 @@ function MapCanvas({ api, picture, size, radius, turn }: { api: PluginApi; pictu
     let last = 0
     const loop = (t: number) => {
       raf = requestAnimationFrame(loop)
-      if (t - last < 66) return // ~15 times a second is plenty for a map
+      if (t - last < 15) return // every frame (a map that jumps would look rough)
       last = t
       if (ref.current) paint(api, picture, ref.current, { radius, turn })
     }

@@ -71,11 +71,12 @@ export default definePlugin({
       'hud.bottomLeft',
       () => (
         <button type="button" class="cl-phone-button" title={`Телефон (${api.input.keyLabel('phone:open')})`} onClick={open}>
-          <span class="cl-phone-button-screen">
-            {['#ffd59e', '#b9e3c6', '#ffe08a', '#c9e7ff'].map((c) => (
-              <i key={c} style={{ background: c }} />
-            ))}
-          </span>
+          {/* a plain little phone: a soft body and a screen */}
+          <svg width="40" height="56" viewBox="0 0 40 56" aria-hidden="true">
+            <rect x="2" y="2" width="36" height="52" rx="12" fill="#fffaf0" stroke="#e8d8bc" stroke-width="3" />
+            <rect x="8" y="9" width="24" height="34" rx="6" fill="#bfe6d0" />
+            <circle cx="20" cy="48" r="2.2" fill="#e0cfb0" />
+          </svg>
           <ui.Key>{api.input.keyLabel('phone:open')}</ui.Key>
         </button>
       ),

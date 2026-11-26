@@ -197,6 +197,10 @@ export class ModelLibrary {
           faceUniforms.uFace.value = tex
           faceUniforms.uFaceOn.value = tex ? 1 : 0
         },
+        fadeFrom(tex, mix) {
+          faceUniforms.uFacePrev.value = tex
+          faceUniforms.uFaceMix.value = tex ? mix : 1
+        },
       }
       body.userData.face = slot
       this.faceSlots.add(slot)
@@ -396,6 +400,8 @@ export interface FaceSlot {
   readonly model: string
   /** Show a picture on the face (null: none — the head is bare). */
   picture(texture: Texture | null): void
+  /** Fade from another picture: `mix` 0 shows it, 1 only the current one. */
+  fadeFrom(texture: Texture | null, mix: number): void
 }
 
 export interface CharacterLook {

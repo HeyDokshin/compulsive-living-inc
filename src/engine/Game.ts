@@ -256,6 +256,8 @@ export class Game {
     Object.assign(actor.transform, to)
     this.renderer.entityRenderer.snapshot()
     this.camera.snap()
+    // no hard cut: the new place fades in
+    this.ui.flash()
   }
 
   async boot(opts: BootOptions): Promise<void> {

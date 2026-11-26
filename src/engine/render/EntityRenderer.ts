@@ -49,7 +49,13 @@ export class EntityRenderer {
     this.placed = placedQuery(entities)
     this.blobs = new BlobBatch(scene, makeBlobTexture())
     this.batches = new ModelBatches(scene, library)
-    entities.world.onEntityRemoved.subscribe((e) => e.view?.removeFromParent())
+    // things leave softly: the view shrinks away instead of vanishing
+    entities.world.onEntityRemoved.subscribe((e) => {
+      const v = e.view
+      if (!v) return
+      if (!v.parent || !v.visible) return void v.removeFromParent()
+      this.leaving.push({ view: v, t: 0, scale: v.scale.x })
+    })
   }
 
   /** Start of each tick: remember transforms so rendering can interpolate. */
@@ -62,6 +68,12 @@ export class EntityRenderer {
   }
 
   private frame = 0
+  /** Entities whose view appeared once (a rebuilt view of the same entity doesn't pop in again). */
+  private seen = new WeakSet<Entity>()
+  /** Views growing in: view → seconds since it appeared. */
+  private arriving = new Map<Object3D, number>()
+  private leaving: Array<{ view: Object3D; t: number; scale: number }> = []
+  private born: Object3D[] = []
   /** Is an entity at (x, z) drawn? (inside an interior only its room is) */
   visibleAt: (x: number, z: number) => boolean = () => true
   /** Can a ball show up in the picture? (set by the Renderer from the camera) */
@@ -79,6 +91,10 @@ export class EntityRenderer {
         const view = this.create(spec)
         this.scene.add(view)
         this.entities.world.addComponent(e, 'view', view)
+        if (!this.seen.has(e)) {
+          this.seen.add(e)
+          this.born.push(view)
+        }
       }
       const t = e.transform
       if (!t) continue
@@ -104,11 +120,41 @@ export class EntityRenderer {
     }
     this.batches.end()
     this.blobs.end()
+    // new things grow in — one by one; a whole island appearing at once (a session starts) is just there
+    if (this.born.length && this.born.length <= 6) for (const v of this.born) this.arriving.set(v, 0)
+    this.born.length = 0
+    this.animate(ctx.dt)
+  }
+
+  /** Grow-in and shrink-out of views (eased; no allocations per frame beyond the lists). */
+  private animate(dt: number): void {
+    const GROW = 0.32
+    for (const [view, t] of this.arriving) {
+      const k = Math.min(1, (t + dt) / GROW)
+      // ease out with a little overshoot
+      const s = 1 + 2.2 * Math.pow(k - 1, 3) + 1.2 * Math.pow(k - 1, 2)
+      view.scale.setScalar(Math.max(0.001, s))
+      if (k >= 1) {
+        view.scale.setScalar(1)
+        this.arriving.delete(view)
+      } else this.arriving.set(view, t + dt)
+    }
+    for (let i = this.leaving.length - 1; i >= 0; i--) {
+      const l = this.leaving[i]!
+      l.t += dt
+      const k = Math.min(1, l.t / 0.22)
+      l.view.scale.setScalar(Math.max(0.001, l.scale * (1 - k * k)))
+      if (k >= 1) {
+        l.view.removeFromParent()
+        this.leaving.splice(i, 1)
+      }
+    }
   }
 
   /** Recreate one entity's view (its `model` changed, e.g. new clothes). */
   refresh(e: Entity): void {
     if (!e.view) return
+    this.arriving.delete(e.view)
     e.view.removeFromParent()
     this.entities.world.removeComponent(e, 'view')
   }

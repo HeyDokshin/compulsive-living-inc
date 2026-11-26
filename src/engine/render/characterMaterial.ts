@@ -39,6 +39,9 @@ export interface FaceUniforms {
   /** Surfaces in front of this z (pointing forward) get the face. */
   uFaceFront: { value: number }
   uFaceOn: { value: number }
+  /** The picture the face is fading from, and how far the fade is (1 = only the new one). */
+  uFacePrev: { value: Texture | null }
+  uFaceMix: { value: number }
 }
 
 export function createFaceUniforms(cx: number, cy: number, w: number, h: number, front: number): FaceUniforms {
@@ -47,6 +50,8 @@ export function createFaceUniforms(cx: number, cy: number, w: number, h: number,
     uFaceRect: { value: new Vector4(cx, cy, w, h) },
     uFaceFront: { value: front },
     uFaceOn: { value: 0 },
+    uFacePrev: { value: null },
+    uFaceMix: { value: 1 },
   }
 }
 
@@ -55,6 +60,8 @@ uniform sampler2D uFace;
 uniform vec4 uFaceRect;
 uniform float uFaceFront;
 uniform float uFaceOn;
+uniform sampler2D uFacePrev;
+uniform float uFaceMix;
 varying vec3 vObjPos;
 varying vec3 vObjNormal;
 `
@@ -65,6 +72,7 @@ const FACE_SAMPLE = `
     vec2 fuv = (vObjPos.xy - uFaceRect.xy) / uFaceRect.zw + 0.5;
     if (fuv.x > 0.0 && fuv.x < 1.0 && fuv.y > 0.0 && fuv.y < 1.0) {
       faceColor = texture2D(uFace, fuv);
+      if (uFaceMix < 1.0) faceColor = mix(texture2D(uFacePrev, fuv), faceColor, uFaceMix);
       // fade out where the head turns away from the front
       faceColor.a *= smoothstep(0.15, 0.45, vObjNormal.z);
     }

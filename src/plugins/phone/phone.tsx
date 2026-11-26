@@ -5,9 +5,12 @@ import type { PhoneApp } from './index'
 export type Screen = 'home' | 'milestones'
 
 const CSS = `
-.cl-phone { width: min(310px, 86vw); height: min(500px, 70vh); margin: 0 0 110px 28px; display: flex; flex-direction: column;
-  background: #fffaf0; border-radius: 42px; padding: 14px; box-shadow: 0 0 0 7px #f3e6d0, 0 0 0 9px #e2d2b8, 0 18px 50px rgba(70, 50, 30, 0.35);
-  color: var(--ui-text); font-family: var(--ui-font); }
+.cl-phone { position: relative; isolation: isolate; width: min(310px, 86vw); height: min(500px, 70vh); margin: 0 0 110px 28px; display: flex; flex-direction: column;
+  border-radius: 42px; padding: 16px; filter: drop-shadow(0 18px 30px rgba(70, 50, 30, 0.3)); color: var(--ui-text); font-family: var(--ui-font); }
+.cl-phone::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: #fffaf0;
+  box-shadow: inset 0 0 0 7px #f3e6d0; filter: url(#cl-wave); }
+.cl-phone-screen { animation: cl-phone-in .28s cubic-bezier(.3, 1.2, .5, 1); }
+@keyframes cl-phone-in { from { transform: translateX(18px); opacity: 0 } to { transform: none; opacity: 1 } }
 .cl-phone-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px 10px; font-size: 13px; font-weight: 800; }
 .cl-phone-chips { display: flex; gap: 6px; }
 .cl-phone-chip { padding: 3px 9px; border-radius: 999px; background: #f4ead8; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -35,10 +38,8 @@ const CSS = `
 .cl-ms-foot { display: flex; justify-content: space-between; font-size: 11px; color: var(--ui-text-soft); font-weight: 700; }
 .cl-phone-button { pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; border: none; background: none;
   cursor: pointer; padding: 0; margin-right: 6px; }
-.cl-phone-button-screen { width: 46px; height: 64px; border-radius: 16px; background: #fffaf0; display: grid; grid-template-columns: 1fr 1fr;
-  gap: 4px; padding: 9px 8px; box-sizing: border-box; box-shadow: 0 0 0 3px #f3e6d0, 0 6px 16px rgba(70, 50, 30, 0.3); transition: transform 0.15s ease; }
-.cl-phone-button:hover .cl-phone-button-screen { transform: translateY(-3px) rotate(-3deg); }
-.cl-phone-button-screen i { border-radius: 34%; }
+.cl-phone-button svg { display: block; filter: drop-shadow(0 5px 10px rgba(70, 50, 30, 0.3)); transition: transform 0.25s cubic-bezier(.3, 1.4, .5, 1); }
+.cl-phone-button:hover svg { transform: translateY(-3px) rotate(-4deg); }
 `
 
 let styled = false
@@ -72,8 +73,10 @@ export function Phone({ api, apps, screen }: { api: PluginApi; apps: RegistryVie
         </span>
       </div>
       <div class="cl-phone-body">
-        {screen.value === 'home' && <Home api={api} apps={apps} screen={screen} />}
-        {screen.value === 'milestones' && <Milestones api={api} back={() => (screen.value = 'home')} />}
+        <div class="cl-phone-screen" key={screen.value}>
+          {screen.value === 'home' && <Home api={api} apps={apps} screen={screen} />}
+          {screen.value === 'milestones' && <Milestones api={api} back={() => (screen.value = 'home')} />}
+        </div>
       </div>
     </div>
   )

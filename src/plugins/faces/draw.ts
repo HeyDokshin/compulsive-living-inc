@@ -13,10 +13,10 @@ export interface FaceLayout {
 
 export interface FacePose {
   expr: Expression
-  /** Eyes shut for a blink. */
-  blink: boolean
-  /** Mouth while talking: 0 shut, 1 half, 2 open. */
-  mouth: 0 | 1 | 2
+  /** How shut the eyes are for a blink (0…1). */
+  blink: number
+  /** Mouth while talking: 0 shut … 2 open (continuous). */
+  mouth: number
   /** Where the eyes look (-1…1 across, -1…1 up). */
   lookX: number
   lookY: number
@@ -74,7 +74,7 @@ export function drawFace(g: CanvasRenderingContext2D, W: number, H: number, f: F
     const ex = X(cx + side * gap) + lx
     const ey = Y(eyeY) + ly
     let shape: 'open' | 'arc' | 'shut' | 'heart' = 'open'
-    if (p.blink) shape = 'shut'
+    if (p.blink > 0.88) shape = 'shut'
     else if (e === 'happy' || e === 'joy') shape = 'arc'
     else if (e === 'wink' && side === 1) shape = 'arc'
     else if (e === 'love') shape = 'heart'
@@ -107,7 +107,7 @@ export function drawFace(g: CanvasRenderingContext2D, W: number, H: number, f: F
     }
     // open eye, maybe partly under a lid
     const big = e === 'surprised' ? 1.22 : e === 'shy' ? 0.9 : 1
-    let lid = lids
+    let lid = Math.max(lids, p.blink * 0.95)
     if (e === 'sleepy') lid = Math.max(lid, 0.55)
     if (e === 'thinking' && side === 1) lid = Math.max(lid, 0.3)
     g.save()
@@ -156,7 +156,7 @@ export function drawFace(g: CanvasRenderingContext2D, W: number, H: number, f: F
   }
 
   // brows (only when they say something)
-  if (s.brows !== false && !p.blink) {
+  if (s.brows !== false && p.blink < 0.88) {
     const b = BROWS[e]
     if (b) {
       g.strokeStyle = str(s.brows, eyeColor)
@@ -185,9 +185,9 @@ export function drawFace(g: CanvasRenderingContext2D, W: number, H: number, f: F
   const tongue = str(s.tongue, '#ff8fa3')
   g.strokeStyle = dark
   g.lineWidth = Math.max(1, 0.16 * u)
-  const open = p.mouth > 0 ? p.mouth : e === 'joy' ? 2 : e === 'surprised' ? 1 : 0
+  const open = p.mouth > 0.08 ? p.mouth : e === 'joy' ? 2 : e === 'surprised' ? 1 : 0
   if (open > 0) {
-    if (e === 'surprised' && p.mouth === 0) {
+    if (e === 'surprised' && p.mouth <= 0.08) {
       g.fillStyle = dark
       g.beginPath()
       g.ellipse(mx, my, 0.24 * wide, 0.3 * wide, 0, 0, Math.PI * 2)

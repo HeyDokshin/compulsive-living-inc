@@ -542,7 +542,9 @@ class Cursor {
 function Hint({ cursor, cfg, api }: { cursor: Cursor; cfg: Config; api: PluginApi }) {
   const h = cursor.hint.value
   if (!cfg.hint || api.ui.modalOpen.value || (!h.action && !h.name && !h.alt)) return null
+  // a new hint cross-fades in (keyed by what it says)
   return (
+    <div key={`${h.action}|${h.name}|${h.alt}`} style={{ animation: 'cl-rise .25s ease-out' }}>
     <ui.Pill>
       {h.action ? (
         <>
@@ -559,6 +561,7 @@ function Hint({ cursor, cfg, api }: { cursor: Cursor; cfg: Config; api: PluginAp
         </>
       )}
     </ui.Pill>
+    </div>
   )
 }
 
