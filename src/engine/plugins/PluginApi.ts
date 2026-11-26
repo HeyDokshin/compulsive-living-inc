@@ -219,6 +219,10 @@ export interface PluginApi {
     readonly modalOpen: ReadonlySignal<boolean>
     /** Cut-scene mode: set true and the HUD fades out (windows and the 'screen' slot stay). */
     readonly cinema: Signal<boolean>
+    /** Show every quiet part of the HUD (`ui.Quiet`) — e.g. while the phone is out. */
+    readonly peek: Signal<boolean>
+    /** Is a window with this id registered (some plugin may be missing)? */
+    hasWindow(id: string): boolean
     /** Icon (data URL) of an item, drawn from its model. */
     itemIcon(id: string): Promise<string>
   }

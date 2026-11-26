@@ -1,9 +1,10 @@
 import { render, type ComponentType } from 'preact'
 import { signal, computed, effect } from '@preact/signals'
-import { useEffect } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import { keyCodeOf } from '../input/Input'
 import type { Dispose } from '../util/disposables'
 import { focusFirst, focusables, moveFocus, nudgeSlider, typingIn, type Dir } from './focus'
+import { patternFor, type UiPattern } from './patterns'
 import { UI_CSS } from './theme'
 
 /** Places on screen where plugins can put UI. */
@@ -31,6 +32,10 @@ export interface WindowDef {
   align?: 'center' | 'left' | 'right' | 'bottom'
   /** Room for a tool with several columns. */
   wide?: boolean
+  /** No frame or title: the component draws all of itself (a phone, a card). */
+  bare?: boolean
+  /** The quiet pattern behind the window's text (default: one chosen from the id). */
+  pattern?: UiPattern
 }
 
 const NAV: Record<string, Dir> = {
@@ -43,7 +48,23 @@ interface ToastEntry {
   key: number
   text: string
   icon?: string
+  /** On its way out (fading). */
+  leaving?: boolean
 }
+
+/** Milliseconds things take to leave the screen (windows, toasts): nothing just vanishes. */
+const LEAVE_MS = 220
+
+/** SVG filter that makes panel backgrounds wavy (only backgrounds: text stays crisp). */
+const WAVE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true">
+<filter id="cl-wave" x="-6%" y="-12%" width="112%" height="124%" color-interpolation-filters="sRGB">
+<feTurbulence type="fractalNoise" baseFrequency="0.011 0.019" numOctaves="1" seed="7" result="n"/>
+<feDisplacementMap in="SourceGraphic" in2="n" scale="9" xChannelSelector="R" yChannelSelector="G"/>
+</filter>
+<filter id="cl-wave-small" x="-10%" y="-30%" width="120%" height="160%" color-interpolation-filters="sRGB">
+<feTurbulence type="fractalNoise" baseFrequency="0.035 0.05" numOctaves="1" seed="3" result="n"/>
+<feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+</filter></svg>`
 
 /**
  * Preact UI overlay. Plugins add components to slots and register windows;
@@ -126,6 +147,23 @@ export class UiHost {
 
   /** Cut-scene mode: the HUD fades out (windows and the 'screen' slot stay). */
   readonly cinema = signal(false)
+  /** Everything on the HUD shows, quiet parts included (`ui.Quiet`) — e.g. while the phone is out. */
+  readonly peek = signal(false)
+
+  /** A soft fade over the whole screen (after a jump to another place: no hard cut). */
+  flash(): void {
+    const root = this.root
+    if (!root) return
+    const veil = document.createElement('div')
+    veil.className = 'cl-veil'
+    root.appendChild(veil)
+    window.setTimeout(() => veil.remove(), 700)
+  }
+
+  /** Is a window with this id registered? */
+  hasWindow(id: string): boolean {
+    return this.windows.value.has(id)
+  }
 
   mount(parent: HTMLElement): void {
     if (!document.getElementById('cl-ui-style')) {
@@ -134,6 +172,7 @@ export class UiHost {
       style.textContent = UI_CSS
       document.head.appendChild(style)
     }
+    if (!document.getElementById('cl-wave')) document.body.insertAdjacentHTML('beforeend', WAVE_SVG)
     const root = document.createElement('div')
     root.className = 'cl-ui'
     this.root = root
@@ -141,6 +180,10 @@ export class UiHost {
     effect(() => {
       if (this.cinema.value) root.dataset.cinema = ''
       else delete root.dataset.cinema
+    })
+    effect(() => {
+      if (this.peek.value) root.dataset.peek = ''
+      else delete root.dataset.peek
     })
     parent.appendChild(root)
     render(<Root host={this} />, root)
@@ -192,9 +235,13 @@ export class UiHost {
     const entry: ToastEntry = { key: ++this.counter, text, icon: opts.icon }
     this.onSound?.('ui:pop')
     this.toasts.value = [...this.toasts.value, entry].slice(-4)
+    const ms = opts.ms ?? 2200
     setTimeout(() => {
-      this.toasts.value = this.toasts.value.filter((t) => t !== entry)
-    }, opts.ms ?? 2200)
+      this.toasts.value = this.toasts.value.map((t) => (t === entry ? { ...t, leaving: true } : t))
+    }, Math.max(0, ms - LEAVE_MS))
+    setTimeout(() => {
+      this.toasts.value = this.toasts.value.filter((t) => t.key !== entry.key)
+    }, ms)
   }
 
   /** Components put into a slot. */
@@ -212,10 +259,51 @@ export class UiHost {
   }
 }
 
+/** A window on screen: open, or on its way out (`leaving`, not interactive). */
+function WindowView({ host, win, leaving }: { host: UiHost; win: WindowDef; leaving?: boolean }) {
+  return (
+    <div
+      class={`cl-backdrop${win.backdrop === 'clear' ? ' clear' : ''}${win.align && win.align !== 'center' ? ' ' + win.align : ''}${leaving ? ' leaving' : ''}`}
+      onPointerDown={(e) => !leaving && e.target === e.currentTarget && host.close()}
+    >
+      {win.bare ? (
+        <div class="cl-bare" role="dialog" aria-label={win.title}>
+          <win.component />
+        </div>
+      ) : (
+        <div class={`cl-window${win.wide ? ' wide' : ''}`} data-pattern={win.pattern ?? patternFor(win.id)} role="dialog" aria-label={win.title}>
+          <div class="cl-window-inner">
+            <div class="cl-window-title">
+              <span>{win.title}</span>
+              <button class="cl-close" aria-label="Закрыть" onClick={() => host.close()}>
+                ×
+              </button>
+            </div>
+            <div class="cl-window-body">
+              <win.component />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Root({ host }: { host: UiHost }) {
   const entries = host.allEntries
   const win = host.openWindow
   const cover = host.cover.value
+  // the window that just closed stays a moment, fading out
+  const [gone, setGone] = useState<{ def: WindowDef; key: number } | null>(null)
+  const last = useRef<WindowDef | undefined>(undefined)
+  useEffect(() => {
+    const prev = last.current
+    last.current = win
+    if (!prev || prev === win) return
+    setGone({ def: prev, key: Date.now() })
+    const t = window.setTimeout(() => setGone(null), LEAVE_MS)
+    return () => window.clearTimeout(t)
+  }, [win])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || e.repeat || host.keyCapture.value) return
@@ -258,27 +346,11 @@ function Root({ host }: { host: UiHost }) {
             ))}
         </div>
       ))}
-      {win && (
-        <div
-          class={`cl-backdrop${win.backdrop === 'clear' ? ' clear' : ''}${win.align && win.align !== 'center' ? ' ' + win.align : ''}`}
-          onPointerDown={(e) => e.target === e.currentTarget && host.close()}
-        >
-          <div class={`cl-window${win.wide ? ' wide' : ''}`} role="dialog" aria-label={win.title}>
-            <div class="cl-window-title">
-              <span>{win.title}</span>
-              <button class="cl-close" aria-label="Закрыть" onClick={() => host.close()}>
-                ×
-              </button>
-            </div>
-            <div class="cl-window-body">
-              <win.component />
-            </div>
-          </div>
-        </div>
-      )}
+      {gone && gone.def !== win && <WindowView key={`gone-${gone.key}`} host={host} win={gone.def} leaving />}
+      {win && <WindowView key={win.id} host={host} win={win} />}
       <div class="cl-toasts">
         {host.toasts.value.map((t) => (
-          <div key={t.key} class="cl-toast">
+          <div key={t.key} class={`cl-toast${t.leaving ? ' leaving' : ''}`}>
             {t.icon && <img src={t.icon} alt="" />}
             {t.text}
           </div>

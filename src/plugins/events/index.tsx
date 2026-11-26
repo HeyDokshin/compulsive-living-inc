@@ -254,7 +254,7 @@ function GuestTalk({ api, who, guests, calendar }: { api: PluginApi; who: Signal
   if (!g || !ev || !actor) return null
   const buy = (item: string, price: number) => {
     if (!wallet || !wallet.spend(price)) return setText(line('poor'))
-    if (api.services.get('items:inventory').add(actor, item, 1, { quiet: true }) > 0) {
+    if (api.services.get('items:inventory').add(actor, item, 1, { quiet: true, fresh: true }) > 0) {
       wallet.add(price)
       return setText('Карманы полны!')
     }

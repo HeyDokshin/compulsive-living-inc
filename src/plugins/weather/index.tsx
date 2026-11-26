@@ -349,7 +349,7 @@ export default definePlugin({
     })
     api.onDispose(() => api.render.setWind(1))
 
-    api.ui.slot('hud.topRight', () => <WeatherPill shown={shown} />, { order: 10 })
+    api.ui.slot('hud.topRight', () => <ui.Quiet watch={shown.value?.def.id} seconds={6}><WeatherPill shown={shown} /></ui.Quiet>, { order: 10 })
 
     // A line for the morning note: the day's forecast, merging repeats ("утром и днём ясно").
     const atHour = (hour: number): WeatherDef | undefined => {

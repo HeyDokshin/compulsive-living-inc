@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { moodOfLine, mouthFrame, stepBlink, stripTag, BLINK_SECONDS } from '../src/plugins/faces/mood'
+import { blinkAmount, moodOfLine, mouthOpen, stepBlink, stripTag, BLINK_SECONDS } from '../src/plugins/faces/mood'
 
 describe('faces', () => {
   it('reads the mood of a line: tag, words, punctuation', () => {
@@ -32,9 +32,25 @@ describe('faces', () => {
     expect(shut / blinks).toBeCloseTo(BLINK_SECONDS, 1)
   })
 
-  it('moves the mouth only while talking', () => {
-    expect(mouthFrame(false, 1.3)).toBe(0)
-    const frames = new Set(Array.from({ length: 40 }, (_, i) => mouthFrame(true, i * 0.05)))
-    expect(frames).toEqual(new Set([0, 1, 2]))
+  it('blinks and talks without jumps', () => {
+    const c = { blinkIn: 0, blinkLeft: 0, talkTime: 0 }
+    stepBlink(c, 0.01, () => 0.5, [2, 4])
+    let prev = blinkAmount(c)
+    for (let i = 0; i < 20; i++) {
+      stepBlink(c, 0.01, () => 0.5, [2, 4])
+      const now = blinkAmount(c)
+      expect(Math.abs(now - prev)).toBeLessThan(0.3)
+      prev = now
+    }
+    let last = mouthOpen(true, 0)
+    for (let t = 0.01; t < 3; t += 0.01) {
+      const m = mouthOpen(true, t)
+      expect(m).toBeGreaterThanOrEqual(0)
+      expect(m).toBeLessThanOrEqual(2)
+      expect(Math.abs(m - last)).toBeLessThan(0.35)
+      last = m
+    }
+    expect(mouthOpen(false, 1)).toBe(0)
   })
+
 })

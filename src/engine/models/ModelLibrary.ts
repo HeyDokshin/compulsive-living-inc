@@ -1,6 +1,7 @@
 import { BufferGeometry, Color, Float32BufferAttribute, Group, InstancedMesh, Mesh, MeshLambertMaterial, type Material, type Object3D, type Texture } from 'three'
 import type { Registry } from '../registry/Registry'
-import { createCharacterMaterial, createFaceUniforms, createFurMaterial, furUniforms, type FabricSlots, type FaceUniforms } from '../render/characterMaterial'
+import { createCharacterMaterial, createFaceUniforms, createFurMaterial, furUniforms, type FabricSlots, type FaceUniforms, type PatternUniforms } from '../render/characterMaterial'
+import type { ModelSpec } from '../types'
 import { fabricUniforms, type FabricTextures } from '../render/fabric'
 import { stylize } from '../render/style'
 import type { ModelDef, RigDef } from './defs'
@@ -25,6 +26,8 @@ export class ModelLibrary {
   /** Fabric detail textures (set by the game once materials exist). */
   fabrics: FabricTextures | null = null
   private fabricMaterials = new Map<string, Material>()
+  /** Materials picked from a model's colors (null: none). */
+  private autoFabric = new WeakMap<ModelDef, NonNullable<ModelDef['fabric']> | null>()
   private furMaterials = new Map<string, Material>()
   /** Fur shell meshes alive in the scene (their shell count follows the zoom). */
   private furMeshes = new Set<InstancedMesh>()
@@ -51,11 +54,11 @@ export class ModelLibrary {
   }
 
   /** A single voxel model, scaled to world units. Empty group first if it is still loading. */
-  createVoxel(id: string, opts: { scale?: number; palette?: Record<string, string> } = {}): Object3D {
+  createVoxel(id: string, opts: { scale?: number; palette?: Record<string, string>; pattern?: Pattern } = {}): Object3D {
     const group = new Group()
     group.name = id
     this.withModel(id, (model, def) => {
-      const mesh = this.mesh(id, model, def.pivot ?? defaultPivot(model), opts.palette, def)
+      const mesh = this.mesh(id, model, def.pivot ?? defaultPivot(model), opts.palette, def, opts.pattern)
       if (!mesh) return
       const s = opts.scale ?? def.scale
       mesh.scale.setScalar(s)
@@ -135,16 +138,7 @@ export class ModelLibrary {
       const chars = Object.keys(def.palette)
       const amount = data.colorIndex.map((ci) => def.fur?.keys[chars[ci - 1] ?? ''] ?? 0)
       geo.setAttribute('fur', new Float32BufferAttribute(amount, 1))
-      // fabric slot weights per vertex (one-hot from the painted character; blends between)
-      const fabricIds = def.fabric ? [...new Set(Object.values(def.fabric.keys))].slice(0, 3) : []
-      if (fabricIds.length) {
-        const w = new Float32Array(data.colorIndex.length * 3)
-        data.colorIndex.forEach((ci, i) => {
-          const slot = fabricIds.indexOf(def.fabric!.keys[chars[ci - 1] ?? ''] ?? '')
-          if (slot >= 0) w[i * 3 + slot] = 1
-        })
-        geo.setAttribute('fabric', new Float32BufferAttribute(w, 3))
-      }
+      this.setFabric(geo, data.colorIndex, model, def)
       this.geometries.set(key, geo)
       // Shells: a coarser copy of the same surface (fluff hides the difference; ~half the
       // triangles, drawn many times over), only where fur grows.
@@ -197,6 +191,10 @@ export class ModelLibrary {
           faceUniforms.uFace.value = tex
           faceUniforms.uFaceOn.value = tex ? 1 : 0
         },
+        fadeFrom(tex, mix) {
+          faceUniforms.uFacePrev.value = tex
+          faceUniforms.uFaceMix.value = tex ? mix : 1
+        },
       }
       body.userData.face = slot
       this.faceSlots.add(slot)
@@ -219,13 +217,57 @@ export class ModelLibrary {
     return out
   }
 
+  /**
+   * The model's own `fabric`, or one chosen from its colors: every model gets a generated surface —
+   * wood grain on browns, stone on greys, plaster on whites, brush strokes on paint, leaves on greens.
+   */
+  private fabricOf(model: VoxelModel, def: ModelDef): NonNullable<ModelDef['fabric']> | undefined {
+    if (def.fabric) return def.fabric
+    // heads with drawn faces keep clean skin
+    if (!this.look.fabric || !def.layers || def.face) return undefined
+    let f = this.autoFabric.get(def)
+    if (f === undefined) {
+      const chars = Object.keys(def.palette)
+      const count = new Map<string, number>()
+      for (const ci of model.voxels) if (ci) count.set(chars[ci - 1] ?? '', (count.get(chars[ci - 1] ?? '') ?? 0) + 1)
+      const keys: Record<string, string> = {}
+      const uses = new Map<string, number>()
+      for (const c of chars) {
+        const m = surfaceFor(def.palette[c]!)
+        keys[c] = m
+        uses.set(m, (uses.get(m) ?? 0) + (count.get(c) ?? 0))
+      }
+      // at most three materials: the most used ones; the rest stay plain
+      const top = [...uses].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([m]) => m)
+      for (const c of chars) if (!top.includes(keys[c]!)) delete keys[c]
+      f = Object.keys(keys).length ? { keys, tile: 6, strength: 0.5, always: true } : null
+      this.autoFabric.set(def, f)
+    }
+    return f ?? undefined
+  }
+
+  /** Fabric slot weights per vertex (one-hot from the painted character; blends between). */
+  private setFabric(geo: BufferGeometry, colorIndex: ArrayLike<number>, model: VoxelModel, def: ModelDef): void {
+    const f = this.fabricOf(model, def)
+    if (!f) return
+    const chars = Object.keys(def.palette)
+    const ids = [...new Set(Object.values(f.keys))].slice(0, 3)
+    const w = new Float32Array(colorIndex.length * 3)
+    for (let i = 0; i < colorIndex.length; i++) {
+      const slot = ids.indexOf(f.keys[chars[colorIndex[i]! - 1] ?? ''] ?? '')
+      if (slot >= 0) w[i * 3 + slot] = 1
+    }
+    geo.setAttribute('fabric', new Float32BufferAttribute(w, 3))
+    geo.userData.fabric = f
+  }
+
   /** Uniforms of a part's fabric materials (null: no fabric, or the look turned it off). */
   private fabricSlots(def: ModelDef, geo: BufferGeometry): FabricSlots | undefined {
-    const f = def.fabric
+    const f = (geo.userData.fabric as ModelDef['fabric']) ?? def.fabric
     if (!f || !this.fabrics || !this.look.fabric || !geo.getAttribute('fabric')) return undefined
     const ids = [...new Set(Object.values(f.keys))].slice(0, 3)
     const tex = (i: number) => this.fabrics!.uniform(ids[i] ?? ids[0]!)
-    return { uMat0: tex(0), uMat1: tex(1), uMat2: tex(2), uMatScale: { value: 1 / f.tile }, uMatStrength: { value: f.strength } }
+    return { uMat0: tex(0), uMat1: tex(1), uMat2: tex(2), uMatScale: { value: 1 / f.tile }, uMatStrength: { value: f.strength }, uMatAlways: { value: f.always ? 1 : 0 } }
   }
 
   /** Every drawn face in the scene (rig heads with a `face`), for the plugin that paints them. */
@@ -311,10 +353,15 @@ export class ModelLibrary {
   }
 
   /** Geometry of a voxel model (voxel units), its scale and a key naming this exact look — for instancing. */
-  voxelGeometry(id: string, palette: Record<string, string> | undefined, cb: (geo: BufferGeometry, scale: number, key: string) => void): void {
+  voxelGeometry(
+    id: string,
+    palette: Record<string, string> | undefined,
+    cb: (geo: BufferGeometry, scale: number, key: string, material: Material) => void,
+    pattern?: Pattern,
+  ): void {
     this.withModel(id, (model, def) => {
       const { geo, key } = this.geometry(id, model, def.pivot ?? defaultPivot(model), palette, def)
-      if (geo.index!.count) cb(geo, def.scale, key)
+      if (geo.index!.count) cb(geo, def.scale, pattern ? `${key}|${JSON.stringify(pattern)}` : key, this.materialOf(id, def, geo, pattern))
     })
   }
 
@@ -322,7 +369,7 @@ export class ModelLibrary {
   rigGeometry(
     id: string,
     opts: { scale?: number; palette?: Record<string, string>; parts?: Record<string, string> },
-    cb: (geo: BufferGeometry, scale: number, key: string, at: [number, number, number]) => void,
+    cb: (geo: BufferGeometry, scale: number, key: string, at: [number, number, number], material: Material) => void,
   ): void {
     const rig = this.rigs.get(id)
     if (!rig) return void log.warn(`unknown rig "${id}"`)
@@ -330,34 +377,63 @@ export class ModelLibrary {
     for (const part of rig.parts) {
       const modelId = opts.parts?.[part.name] ?? part.model
       this.withModel(modelId, (model, def) => {
-        const { geo, key } = this.geometry(modelId, model, part.pivot, opts.palette, def)
-        if (geo.index!.count) cb(geo, scale, key, [part.at[0] * scale, part.at[1] * scale, part.at[2] * scale])
+        const { geo, key } = this.geometry(modelId, model, part.pivot, opts.palette, def, rig.round)
+        if (geo.index!.count) cb(geo, scale, key, [part.at[0] * scale, part.at[1] * scale, part.at[2] * scale], this.materialOf(modelId, def, geo))
       })
     }
   }
 
-  private geometry(id: string, model: VoxelModel, pivot: [number, number, number], palette: Record<string, string> | undefined, def: ModelDef) {
-    const key = `${id}|${pivot.join(',')}|${palette ? JSON.stringify(palette) : ''}`
+  /** Plain voxel color, or the weave / leaves of the model's `fabric` (shown at every distance unless it is clothing). */
+  private materialOf(id: string, def: ModelDef, geo: BufferGeometry, pattern?: Pattern): Material {
+    const fabric = this.fabricSlots(def, geo)
+    const pat = pattern && this.fabrics ? this.patternUniforms(pattern) : undefined
+    if (!fabric && !pat) return this.material
+    const key = pat ? `${id}|${JSON.stringify(pattern)}` : id
+    let m = this.fabricMaterials.get(key)
+    if (!m) this.fabricMaterials.set(key, (m = createCharacterMaterial(undefined, fabric, pat)))
+    return m
+  }
+
+  private patternUniforms(p: Pattern): PatternUniforms {
+    const c = new Color(p.color)
+    return { uPat: this.fabrics!.mask(p.material), uPatColor: { value: [c.r, c.g, c.b] }, uPatScale: { value: 1 / p.tile } }
+  }
+
+  private geometry(id: string, model: VoxelModel, pivot: [number, number, number], palette: Record<string, string> | undefined, def: ModelDef, rigRound?: RigDef['round']) {
+    // soft and round (low-poly: a sample per voxel) where the model or its rig asks for it
+    const round = this.look.round ? (def.round ?? rigRound) : undefined
+    const key = `${id}|${pivot.join(',')}|${palette ? JSON.stringify(palette) : ''}|${round ? JSON.stringify(round) : ''}`
     let geo = this.geometries.get(key)
+    if (!geo && round) {
+      const data = buildSmoothGeometry(model, pivot, { ...round, keep: round.keep ?? 0.62 })
+      geo = toGeometry(data, resolveColors(model, def, palette))
+      this.setFabric(geo, data.colorIndex, model, def)
+      this.geometries.set(key, geo)
+    }
     if (!geo) {
       // faces merge up to one block: longer quads would cut corners on the curved world
       const maxMerge = Math.max(1, Math.round(1 / def.scale))
-      geo = toGeometry(buildVoxelGeometry(model, pivot, maxMerge), resolveColors(model, def, palette))
+      const data = buildVoxelGeometry(model, pivot, maxMerge)
+      geo = toGeometry(data, resolveColors(model, def, palette))
+      this.setFabric(geo, data.colorIndex, model, def)
       this.geometries.set(key, geo)
     }
     return { geo, key }
   }
 
   /** Null for empty models (a tree's missing fruit): nothing to draw. */
-  private mesh(id: string, model: VoxelModel, pivot: [number, number, number], palette: Record<string, string> | undefined, def: ModelDef): Mesh | null {
+  private mesh(id: string, model: VoxelModel, pivot: [number, number, number], palette: Record<string, string> | undefined, def: ModelDef, pattern?: Pattern): Mesh | null {
     const { geo } = this.geometry(id, model, pivot, palette, def)
     if (!geo.index!.count) return null
-    const mesh = new Mesh(geo, this.material)
+    const mesh = new Mesh(geo, this.materialOf(id, def, geo, pattern))
     mesh.castShadow = true
     mesh.receiveShadow = true
     return mesh
   }
 }
+
+/** A rare pattern over a model (see ModelSpec.pattern). */
+type Pattern = NonNullable<ModelSpec['pattern']>
 
 /** A drawn face on a round rig's head. */
 export interface FaceSlot {
@@ -370,6 +446,8 @@ export interface FaceSlot {
   readonly model: string
   /** Show a picture on the face (null: none — the head is bare). */
   picture(texture: Texture | null): void
+  /** Fade from another picture: `mix` 0 shows it, 1 only the current one. */
+  fadeFrom(texture: Texture | null, mix: number): void
 }
 
 export interface CharacterLook {
@@ -387,6 +465,30 @@ export interface CharacterLook {
 const smoothstep = (a: number, b: number, v: number) => {
   const t = Math.min(1, Math.max(0, (v - a) / Math.max(1e-6, b - a)))
   return t * t * (3 - 2 * t)
+}
+
+/** The generated surface a painted color suggests (by hue, saturation and lightness). */
+export function surfaceFor(hex: string): string {
+  const n = parseInt(hex.replace('#', '').slice(0, 6), 16)
+  const r = ((n >> 16) & 255) / 255
+  const g = ((n >> 8) & 255) / 255
+  const b = (n & 255) / 255
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  const s = max === min ? 0 : (max - min) / (1 - Math.abs(2 * l - 1))
+  let h = 0
+  if (max !== min) {
+    if (max === r) h = ((g - b) / (max - min) + 6) % 6
+    else if (max === g) h = (b - r) / (max - min) + 2
+    else h = (r - g) / (max - min) + 4
+    h *= 60
+  }
+  if (l > 0.86) return 'core:plaster'
+  if (s < 0.14) return 'core:stone'
+  if (h >= 15 && h <= 48 && s < 0.75 && l < 0.72) return 'core:wood'
+  if (h >= 70 && h <= 170) return 'core:leaves'
+  return 'core:painted'
 }
 
 /** Still part of a scene (not removed with its entity)? */

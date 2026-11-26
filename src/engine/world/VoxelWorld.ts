@@ -23,6 +23,8 @@ export class VoxelWorld {
   chunks: Chunk[] = []
   /** Chunk indices whose meshes need rebuilding. */
   readonly dirty = new Set<number>()
+  /** Blocks from a chunk's edge that still change how its neighbours look (rounded meshing reads them). */
+  neighbourReach = 1
 
   constructor(palette = new BlockPalette()) {
     this.palette = palette
@@ -81,13 +83,15 @@ export class VoxelWorld {
     c.data[i] = num
     c.version++
     this.dirty.add(ci)
-    // Faces and ambient occlusion of neighbours depend on this block.
+    // Faces, ambient occlusion and the rounded surface of neighbours (which reads 2 blocks into this
+    // chunk) depend on this block.
     const lx = x & 15
     const lz = z & 15
+    const reach = this.neighbourReach
     for (let dx = -1; dx <= 1; dx++) {
       for (let dz = -1; dz <= 1; dz++) {
         if (!dx && !dz) continue
-        if ((dx === -1 && lx !== 0) || (dx === 1 && lx !== 15) || (dz === -1 && lz !== 0) || (dz === 1 && lz !== 15)) continue
+        if ((dx === -1 && lx >= reach) || (dx === 1 && lx < 16 - reach) || (dz === -1 && lz >= reach) || (dz === 1 && lz < 16 - reach)) continue
         const n = this.chunkAt(cx + dx, cz + dz)
         if (n) this.dirty.add(this.chunkIndex(n.cx, n.cz))
       }
@@ -128,21 +132,21 @@ export class VoxelWorld {
    * outer walls and blends into the endless sea around it. Above/below the world is air.
    * Layout: (x+1) + (z+1)*18 + (y+1)*18*18, size 18 × (height+2) × 18.
    */
-  paddedVolume(ci: number, out?: Uint16Array): Uint16Array {
-    const P = CHUNK_SIZE + 2
+  paddedVolume(ci: number, out?: Uint16Array, pad = 1): Uint16Array {
+    const P = CHUNK_SIZE + 2 * pad
     const H = this.height + 2
     const vol = out && out.length === P * P * H ? out.fill(0) : new Uint16Array(P * P * H)
     const c = this.chunks[ci]!
     const ox = c.cx * 16
     const oz = c.cz * 16
     for (let y = 0; y < this.height; y++) {
-      for (let z = -1; z <= 16; z++) {
-        for (let x = -1; x <= 16; x++) {
+      for (let z = -pad; z < 16 + pad; z++) {
+        for (let x = -pad; x < 16 + pad; x++) {
           const inside = x >= 0 && x < 16 && z >= 0 && z < 16
           const v = inside
             ? c.data[x + z * 16 + y * 256]!
             : this.get(clamp(ox + x, 0, this.sizeX - 1), y, clamp(oz + z, 0, this.sizeZ - 1))
-          if (v) vol[x + 1 + (z + 1) * P + (y + 1) * P * P] = v
+          if (v) vol[x + pad + (z + pad) * P + (y + 1) * P * P] = v
         }
       }
     }

@@ -3,6 +3,7 @@
  * blurred and turned into a smooth surface (surface nets), so blocky parts become soft rounded
  * shapes while keeping the colors painted in voxels. Used for characters (`round` rigs).
  */
+import { boxBlur, surfaceNets } from './surfaceNets'
 import { voxelAt, type GeometryData, type VoxelModel } from './voxelModel'
 
 export interface SmoothOptions {
@@ -12,6 +13,8 @@ export interface SmoothOptions {
   smooth: number
   /** Surface level of the blurred density (lower = fuller, keeps thin parts like ears). */
   iso: number
+  /** With an odd `subdiv`: each voxel's middle stays at least this dense, so nothing thin vanishes (0 = off). */
+  keep?: number
 }
 
 export interface SmoothGeometry extends GeometryData {
@@ -29,7 +32,7 @@ export function buildSmoothGeometry(m: VoxelModel, pivot: [number, number, numbe
   const nz = (m.size[2] + pad * 2) * k
   const idx = (x: number, y: number, z: number) => x + nx * (y + ny * z)
   // occupancy at fine sample centers
-  let d = new Float32Array(nx * ny * nz)
+  const d = new Float32Array(nx * ny * nz)
   for (let z = 0; z < nz; z++)
     for (let y = 0; y < ny; y++)
       for (let x = 0; x < nx; x++) {
@@ -38,141 +41,34 @@ export function buildSmoothGeometry(m: VoxelModel, pivot: [number, number, numbe
         const vz = Math.floor(z / k) - pad
         if (voxelAt(m, vx, vy, vz)) d[idx(x, y, z)] = 1
       }
-  // separable box blur
-  let tmp = new Float32Array(d.length)
-  const strides = [1, nx, nx * ny]
-  const dims = [nx, ny, nz]
-  for (let pass = 0; pass < o.smooth; pass++) {
-    for (let axis = 0; axis < 3; axis++) {
-      const s = strides[axis]!
-      const n = dims[axis]!
-      for (let z = 0; z < nz; z++)
-        for (let y = 0; y < ny; y++)
-          for (let x = 0; x < nx; x++) {
-            const i = idx(x, y, z)
-            const c = axis === 0 ? x : axis === 1 ? y : z
-            const a = c > 0 ? d[i - s]! : 0
-            const b = c < n - 1 ? d[i + s]! : 0
-            tmp[i] = (a + d[i]! + b) / 3
-          }
-      const t = d
-      d = tmp
-      tmp = t
+  const grid = { d, nx, ny, nz, iso: o.iso }
+  boxBlur(grid, [0, 1, 2], o.smooth)
+  // thin parts (a stem, a single block) keep at least their middle
+  if (o.keep && k % 2 === 1) {
+    const h = (k - 1) / 2
+    for (let vz = 0; vz < m.size[2]; vz++)
+      for (let vy = 0; vy < m.size[1]; vy++)
+        for (let vx = 0; vx < m.size[0]; vx++) {
+          if (!voxelAt(m, vx, vy, vz)) continue
+          const i = idx((vx + pad) * k + h, (vy + pad) * k + h, (vz + pad) * k + h)
+          if (d[i]! < o.keep) d[i] = o.keep
+        }
+  }
+  const nets = surfaceNets(grid)
+  const out: SmoothGeometry = { position: [], normal: nets.normal, colorIndex: [], index: nets.index, min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] }
+  for (let i = 0; i < nets.position.length; i += 3) {
+    // sample i sits at the center of fine cell i: (i + 0.5) / k voxels from the padded corner
+    const vx = (nets.position[i]! + 0.5) / k - pad
+    const vy = (nets.position[i + 1]! + 0.5) / k - pad
+    const vz = (nets.position[i + 2]! + 0.5) / k - pad
+    const p = [vx - pivot[0], vy - pivot[1], vz - pivot[2]] as const
+    out.position.push(p[0], p[1], p[2])
+    out.colorIndex.push(nearestColor(m, vx, vy, vz))
+    for (let a = 0; a < 3; a++) {
+      out.min[a] = Math.min(out.min[a]!, p[a]!)
+      out.max[a] = Math.max(out.max[a]!, p[a]!)
     }
   }
-
-  const iso = o.iso
-  const inside = (i: number) => d[i]! > iso
-  // position of a fine sample in voxel units (relative to the model's min corner)
-  const sx = (x: number) => (x + 0.5) / k - pad
-  // density gradient at a sample (central differences)
-  const grad = (x: number, y: number, z: number, out: number[]) => {
-    const g = (xx: number, yy: number, zz: number) => (xx < 0 || yy < 0 || zz < 0 || xx >= nx || yy >= ny || zz >= nz ? 0 : d[idx(xx, yy, zz)]!)
-    out[0] = g(x + 1, y, z) - g(x - 1, y, z)
-    out[1] = g(x, y + 1, z) - g(x, y - 1, z)
-    out[2] = g(x, y, z + 1) - g(x, y, z - 1)
-  }
-
-  const out: SmoothGeometry = { position: [], normal: [], colorIndex: [], index: [], min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] }
-  // one vertex per cell (8 samples) the surface passes through
-  const cx = nx - 1
-  const cy = ny - 1
-  const cz = nz - 1
-  const vert = new Int32Array(cx * cy * cz).fill(-1)
-  const cell = (x: number, y: number, z: number) => x + cx * (y + cy * z)
-  const corner = [0, 0, 0]
-  const gsum = [0, 0, 0]
-  const gtmp = [0, 0, 0]
-  for (let z = 0; z < cz; z++)
-    for (let y = 0; y < cy; y++)
-      for (let x = 0; x < cx; x++) {
-        let mask = 0
-        for (let c = 0; c < 8; c++) if (inside(idx(x + (c & 1), y + ((c >> 1) & 1), z + ((c >> 2) & 1)))) mask |= 1 << c
-        if (mask === 0 || mask === 255) continue
-        // average of the edge crossings
-        let px = 0
-        let py = 0
-        let pz = 0
-        let count = 0
-        for (let a = 0; a < 8; a++) {
-          for (let axis = 0; axis < 3; axis++) {
-            const b = a | (1 << axis)
-            if (b === a) continue
-            const ia = ((mask >> a) & 1) === 1
-            const ib = ((mask >> b) & 1) === 1
-            if (ia === ib) continue
-            const da = d[idx(x + (a & 1), y + ((a >> 1) & 1), z + ((a >> 2) & 1))]!
-            const db = d[idx(x + (b & 1), y + ((b >> 1) & 1), z + ((b >> 2) & 1))]!
-            const t = (iso - da) / (db - da)
-            corner[0] = (a & 1) + (axis === 0 ? t : 0)
-            corner[1] = ((a >> 1) & 1) + (axis === 1 ? t : 0)
-            corner[2] = ((a >> 2) & 1) + (axis === 2 ? t : 0)
-            px += corner[0]!
-            py += corner[1]!
-            pz += corner[2]!
-            count++
-          }
-        }
-        px /= count
-        py /= count
-        pz /= count
-        // smooth normal: gradient blended over the cell's corners
-        gsum[0] = gsum[1] = gsum[2] = 0
-        for (let c = 0; c < 8; c++) {
-          const ox = c & 1
-          const oy = (c >> 1) & 1
-          const oz = (c >> 2) & 1
-          const w = (ox ? px : 1 - px) * (oy ? py : 1 - py) * (oz ? pz : 1 - pz)
-          grad(x + ox, y + oy, z + oz, gtmp)
-          gsum[0] += gtmp[0]! * w
-          gsum[1] += gtmp[1]! * w
-          gsum[2] += gtmp[2]! * w
-        }
-        const gl = Math.hypot(gsum[0]!, gsum[1]!, gsum[2]!) || 1
-        const vx = sx(x + px)
-        const vy = sx(y + py)
-        const vz = sx(z + pz)
-        vert[cell(x, y, z)] = out.position.length / 3
-        out.position.push(vx - pivot[0], vy - pivot[1], vz - pivot[2])
-        out.normal.push(-gsum[0]! / gl, -gsum[1]! / gl, -gsum[2]! / gl)
-        out.colorIndex.push(nearestColor(m, vx, vy, vz))
-        const p = out.position.length - 3
-        for (let i = 0; i < 3; i++) {
-          out.min[i] = Math.min(out.min[i]!, out.position[p + i]!)
-          out.max[i] = Math.max(out.max[i]!, out.position[p + i]!)
-        }
-      }
-
-  // a quad around every sample edge the surface crosses, facing outwards
-  const N = out.normal
-  const P = out.position
-  const quad = (a: number, b: number, c: number, e: number) => {
-    if (a < 0 || b < 0 || c < 0 || e < 0) return
-    // outward = along the vertex normals
-    const ux = P[b * 3]! - P[a * 3]!
-    const uy = P[b * 3 + 1]! - P[a * 3 + 1]!
-    const uz = P[b * 3 + 2]! - P[a * 3 + 2]!
-    const wx = P[c * 3]! - P[a * 3]!
-    const wy = P[c * 3 + 1]! - P[a * 3 + 1]!
-    const wz = P[c * 3 + 2]! - P[a * 3 + 2]!
-    const fx = uy * wz - uz * wy
-    const fy = uz * wx - ux * wz
-    const fz = ux * wy - uy * wx
-    const nx2 = N[a * 3]! + N[b * 3]! + N[c * 3]! + N[e * 3]!
-    const ny2 = N[a * 3 + 1]! + N[b * 3 + 1]! + N[c * 3 + 1]! + N[e * 3 + 1]!
-    const nz2 = N[a * 3 + 2]! + N[b * 3 + 2]! + N[c * 3 + 2]! + N[e * 3 + 2]!
-    if (fx * nx2 + fy * ny2 + fz * nz2 >= 0) out.index.push(a, b, c, a, c, e)
-    else out.index.push(a, c, b, a, e, c)
-  }
-  for (let z = 1; z < cz; z++)
-    for (let y = 1; y < cy; y++)
-      for (let x = 1; x < cx; x++) {
-        const here = inside(idx(x, y, z))
-        // edge along x from sample (x,y,z) to (x+1,y,z): cells (x, y-1..y, z-1..z)
-        if (x < cx && here !== inside(idx(x + 1, y, z))) quad(vert[cell(x, y - 1, z - 1)]!, vert[cell(x, y, z - 1)]!, vert[cell(x, y, z)]!, vert[cell(x, y - 1, z)]!)
-        if (y < cy && here !== inside(idx(x, y + 1, z))) quad(vert[cell(x - 1, y, z - 1)]!, vert[cell(x, y, z - 1)]!, vert[cell(x, y, z)]!, vert[cell(x - 1, y, z)]!)
-        if (z < cz && here !== inside(idx(x, y, z + 1))) quad(vert[cell(x - 1, y - 1, z)]!, vert[cell(x, y - 1, z)]!, vert[cell(x, y, z)]!, vert[cell(x - 1, y, z)]!)
-      }
   return out
 }
 

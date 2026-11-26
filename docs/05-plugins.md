@@ -57,6 +57,11 @@ export default definePlugin({
 | `api.render.camera.shot` + `camera.cut(true, seconds)` | кинокадр поверх обычного вида: `target`, `zoom`, `pitch`, `yaw`, `clip` (срезать всё ближе к камере); `cut(false)` — обратно |
 | `api.render.pixelsPerBlock` / `api.render.eachFace(fn)` | детализация по зуму; нарисованные лица круглых ригов (`slot.picture(texture)`) |
 | `api.ui.cinema.value = true` | HUD уходит на время сцены |
+| `ui.Quiet watch={значение}` / `api.ui.peek` | «тихая» часть HUD: видна несколько секунд после изменения и пока HUD «подглядывают» (телефон) |
+| `api.ui.window({ …, bare: true })` / `api.ui.hasWindow(id)` | окно без рамки (рисует себя само) / есть ли такое окно |
+| `api.ui.window({ …, pattern: 'stars' })` | узор за текстом окна (`dots stars hearts flowers waves checks sprinkles leaves`; по умолчанию — по id окна). В своём CSS: `background: var(--ui-pat-<узор>), <цвет>` (или `-light` на тёмном) |
+| реестр `phone:apps` | приложение телефона: `{ id, name, icon, color, order, window }` — открывает окно любого плагина |
+| сервис `quests:progress` | `points` (листики), `milestones()` — достижения как дорожки ступеней |
 | сервис `faces:control` | `show(who, 'joy', сек)`, `mood`, `talk(who, on)`, `look(who, at)`, `ofLine(text)` — мимика (`neutral happy joy sad worried angry surprised sleepy love shy thinking wink`) |
 | сервис `cutscene:talk` | `conversation(windowId, () => собеседник)` — окно-разговор крупным планом; `line(text)`, `typing(on)`; `cheat(rotY)` — повернуть к камере |
 | `api.ui.slot('hud.bottomLeft', Component)` / `api.ui.window({ id, title, component })` / `api.ui.toast(text)` | интерфейс на Preact (TSX): слоты HUD, окна, сообщения; компоненты `ui.Pill`, `ui.Button`, `ui.ItemSlot`, `ui.Grid`… из `@sdk` |
@@ -147,7 +152,11 @@ export default definePlugin({
 // textures.json5: { id: 'my_pack:brick', pattern: 'planks', colors: ['#b5543c'], material: 'my_pack:brick' }
 ```
 
-Слой — узор (`fill noise ridged cells cracks strata wood boards grain fibers knit pebbles twill weave`) через цветовую рампу `colors`, наложенный режимом `blend` (`normal multiply screen overlay soft add darken lighten`) с `opacity` и маской; `scale` — сколько деталей на тайл (целые — без швов), `octaves`, `roughness`, `warp`, `contrast`, `relief` (рельеф для запечённого света). Настройки детализации — `engine → render.detail`.
+Слой — узор (`fill noise ridged cells cracks strata wood boards grain fibers knit pebbles twill weave`, мотивы `stripes dots stars hearts flowers checker waves marble terrazzo scales herringbone zigzag`) через цветовую рампу `colors`, наложенный режимом `blend` (`normal multiply screen overlay soft add darken lighten`) с `opacity` и маской; `scale` — сколько деталей на тайл (целые — без швов), `octaves`, `roughness`, `warp`, `contrast`, `relief` (рельеф для запечённого света). Настройки детализации — `engine → render.detail`.
+
+**Поверхность у каждой модели.** Модель без своей ткани получает материал по цвету вокселей (светлое — штукатурка, серое — камень, коричневое — дерево, зелёное — листва, остальное — крашеная поверхность), сдвинутый на каждый экземпляр, чтобы соседние предметы не были одинаковыми.
+
+**Узор поверх.** `ModelSpec.pattern: { material, color, tile }` накладывает маску материала-мотива цветом `color` поверх обычной текстуры (`tile` — повторов на модель). Так сделаны редкие предметы `decor`: узоры — данные (`content/<pack>/decor.patterns.json5`: `id`, `name`, `material`, `colors`, `weight`), каждый новый предмет мебели с шансом `decor.rareChance` выпадает узорным (`decor:<piece>_<variant>_rare_<pattern>`, тег `#decor:rare`, цена ×`rarePrice`). «Новый предмет» — хук `items:fresh` (`add(..., { fresh: true })` в магазине, крафте, подарках, событиях, заданиях): тапните его, чтобы подменить id того, что получил игрок.
 
 ## Предметы и взаимодействия
 

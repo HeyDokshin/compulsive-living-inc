@@ -73,7 +73,7 @@ export function Board(props: Props) {
       if (r.bells) {
         if (!api.services.has('economy:wallet')) return
         api.services.get('economy:wallet').add(r.bells)
-      } else if (api.services.get('items:inventory').add(actor, r.item, r.count, { quiet: true }) > 0) return setNote('Карманы полны.')
+      } else if (api.services.get('items:inventory').add(actor, r.item, r.count, { quiet: true, fresh: true }) > 0) return setNote('Карманы полны.')
       s.points -= r.cost
       props.touch()
       api.audio.play('economy:coins')

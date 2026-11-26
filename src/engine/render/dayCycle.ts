@@ -77,7 +77,9 @@ export const DEFAULT_LIGHT_KEYS: LightKey[] = [
   { t: 6.3, sun: '#ffc8a8', sunIntensity: 1.1, sky: '#ffdccf', ground: '#b8a090', ambient: 1.4, background: '#ffcfbf' },
   { t: 8.5, sun: '#fff0d8', sunIntensity: 1.7, sky: '#d9ecff', ground: '#c9b393', ambient: 1.45, background: '#b5e3f2' },
   { t: 12, sun: '#fff8ee', sunIntensity: 1.9, sky: '#e2f1ff', ground: '#cdb796', ambient: 1.55, background: '#aee0f2' },
-  { t: 16, sun: '#ffeccc', sunIntensity: 1.75, sky: '#e0edff', ground: '#c9b393', ambient: 1.45, background: '#b8e0f0' },
+  { t: 16, sun: '#ffe6bf', sunIntensity: 1.8, sky: '#e6ecff', ground: '#cdb48f', ambient: 1.45, background: '#c4e2ee' },
+  // golden hour: low warm sun, peachy sky
+  { t: 17.4, sun: '#ffc68a', sunIntensity: 1.65, sky: '#ffe2cf', ground: '#c9a88c', ambient: 1.45, background: '#ffd2b4' },
   { t: 18.2, sun: '#ffb494', sunIntensity: 1.2, sky: '#ffd9e0', ground: '#c09aa4', ambient: 1.5, background: '#ffbcc2' },
   { t: 19.6, sun: '#c9b0ff', sunIntensity: 0.65, sky: '#a596e0', ground: '#625878', ambient: 1.25, background: '#7468b8' },
 ]

@@ -4,7 +4,7 @@
  * Tasks, achievements, rewards and projects are data (content/quests/*.json5); what counts for a
  * task is a tracker fed by game events (catching, watering, selling, talking…).
  */
-import { definePlugin, signal, z, type Entity, type RegistryEntry, type Signal } from '@sdk'
+import { definePlugin, signal, ui, z, type Entity, type RegistryEntry, type Signal } from '@sdk'
 import { Board } from './board'
 import { advance, pickTasks, rate, tierOf, type DailyTask, type Rating, type TaskTemplate } from './logic'
 
@@ -43,7 +43,33 @@ export interface QuestState {
   projects: Record<string, { state: 'funded' | 'built'; day: number }>
 }
 
+/** A milestone track: an achievement's tiers and how far along it is. */
+export interface Milestone {
+  id: string
+  name: string
+  text: string
+  icon: string
+  /** Stat thresholds of the tiers. */
+  tiers: number[]
+  /** Leaf points each tier gives. */
+  points: number[]
+  /** Tiers reached. */
+  tier: number
+  /** The stat now. */
+  value: number
+}
+
+export interface QuestProgress {
+  /** Leaf points to spend (live). */
+  readonly points: Signal<number>
+  /** Every achievement as a milestone track. */
+  milestones(): Milestone[]
+}
+
 declare module '@sdk' {
+  interface Services {
+    'quests:progress': QuestProgress
+  }
   interface Components {
     questBoard?: Record<string, never>
     fountain?: Record<string, never>
@@ -174,6 +200,22 @@ export default definePlugin({
         api.ui.toast(`${a.icon} Достижение «${a.name}» — ступень ${tier}! +${pts} 🍃`, { ms: 3600 })
       }
     }
+    const points = signal(0)
+    api.systems.add({ id: 'points', phase: 'postUpdate', run: () => void (points.value = state.value.points) })
+    api.services.provide('quests:progress', {
+      points,
+      milestones: () =>
+        achievements.all().map((a) => ({
+          id: a.id,
+          name: a.name,
+          text: a.text,
+          icon: a.icon,
+          tiers: a.tiers,
+          points: a.points,
+          tier: state.value.achievements[a.id] ?? 0,
+          value: state.value.stats[a.stat] ?? 0,
+        })),
+    })
     const isPlayer = (e: Entity) => !!e.player
     const items = api.registry('items')
     api.events.on('collection:caught', ({ actor, id }) => {
@@ -264,7 +306,7 @@ export default definePlugin({
       // no tutorial
     }
 
-    api.ui.slot('hud.topRight', () => <Leaves state={state} />, { order: 21 })
+    api.ui.slot('hud.topRight', () => <ui.Quiet watch={state.value.points}><Leaves state={state} /></ui.Quiet>, { order: 21 })
 
     // --- rating and projects -------------------------------------------------------------------------------
     const rating = (): Rating => {

@@ -24,6 +24,7 @@ import type { ModelLibrary } from '../models/ModelLibrary'
 import { EntityRenderer } from './EntityRenderer'
 import { IsoCamera } from './IsoCamera'
 import type { AtlasDetail } from './AtlasDetail'
+import { terrainUniforms } from './terrainMaterial'
 import { BlockAtlas } from './BlockAtlas'
 import { ChunkRenderer } from './ChunkRenderer'
 import { createLightState, sampleLight, type LightState } from './dayCycle'
@@ -53,7 +54,7 @@ export class Renderer {
   readonly chunks: ChunkRenderer
   readonly mesher = new MesherPool()
   readonly postfx: PostFX
-  private surfaces = new Set<{ mesh: Mesh; blockId: string; cull?: { x: number; y: number; z: number; r: number } }>()
+  private surfaces = new Set<{ mesh: Mesh; blockId: string; transparent: boolean; cull?: { x: number; y: number; z: number; r: number } }>()
   private palette: VoxelWorld['palette']
   readonly entityRenderer: EntityRenderer
   /** Seed for lawn color patches (set from the world seed). */
@@ -134,14 +135,24 @@ export class Renderer {
     }
     const tint = { seed: this.tintSeed, scale: t.scale, strength: t.strength, a: toMul(t.sunny), b: toMul(t.shady) }
     const maxMerge = style.curvature > 0 ? 1 : Infinity
-    const meshKey = JSON.stringify([curve, tint, maxMerge])
+    const tr = render.terrain
+    const round = tr.style === 'round' ? { subdiv: tr.subdiv, smoothAcross: tr.smoothAcross, smoothUp: tr.smoothUp, keep: tr.keep, ao: tr.ao } : null
+    const meshKey = JSON.stringify([curve, tint, maxMerge, round])
     if (meshKey !== this.last.mesh) {
+      const styleChanged = !!round !== !!this.chunks.round
       this.last.mesh = meshKey
       this.chunks.aoCurve = curve
       this.chunks.tint = tint
       this.chunks.maxMerge = maxMerge
-      this.chunks.remeshAll()
+      this.chunks.round = round
+      // another style: the old meshes have other attributes, start over
+      if (styleChanged) this.chunks.reset()
+      else this.chunks.remeshAll()
+      this.refreshSurfaces()
     }
+    terrainUniforms.uDetailStrength.value = tr.detail
+    terrainUniforms.uDetailScale.value = tr.detailScale
+    this.chunks.editFade = tr.editFade
     this.chunks.waterOpacity = render.waterOpacity
     if (debug.showChunks !== this.last.borders) {
       this.last.borders = debug.showChunks
@@ -218,7 +229,7 @@ export class Renderer {
     this.pixelsPerBlock = ppb
     // characters are 12 voxels per block
     this.library.updateFur(ppb / 12)
-    if (this.detail) {
+    if (this.detail && !this.chunks.round) {
       this.detailSettings.bias = d.bias
       this.detailSettings.max = d.enabled ? 2 ** Math.floor(Math.log2(d.max)) : 16
       this.detailSettings.fade = d.fade
@@ -305,11 +316,12 @@ export class Renderer {
     geo.setAttribute('uv', new BufferAttribute(new Float32Array(uv), 2))
     geo.setAttribute('color', new BufferAttribute(new Float32Array(n * 3).fill(1), 3))
     geo.setAttribute('tile', new BufferAttribute(new Float32Array(n * 4), 4))
+    geo.setAttribute('detail', new BufferAttribute(new Float32Array(n).fill(-1), 1))
     geo.setIndex(idx)
-    const mesh = new Mesh(geo, transparent ? this.chunks.transparentMaterial : this.chunks.opaqueMaterial)
+    const mesh = new Mesh(geo, transparent ? this.chunks.water : this.chunks.ground)
     mesh.receiveShadow = true
     mesh.frustumCulled = false
-    const entry: { mesh: Mesh; blockId: string; cull?: { x: number; y: number; z: number; r: number } } = { mesh, blockId }
+    const entry: { mesh: Mesh; blockId: string; transparent: boolean; cull?: { x: number; y: number; z: number; r: number } } = { mesh, blockId, transparent }
     if (cull) {
       geo.computeBoundingSphere()
       const b = geo.boundingSphere!
@@ -326,13 +338,27 @@ export class Renderer {
     for (const s of this.surfaces) this.updateSurfaceTiles(s)
   }
 
-  private updateSurfaceTiles(s: { mesh: Mesh; blockId: string }): void {
-    const t = this.atlas.table.tiles
+  private updateSurfaceTiles(s: { mesh: Mesh; blockId: string; transparent: boolean }): void {
+    const table = this.atlas.table
+    const t = table.tiles
     const num = this.palette.peek(s.blockId)
     const base = num !== undefined && (num * 6 + 2) * 4 + 3 < t.length ? (num * 6 + 2) * 4 : 8
     const attr = s.mesh.geometry.getAttribute('tile') as BufferAttribute
     for (let i = 0; i < attr.count; i++) attr.setXYZW(i, t[base]!, t[base + 1]!, t[base + 2]!, t[base + 3]!)
     attr.needsUpdate = true
+    // the rounded island: the block's own color and detail instead of the pixel tile (water is white: the shader colors it)
+    const round = !!this.chunks.round
+    s.mesh.material = s.transparent ? this.chunks.water : this.chunks.ground
+    const col = s.mesh.geometry.getAttribute('color') as BufferAttribute
+    const det = s.mesh.geometry.getAttribute('detail') as BufferAttribute
+    const ok = round && !s.transparent && num !== undefined && table.topColor && num * 3 + 2 < table.topColor.length
+    for (let i = 0; i < col.count; i++) {
+      if (ok) col.setXYZ(i, table.topColor![num * 3]!, table.topColor![num * 3 + 1]!, table.topColor![num * 3 + 2]!)
+      else col.setXYZ(i, 1, 1, 1)
+      det.setX(i, ok && table.detailTop ? table.detailTop[num]! : -1)
+    }
+    col.needsUpdate = true
+    det.needsUpdate = true
   }
 
   dispose(): void {

@@ -33,26 +33,38 @@ export interface PieceDef extends RegistryEntry {
   variants: Variant[]
 }
 
+/** A rare pattern a piece may come with (content/decor/decor.patterns.json5). */
+export interface PatternDef extends RegistryEntry {
+  /** Said after the piece's name: «Скамейка (мятная) в звёздочку». */
+  name: string
+  /** Motif material (light = motif). */
+  material: string
+  color: string
+  /** How often, among the patterns. */
+  weight: number
+}
+
 export interface DecorPieces {
   get(pieceId: string): PieceDef | undefined
   all(): PieceDef[]
   itemId(pieceId: string, variantId: string): string
-  /** Which piece and variant an item is (null for other items). */
-  of(itemId: string): { piece: PieceDef; variant: Variant } | null
+  /** Which piece, variant (and rare pattern) an item is (null for other items). */
+  of(itemId: string): { piece: PieceDef; variant: Variant; pattern?: PatternDef } | null
   /** Ground height if a piece can stand on this cell (free, solid ground), else null. */
   freeCell(x: number, z: number): number | null
-  /** Put a piece on the island (no item needed — for starting furniture). */
-  place(pieceId: string, variantId: string, x: number, z: number, rotY?: number): Entity | null
+  /** Put a piece on the island (no item needed — for starting furniture); `patternId` makes it a rare one. */
+  place(pieceId: string, variantId: string, x: number, z: number, rotY?: number, patternId?: string): Entity | null
   /** Put a placed piece back into the actor's pockets (false: pockets full or not allowed). */
   take(actor: Entity, piece: Entity): boolean
 }
 
 declare module '@sdk' {
   interface Components {
-    decor?: { piece: string; variant: string }
+    decor?: { piece: string; variant: string; pattern?: string }
   }
   interface Registries {
     'decor:pieces': PieceDef
+    'decor:patterns': PatternDef
   }
   interface Services {
     'decor:pieces': DecorPieces
@@ -90,9 +102,23 @@ const Config = z.object({
   indoorGlow: z.number().min(0).max(1).default(0.55).meta({ label: 'indoor glow', step: 0.05 }),
   /** Wall pieces hang this high above the floor (blocks). */
   wallHeight: z.number().min(0).max(4).default(1.1).meta({ label: 'wall height', step: 0.05 }),
+  /** Chance that a piece one gets (bought, made, given) comes with a rare pattern. */
+  rareChance: z.number().min(0).max(1).default(0.06).meta({ label: 'rare chance', step: 0.01 }),
+  /** Rare pieces are worth this many times more. */
+  rarePrice: z.number().min(1).max(20).default(3).meta({ label: 'rare price ×', step: 0.5 }),
 })
 
 export const variantItemId = (pieceId: string, variantId: string) => `${pieceId}_${variantId}`
+/** A rare piece's item: the variant's item and the pattern, e.g. decor:bench_mint_rare_stars. */
+export const rareItemId = (pieceId: string, variantId: string, patternId: string) => `${variantItemId(pieceId, variantId)}_rare_${patternId.split(":").pop()}`
+
+const PatternSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  material: z.string(),
+  color: z.string().default('#ffd76a'),
+  weight: z.number().min(0).default(1),
+})
 
 export default definePlugin({
   id: 'decor',
@@ -103,8 +129,9 @@ export default definePlugin({
   setup(api) {
     const cfg = api.config.define(Config)
     const pieces = api.createRegistry<PieceDef>('decor:pieces', PieceSchema as never)
-    const byItem = new Map<string, { piece: PieceDef; variant: Variant }>()
-    api.components.define('decor', z.object({ piece: z.string(), variant: z.string() }))
+    const patterns = api.createRegistry<PatternDef>('decor:patterns', PatternSchema as never)
+    const byItem = new Map<string, { piece: PieceDef; variant: Variant; pattern?: PatternDef }>()
+    api.components.define('decor', z.object({ piece: z.string(), variant: z.string(), pattern: z.string().optional() }))
 
     // Items: one per piece × variant.
     const registerItems = () => {
@@ -128,10 +155,51 @@ export default definePlugin({
             ground: { lie: false },
           })
         }
+        // rare versions: the same piece with a pattern over it (hidden from shops; found by luck)
+        for (const v of piece.variants)
+          for (const pat of patterns.all()) {
+            const id = rareItemId(piece.id, v.id, pat.id)
+            byItem.set(id, { piece, variant: v, pattern: pat })
+            if (items.has(id)) continue
+            const base = v.name && piece.variants.length > 1 ? `${piece.name} (${v.name})` : piece.name
+            items.register({
+              id,
+              name: `✦ ${base} ${pat.name}`,
+              description: `${piece.description ?? ''} Редкая: такой узор попадается нечасто.`.trim(),
+              stack: piece.stack,
+              model: piece.model,
+              palette: v.palette,
+              price: Math.round(piece.price * cfg.rarePrice),
+              tags: ['decor:pieces', 'decor:rare'],
+              held: { tilt: 0, scale: 0.7 },
+              ground: { lie: false },
+            })
+          }
       }
     }
     api.events.on('content:loaded', registerItems)
     pieces.onChange(registerItems) // other plugins add pieces too (villagers' photos)
+    patterns.onChange(registerItems)
+
+    // Luck: a piece one gets (bought, made, given) may come with a rare pattern.
+    const roll = (): PatternDef | null => {
+      const all = patterns.all()
+      const total = all.reduce((n, p) => n + p.weight, 0)
+      if (!total || Math.random() >= cfg.rareChance) return null
+      let r = Math.random() * total
+      for (const p of all) if ((r -= p.weight) <= 0) return p
+      return all[all.length - 1] ?? null
+    }
+    api.hooks.tap('items:fresh', (id) => {
+      const what = byItem.get(id)
+      if (!what || what.pattern) return id
+      const pat = roll()
+      if (!pat) return id
+      const rare = rareItemId(what.piece.id, what.variant.id, pat.id)
+      api.audio.play('ui:open')
+      api.ui.toast(`✨ Редкая находка: ${api.registry('items').get(rare)?.name ?? rare}!`, { ms: 3600 })
+      return rare
+    })
     registerItems()
 
     const look = (e: Entity) => {
@@ -139,8 +207,18 @@ export default definePlugin({
       const piece = pieces.get(d.piece)
       const v = piece?.variants.find((x) => x.id === d.variant) ?? piece?.variants[0]
       if (!piece || !v) return
-      api.render.setModel(e, { shape: 'voxel', ref: piece.model, palette: v.palette, size: [1, 1, 1], color: '#ccc', anchor: 'bottom', instanced: true })
-      e.name = api.registry('items').get(variantItemId(piece.id, v.id))?.name ?? piece.name
+      const pat = d.pattern ? patterns.get(d.pattern) : undefined
+      api.render.setModel(e, {
+        shape: 'voxel',
+        ref: piece.model,
+        palette: v.palette,
+        size: [1, 1, 1],
+        color: '#ccc',
+        anchor: 'bottom',
+        instanced: true,
+        ...(pat ? { pattern: { material: pat.material, color: pat.color, tile: 5 } } : {}),
+      })
+      e.name = api.registry('items').get(pat ? rareItemId(piece.id, v.id, pat.id) : variantItemId(piece.id, v.id))?.name ?? piece.name
     }
 
     // --- placing and taking back -------------------------------------------------------------
@@ -198,10 +276,10 @@ export default definePlugin({
         }
       }
     }
-    const spawnPiece = (piece: PieceDef, variant: Variant, x: number, y: number, z: number, rotY: number) => {
+    const spawnPiece = (piece: PieceDef, variant: Variant, x: number, y: number, z: number, rotY: number, pattern?: PatternDef) => {
       const e = api.entities.spawn({
         transform: { x: x + 0.5, y, z: z + 0.5, rotY },
-        decor: { piece: piece.id, variant: variant.id },
+        decor: { piece: piece.id, variant: variant.id, ...(pattern ? { pattern: pattern.id } : {}) },
         ...(piece.layer === 'floor' ? { blobShadow: { radius: 0.42, opacity: 0.18 } } : {}),
         // wall pieces are found through the blocker index (the wall is the cell's top, not them)
         ...((piece.blocker && piece.layer === 'floor') || piece.layer === 'wall' ? { blocker: { w: 1, d: 1, h: piece.layer === 'wall' ? 1 : 2 } } : {}),
@@ -216,7 +294,7 @@ export default definePlugin({
         api.ui.toast('Сначала заберите то, что стоит сверху.')
         return false
       }
-      const id = variantItemId(e.decor.piece, e.decor.variant)
+      const id = e.decor.pattern ? rareItemId(e.decor.piece, e.decor.variant, e.decor.pattern) : variantItemId(e.decor.piece, e.decor.variant)
       if (inventory().add(actor, id, 1, { quiet: true }) > 0) {
         api.ui.toast('Карманы полны')
         return false
@@ -233,11 +311,12 @@ export default definePlugin({
       itemId: variantItemId,
       of: (itemId) => byItem.get(itemId) ?? null,
       freeCell,
-      place: (pieceId, variantId, x, z, rotY = 0) => {
+      place: (pieceId, variantId, x, z, rotY = 0, patternId) => {
         const piece = pieces.get(pieceId)
         const variant = piece?.variants.find((v) => v.id === variantId) ?? piece?.variants[0]
         const y = freeCell(x, z)
-        return piece && variant && y !== null ? spawnPiece(piece, variant, x, y, z, rotY) : null
+        const pattern = patternId ? patterns.get(patternId) : undefined
+        return piece && variant && y !== null ? spawnPiece(piece, variant, x, y, z, rotY, pattern) : null
       },
     })
 
@@ -266,7 +345,7 @@ export default definePlugin({
         const t = ctx.actor.transform!
         // face the actor, snapped to the grid
         const facing = Math.round(Math.atan2(t.x - (ctx.x + 0.5), t.z - (ctx.z + 0.5)) / (Math.PI / 2)) * (Math.PI / 2)
-        spawnPiece(what.piece, what.variant, ctx.x, y, ctx.z, facing)
+        spawnPiece(what.piece, what.variant, ctx.x, y, ctx.z, facing, what.pattern)
         return true
       },
     })

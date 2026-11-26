@@ -1,0 +1,13 @@
+// Rare patterns: a piece one gets (bought, made, given) comes with one now and then (config
+// decor.rareChance). `material` is a motif (content/core/materials.json5: light = motif) laid over
+// the piece in `color`; `weight` — how often among the patterns.
+[
+  { id: 'decor:stars', name: 'в звёздочку', material: 'core:motif_stars', color: '#ffd76a', weight: 2 },
+  { id: 'decor:dots', name: 'в горошек', material: 'core:motif_dots', color: '#fffaf0', weight: 3 },
+  { id: 'decor:hearts', name: 'в сердечки', material: 'core:motif_hearts', color: '#ff8fae', weight: 2 },
+  { id: 'decor:flowers', name: 'в цветочек', material: 'core:motif_flowers', color: '#fff3a8', weight: 3 },
+  { id: 'decor:stripes', name: 'в полоску', material: 'core:motif_stripes', color: '#fffaf0', weight: 3 },
+  { id: 'decor:checker', name: 'в клетку', material: 'core:motif_checker', color: '#6f84c9', weight: 2 },
+  { id: 'decor:waves', name: 'с волнами', material: 'core:motif_waves', color: '#8fd3ff', weight: 2 },
+  { id: 'decor:zigzag', name: 'с зигзагом', material: 'core:motif_zigzag', color: '#f2a65a', weight: 2 },
+]

@@ -59,6 +59,30 @@ export const EngineConfigSchema = z.object({
       msaaDense: z.number().int().min(0).max(8).default(2).meta({ label: 'MSAA on dense screens', step: 1 }),
       ao: z.number().min(0).max(1).default(0.4).meta({ label: 'ambient occlusion', step: 0.05 }),
       waterOpacity: z.number().min(0).max(1).default(0.72).meta({ step: 0.01 }),
+      /**
+       * The island's look: 'round' — soft rounded land without pixel textures (squircle outlines,
+       * block colors, material detail close up); 'blocks' — classic voxels with the pixel atlas.
+       */
+      terrain: z
+        .object({
+          style: z.enum(['round', 'blocks']).default('round'),
+          /** Fine samples per block (odd). */
+          subdiv: z.number().int().min(1).max(5).default(3).meta({ step: 2 }),
+          /** How round outlines get (blur passes across). */
+          smoothAcross: z.number().int().min(0).max(10).default(6).meta({ label: 'round outlines', step: 1 }),
+          /** How soft edges get (blur passes up and down; more turns steps into slopes). */
+          smoothUp: z.number().int().min(0).max(3).default(0).meta({ label: 'soft edges', step: 1 }),
+          keep: z.number().min(0).max(1).default(0.62).meta({ label: 'keep thin blocks', step: 0.01 }),
+          /** Shade in creases. */
+          ao: z.number().min(0).max(1).default(0.45).meta({ label: 'crease shade', step: 0.05 }),
+          /** Material detail close up (grass blades, rock…). */
+          detail: z.number().min(0).max(1).default(0.7).meta({ label: 'material detail', step: 0.05 }),
+          /** Material tiles per block. */
+          detailScale: z.number().min(0.05).max(4).default(0.5).meta({ label: 'detail tiles per block', step: 0.05 }),
+          /** Seconds an edited piece of ground takes to dissolve into its new shape (0 = at once). */
+          editFade: z.number().min(0).max(2).default(0.4).meta({ label: 'edit fade (s)', step: 0.05 }),
+        })
+        .prefault({}),
       /** Round, plush characters: smooth parts, fur and hair, drawn faces. */
       characters: z
         .object({
@@ -103,7 +127,7 @@ export const EngineConfigSchema = z.object({
       dayCycle: z.boolean().default(true).meta({ label: 'day cycle' }),
       time: z.number().min(0).max(24).default(10).meta({ label: 'time (h)', step: 0.1 }),
       timeSpeed: z.number().min(0).max(4).default(0).meta({ label: 'hours / sec', step: 0.05 }),
-      maxElevation: z.number().min(10).max(90).default(62).meta({ label: 'max sun elevation°', step: 1 }),
+      maxElevation: z.number().min(10).max(90).default(54).meta({ label: 'max sun elevation°', step: 1 }),
       keys: z
         .array(
           z.object({
@@ -133,18 +157,18 @@ export const EngineConfigSchema = z.object({
       postfx: z.boolean().default(true).meta({ label: 'post effects' }),
       toneMapping: z.enum(['neutral', 'agx', 'aces', 'none']).default('neutral').meta({ label: 'tone mapping' }),
       exposure: z.number().min(0.2).max(3).default(1.08).meta({ step: 0.01 }),
-      saturation: z.number().min(0).max(2).default(1.12).meta({ step: 0.01 }),
-      contrast: z.number().min(0.5).max(1.5).default(0.94).meta({ step: 0.01 }),
-      warmth: z.number().min(-1).max(1).default(0.35).meta({ step: 0.01 }),
-      lift: z.number().min(0).max(0.2).default(0.035).meta({ label: 'lift (pastel)', step: 0.005 }),
-      vignette: z.number().min(0).max(1).default(0.3).meta({ step: 0.01 }),
-      tiltShift: z.number().min(0).max(20).default(3).meta({ label: 'tilt-shift blur', step: 0.1 }),
+      saturation: z.number().min(0).max(2).default(1.2).meta({ step: 0.01 }),
+      contrast: z.number().min(0.5).max(1.5).default(1).meta({ step: 0.01 }),
+      warmth: z.number().min(-1).max(1).default(0.42).meta({ step: 0.01 }),
+      lift: z.number().min(0).max(0.2).default(0.025).meta({ label: 'lift (pastel)', step: 0.005 }),
+      vignette: z.number().min(0).max(1).default(0.26).meta({ step: 0.01 }),
+      tiltShift: z.number().min(0).max(20).default(1.6).meta({ label: 'tilt-shift blur', step: 0.1 }),
       /** Blur fades out as the camera zooms in past this zoom (a close-up shouldn't look smudged). */
       tiltShiftZoom: z.number().min(0.5).max(10).default(2.2).meta({ label: 'tilt-shift full until zoom', step: 0.1 }),
       tiltFocus: z.number().min(0).max(1).default(0.5).meta({ label: 'tilt-shift focus', step: 0.01 }),
       curvature: z.number().min(0).max(0.02).default(0.0025).meta({ label: 'world curvature', step: 0.0005 }),
-      shadowSoftness: z.number().min(0).max(10).default(4).meta({ label: 'shadow softness', step: 0.25 }),
-      shadowStrength: z.number().min(0).max(1).default(0.55).meta({ label: 'shadow strength', step: 0.01 }),
+      shadowSoftness: z.number().min(0).max(10).default(1.6).meta({ label: 'shadow softness', step: 0.25 }),
+      shadowStrength: z.number().min(0).max(1).default(0.8).meta({ label: 'shadow strength', step: 0.01 }),
       waterSpeed: z.number().min(0).max(5).default(1).meta({ label: 'water speed', step: 0.05 }),
     })
     .prefault({}),

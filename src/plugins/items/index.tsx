@@ -20,6 +20,10 @@ declare module '@sdk' {
   interface Services {
     'items:inventory': InventoryService
   }
+  interface GameHooks {
+    /** Something new comes into pockets (bought, made, given — `fresh`): return another id to give instead (a rare version). */
+    'items:fresh': { value: string; ctx: { actor: Entity } }
+  }
   interface GameEvents {
     'items:changed': { actor: Entity }
     /** Found or gathered (not bought, crafted into place or taken from a chest). */
@@ -30,7 +34,7 @@ declare module '@sdk' {
 export interface InventoryService {
   of(actor: Entity): Inventory | undefined
   /** Returns how many did NOT fit. Shows a toast unless `quiet`; `moved` = it was theirs already (not a find). */
-  add(actor: Entity, id: string, count?: number, opts?: { quiet?: boolean; moved?: boolean }): number
+  add(actor: Entity, id: string, count?: number, opts?: { quiet?: boolean; moved?: boolean; fresh?: boolean }): number
   remove(actor: Entity, id: string, count?: number): number
   count(actor: Entity, id: string): number
   held(actor: Entity): string | null
@@ -112,8 +116,10 @@ export default definePlugin({
     const service: InventoryService = {
       version,
       of: (a) => a.inventory,
-      add(actor, id, count = 1, opts) {
+      add(actor, idAsked, count = 1, opts) {
         if (!actor.inventory) return count
+        // something new to the island (bought, made, given): plugins may turn it into something rarer
+        const id = opts?.fresh ? api.hooks.run('items:fresh', idAsked, { actor }) : idAsked
         if (!items.has(id)) api.log.warn(`unknown item "${id}"`)
         const left = addItems(actor.inventory, id, count, maxStack(id))
         const got = count - left
@@ -252,7 +258,7 @@ export default definePlugin({
     // --- UI -------------------------------------------------------------------------------
     const selected = signal<number | null>(null)
     api.ui.window({ id: 'items:pockets', title: 'Карманы', component: () => <Pockets api={api} service={service} owner={owner} selected={selected} /> })
-    api.ui.slot('hud.bottomLeft', () => <HeldHud api={api} service={service} owner={owner} />)
+    api.ui.slot('hud.bottomRight', () => <HeldHud api={api} service={service} owner={owner} />)
 
     api.commands.register({
       name: 'give',

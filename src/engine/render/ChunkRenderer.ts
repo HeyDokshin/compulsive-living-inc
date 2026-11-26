@@ -6,18 +6,25 @@ import {
   Group,
   LineBasicMaterial,
   LineSegments,
+  type Material,
   Mesh,
   type MeshLambertMaterial,
 } from 'three'
 import type { VoxelWorld } from '../world/VoxelWorld'
 import type { MesherPool } from '../world/mesher/MesherPool'
 import type { MeshBuffers, TintParams } from '../world/mesher/mesher'
+import type { RoundParams } from '../world/mesher/roundMesher'
 import type { BlockAtlas } from './BlockAtlas'
+import { createTerrainMaterial, createWaterMaterial, terrainUniforms } from './terrainMaterial'
 import { createVoxelMaterial } from './voxelMaterial'
 
 interface ChunkMeshes {
   opaque?: Mesh
   transparent?: Mesh
+  /** The ground shape being dissolved away (the new one in `opaque` dissolves in) and when it began. */
+  fading?: Mesh
+  fadeStart?: number
+  progress?: number
 }
 
 /** Keeps one opaque + one transparent mesh per chunk in sync with the world, meshing in workers. */
@@ -25,6 +32,17 @@ export class ChunkRenderer {
   readonly group = new Group()
   readonly opaqueMaterial: MeshLambertMaterial
   readonly transparentMaterial: MeshLambertMaterial
+  /** The rounded island's ground and water (style 'round'). */
+  readonly roundMaterial: MeshLambertMaterial = createTerrainMaterial()
+  readonly roundWaterMaterial: MeshLambertMaterial = createWaterMaterial(0.8)
+  private readonly dissolveIn = createTerrainMaterial('in')
+  private readonly dissolveOut = createTerrainMaterial('out')
+  /** Seconds edited ground takes to dissolve into its new shape (0 = at once). */
+  editFade = 0.4
+  /** Chunks whose ground is dissolving. */
+  private fades = new Set<ChunkMeshes>()
+  /** Rounded island (no pixel textures) when set; blocks otherwise. Change → call reset(). */
+  round: RoundParams | null = null
   aoCurve: [number, number, number, number] = [0.5, 0.68, 0.84, 1]
   /** See MeshInput.maxMerge. Change → call remeshAll(). */
   maxMerge = Infinity
@@ -54,6 +72,16 @@ export class ChunkRenderer {
 
   set waterOpacity(v: number) {
     this.transparentMaterial.opacity = v
+    this.roundWaterMaterial.opacity = Math.min(1, v + 0.08)
+  }
+
+  /** Materials for the current style. */
+  get ground(): MeshLambertMaterial {
+    return this.round ? this.roundMaterial : this.opaqueMaterial
+  }
+
+  get water(): MeshLambertMaterial {
+    return this.round ? this.roundWaterMaterial : this.transparentMaterial
   }
 
   /** Forget all meshes (world was recreated). */
@@ -86,24 +114,70 @@ export class ChunkRenderer {
       this.inFlight.add(ci)
       const epoch = this.epoch
       const table = this.atlas.table
+      const tint = this.tint ? { ...this.tint, origin: [world.chunks[ci]!.cx * 16, world.chunks[ci]!.cz * 16] as [number, number] } : undefined
+      const round = this.round
+      // blocks of the neighbours the blur and the normals read (and that make them remesh when edited)
+      const pad = round ? Math.ceil((round.smoothAcross + 2) / round.subdiv) + 1 : 1
+      world.neighbourReach = pad
       this.pool
-        .mesh({
-          vol: world.paddedVolume(ci),
-          sx: 16,
-          sy: world.height,
-          sz: 16,
-          table: { kind: table.kind.slice(), tiles: table.tiles.slice(), liquid: table.liquid?.slice(), tint: table.tint?.slice() },
-          tint: this.tint ? { ...this.tint, origin: [world.chunks[ci]!.cx * 16, world.chunks[ci]!.cz * 16] } : undefined,
-          aoCurve: this.aoCurve,
-          maxMerge: this.maxMerge,
-        })
+        .mesh(
+          round
+            ? {
+                mode: 'round',
+                vol: world.paddedVolume(ci, undefined, pad),
+                sx: 16,
+                sy: world.height,
+                sz: 16,
+                pad,
+                round,
+                tint,
+                table: {
+                  kind: table.kind.slice(),
+                  tiles: new Float32Array(0),
+                  liquid: table.liquid?.slice(),
+                  tint: table.tint?.slice(),
+                  topColor: table.topColor?.slice(),
+                  sideColor: table.sideColor?.slice(),
+                  detailTop: table.detailTop?.slice(),
+                  detailSide: table.detailSide?.slice(),
+                },
+              }
+            : {
+                vol: world.paddedVolume(ci),
+                sx: 16,
+                sy: world.height,
+                sz: 16,
+                table: { kind: table.kind.slice(), tiles: table.tiles.slice(), liquid: table.liquid?.slice(), tint: table.tint?.slice() },
+                tint,
+                aoCurve: this.aoCurve,
+                maxMerge: this.maxMerge,
+              },
+        )
         .then((out) => {
           if (epoch !== this.epoch) return // reset() already forgot this job
           this.inFlight.delete(ci)
           const c = world.chunks[ci]!
           const meshes = this.meshes.get(ci) ?? {}
-          meshes.opaque = this.replace(meshes.opaque, out.opaque, this.opaqueMaterial, c.cx, c.cz)
-          meshes.transparent = this.replace(meshes.transparent, out.transparent, this.transparentMaterial, c.cx, c.cz)
+          const old = meshes.opaque
+          if (this.round && this.editFade > 0 && old?.visible && out.opaque.index.length) {
+            // the old shape stays to dissolve away under the new one
+            this.endFade(meshes)
+            old.material = this.dissolveOut
+            meshes.fading = old
+            meshes.fadeStart = performance.now()
+            meshes.progress = 0
+            meshes.opaque = this.replace(undefined, out.opaque, this.dissolveIn, c.cx, c.cz)
+            meshes.opaque!.castShadow = true
+            meshes.opaque!.onBeforeRender = this.setDissolve
+            old.onBeforeRender = this.setDissolve
+            old.userData.fade = meshes
+            meshes.opaque!.userData.fade = meshes
+            this.fades.add(meshes)
+          } else {
+            this.endFade(meshes)
+            meshes.opaque = this.replace(meshes.opaque, out.opaque, this.ground, c.cx, c.cz)
+          }
+          meshes.transparent = this.replace(meshes.transparent, out.transparent, this.water, c.cx, c.cz)
           this.meshes.set(ci, meshes)
           this.meshedCount++
           // Keep the pipeline full without waiting for the next frame (matters in background tabs).
@@ -118,8 +192,31 @@ export class ChunkRenderer {
     }
   }
 
+  /** Before a dissolving mesh is drawn: its progress into the shared uniform. */
+  private setDissolve = setDissolve
+
+  /** Done dissolving (or interrupted): drop the old shape, the new one becomes plain ground. */
+  private endFade(m: ChunkMeshes): void {
+    if (!m.fading) return
+    m.fading.removeFromParent()
+    m.fading.geometry.dispose()
+    m.fading = undefined
+    if (m.opaque) {
+      m.opaque.material = this.ground
+      m.opaque.onBeforeRender = noop
+    }
+    this.fades.delete(m)
+  }
+
   /** Every frame: show the chunks that are allowed and in the picture. */
   cull(): void {
+    if (this.fades.size) {
+      const now = performance.now()
+      for (const m of this.fades) {
+        m.progress = (now - m.fadeStart!) / (this.editFade * 1000)
+        if (m.progress >= 1) this.endFade(m)
+      }
+    }
     const half = this.world.height / 2
     const r = Math.hypot(8, half, 8)
     for (const [ci, m] of this.meshes) {
@@ -127,6 +224,7 @@ export class ChunkRenderer {
       if (!c) continue
       const v = this.isVisible(c.cx, c.cz) && this.inView(c.cx * 16 + 8, half, c.cz * 16 + 8, r)
       if (m.opaque) m.opaque.visible = v
+      if (m.fading) m.fading.visible = v
       if (m.transparent) m.transparent.visible = v
     }
   }
@@ -168,6 +266,10 @@ export class ChunkRenderer {
     this.reset()
     this.opaqueMaterial.dispose()
     this.transparentMaterial.dispose()
+    this.roundMaterial.dispose()
+    this.roundWaterMaterial.dispose()
+    this.dissolveIn.dispose()
+    this.dissolveOut.dispose()
     this.setBorders(false)
   }
 
@@ -180,8 +282,9 @@ export class ChunkRenderer {
     const geo = new BufferGeometry()
     geo.setAttribute('position', new BufferAttribute(buf.position, 3))
     geo.setAttribute('normal', new BufferAttribute(buf.normal, 3))
-    geo.setAttribute('uv', new BufferAttribute(buf.uv, 2))
-    geo.setAttribute('tile', new BufferAttribute(buf.tile, 4))
+    if (buf.uv.length) geo.setAttribute('uv', new BufferAttribute(buf.uv, 2))
+    if (buf.tile.length) geo.setAttribute('tile', new BufferAttribute(buf.tile, 4))
+    if (buf.detail?.length) geo.setAttribute('detail', new BufferAttribute(buf.detail, 1))
     geo.setAttribute('color', new BufferAttribute(buf.color, 3))
     geo.setIndex(new BufferAttribute(buf.index, 1))
     geo.computeBoundingSphere()
@@ -189,7 +292,7 @@ export class ChunkRenderer {
     mesh.position.set(cx * 16, 0, cz * 16)
     mesh.visible = this.isVisible(cx, cz)
     mesh.frustumCulled = false // see cull()
-    mesh.castShadow = mat === this.opaqueMaterial
+    mesh.castShadow = mat === this.opaqueMaterial || mat === this.roundMaterial
     mesh.receiveShadow = true
     mesh.matrixAutoUpdate = false
     mesh.updateMatrix()
@@ -198,12 +301,21 @@ export class ChunkRenderer {
   }
 
   private disposeChunk(m: ChunkMeshes): void {
+    this.endFade(m)
     for (const mesh of [m.opaque, m.transparent]) {
       if (!mesh) continue
       mesh.removeFromParent()
       mesh.geometry.dispose()
     }
   }
+}
+
+const noop = () => {}
+
+function setDissolve(this: Mesh, _r: unknown, _s: unknown, _c: unknown, _g: unknown, material: Material): void {
+  terrainUniforms.uDissolve.value = Math.min(1, (this.userData.fade as ChunkMeshes).progress ?? 1)
+  // uniforms of a material are sent once per frame unless asked; each dissolving chunk has its own progress
+  ;(material as Material & { uniformsNeedUpdate: boolean }).uniformsNeedUpdate = true
 }
 
 function dist(world: VoxelWorld, ci: number, x: number, z: number): number {

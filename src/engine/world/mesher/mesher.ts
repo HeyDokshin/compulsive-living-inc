@@ -23,6 +23,12 @@ export interface BlockTable {
   liquid?: Uint8Array
   /** 1 = top faces get soft color patches (see MeshInput.tint). Optional. */
   tint?: Uint8Array
+  /** Rounded island (roundMesher): color of a block's top and sides, rgb per block number. */
+  topColor?: Float32Array
+  sideColor?: Float32Array
+  /** Rounded island: detail material slot of a block's top and sides (-1 = none). */
+  detailTop?: Int16Array
+  detailSide?: Int16Array
 }
 
 /** Large, soft color variation across tinted top faces (e.g. sunny and shady patches of lawn). */
@@ -64,6 +70,8 @@ export interface MeshBuffers {
   /** Atlas rect per vertex. */
   tile: Float32Array
   color: Float32Array
+  /** Rounded island: detail material slot per vertex (-1 = none). */
+  detail?: Float32Array
   index: Uint32Array
 }
 

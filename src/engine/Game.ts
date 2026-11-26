@@ -26,6 +26,7 @@ import { MaterialSchema, type MaterialDef } from './materials/schema'
 import { MaterialService } from './materials/MaterialService'
 import { AtlasDetail } from './render/AtlasDetail'
 import { FabricTextures } from './render/fabric'
+import { TerrainDetail } from './render/terrainDetail'
 import { WorldService } from './world/WorldService'
 import type { WorldGenStep } from './world/WorldGen'
 import { ModelDefSchema, RigDefSchema, type ModelDef, type RigDef } from './models/defs'
@@ -97,6 +98,8 @@ export class Game {
   readonly materialDefs: Registry<MaterialDef>
   /** Procedural materials rendered at any size (off the main thread). */
   readonly materials: MaterialService
+  /** Close-up detail of the rounded island (from materials). */
+  private terrainDetail!: TerrainDetail
   readonly worldgen: Registry<WorldGenStep>
   readonly models: Registry<ModelDef>
   readonly rigs: Registry<RigDef>
@@ -164,6 +167,7 @@ export class Game {
     this.renderer = new Renderer(container, this.engineConfig, this.entities, this.world.voxels, this.modelLibrary)
     this.input.attach(this.renderer.renderer.domElement)
     this.modelLibrary.fabrics = new FabricTextures(this.materials)
+    this.terrainDetail = new TerrainDetail(this.materials)
     this.renderer.detail = new AtlasDetail(this.renderer.atlas, this.materials, (id) => this.textures.get(id))
     this.camera = new CameraController(this.renderer.iso, this.engineConfig.camera, this.input, this.entities, this.world)
     this.interactions = new Interactions(this.interactionDefs, this.items, this.blocks, this.hooks, this.events)
@@ -252,6 +256,8 @@ export class Game {
     Object.assign(actor.transform, to)
     this.renderer.entityRenderer.snapshot()
     this.camera.snap()
+    // no hard cut: the new place fades in
+    this.ui.flash()
   }
 
   async boot(opts: BootOptions): Promise<void> {
@@ -413,6 +419,7 @@ export class Game {
       const ok = await this.renderer.atlas.rebuild(this.blocks.all(), (id) => this.textures.get(id), this.world.voxels.palette)
       if (!ok) return
       this.renderer.detail?.invalidate()
+      void this.terrainDetail.build(this.renderer.atlas.detailMaterials)
       this.icons.clear()
       this.renderer.refreshSurfaces()
       this.renderer.chunks.remeshAll()
@@ -539,7 +546,7 @@ export class Game {
     this.input.define('engine:menu', ['Pad9'], 'engine', 'Меню')
     this.input.on('engine:menu', toggleMenu)
     this.ui.window({ id: 'engine:menu', title: 'Меню', component: () => h(GameMenu, { game: this }) }, 'engine')
-    this.ui.slot('hud.topRight', () => h(Clock, { game: this }), 'engine', 0)
+    this.ui.slot('hud.bottomLeft', () => h(Clock, { game: this }), 'engine', 10)
     this.ui.slot('hud.topRight', () => h(FpsMeter, { game: this }), 'engine', 100)
   }
 }

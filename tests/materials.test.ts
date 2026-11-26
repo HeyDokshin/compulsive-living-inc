@@ -57,7 +57,7 @@ describe('procedural materials', () => {
   })
 
   it('every pattern renders', () => {
-    for (const kind of ['fill', 'noise', 'ridged', 'cells', 'cracks', 'strata', 'wood', 'boards', 'grain', 'fibers', 'knit', 'pebbles', 'twill', 'weave'] as const) {
+    for (const kind of ['fill', 'noise', 'ridged', 'cells', 'cracks', 'strata', 'wood', 'boards', 'grain', 'fibers', 'knit', 'pebbles', 'twill', 'weave', 'stripes', 'dots', 'stars', 'hearts', 'flowers', 'checker', 'waves', 'marble', 'terrazzo', 'scales', 'herringbone', 'zigzag'] as const) {
       const m = MaterialSchema.parse({ id: 't:' + kind, layers: [{ kind, colors: ['#000000', '#ffffff'] }] })
       const d = renderMaterial(m, 16)
       expect(d.some((v, i) => i % 4 !== 3 && Number.isFinite(v))).toBe(true)

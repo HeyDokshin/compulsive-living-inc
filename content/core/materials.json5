@@ -5,6 +5,31 @@
 // overlay, soft, add, darken, lighten. `relief` adds a layer to the surface height (baked light and shade).
 [
   {
+    // soft lawn: tufts and clover in light and shade (the color comes from the block)
+    id: 'core:grass',
+    shading: 0.9,
+    occlusion: 0.5,
+    layers: [
+      { kind: 'noise', colors: ['#8fb86c', '#a8cf86', '#b9dd96'], scale: 3, octaves: 5, relief: 0.5, seed: 41 },
+      { kind: 'fibers', colors: ['#7aa65a', '#c6e3a6'], scale: 18, octaves: 3, blend: 'overlay', opacity: 0.55, relief: 0.5, params: { stretch: 0.15 }, warp: 0.08, seed: 42 },
+      { kind: 'pebbles', colors: ['#a5cf86', '#c9e8ad'], scale: 7, opacity: 0.6, relief: 0.35, params: { size: 0.24 }, seed: 43,
+        mask: { kind: 'pebbles', scale: 7, threshold: 0.05, softness: 0.05, params: { size: 0.24 }, seed: 43 } },
+    ],
+  },
+  {
+    // leaf clumps for tree crowns (model fabric): round tufts, lit on top, soft shade between
+    id: 'core:leaves',
+    shading: 1.1,
+    occlusion: 0.9,
+    layers: [
+      { kind: 'noise', colors: ['#7aae5c', '#9fd07c'], scale: 3, octaves: 4, relief: 0.4, seed: 44 },
+      { kind: 'pebbles', colors: ['#86bb66', '#c4e9a2'], scale: 6, relief: 1.2, params: { size: 0.46, jitter: 0.9 }, seed: 45,
+        mask: { kind: 'pebbles', scale: 6, threshold: 0.04, softness: 0.06, params: { size: 0.46, jitter: 0.9 }, seed: 45 } },
+      { kind: 'pebbles', colors: ['#93c871', '#d2f0b4'], scale: 11, opacity: 0.8, relief: 0.6, params: { size: 0.42 }, seed: 47,
+        mask: { kind: 'pebbles', scale: 11, threshold: 0.04, softness: 0.06, params: { size: 0.42 }, seed: 47 } },
+    ],
+  },
+  {
     id: 'core:stone',
     shading: 0.8,
     occlusion: 0.35,
@@ -101,4 +126,41 @@
       { kind: 'noise', colors: ['#8a8a8a', '#d6d6d6'], scale: 6, octaves: 3, blend: 'soft', opacity: 0.5, seed: 40 },
     ],
   },
+  // --- surfaces every model gets by its colors (light and shade only; the color stays its own) ---
+  {
+    id: 'core:wood',
+    shading: 0.7,
+    occlusion: 0.4,
+    layers: [
+      { kind: 'wood', colors: ['#9a6a42', '#d9a873'], scale: 2, octaves: 4, relief: 0.5, params: { rings: 7, aspect: 5, wobble: 1.6 }, seed: 50 },
+      { kind: 'fibers', colors: ['#a87850', '#e8c39a'], scale: 4, octaves: 3, blend: 'overlay', opacity: 0.35, params: { stretch: 10 }, seed: 51 },
+    ],
+  },
+  {
+    id: 'core:plaster',
+    shading: 0.6,
+    occlusion: 0.3,
+    layers: [
+      { kind: 'noise', colors: ['#d8d2c8', '#f4f0ea'], scale: 3, octaves: 5, relief: 0.4, seed: 52 },
+      { kind: 'grain', colors: ['#cfc8bc', '#ffffff'], scale: 96, blend: 'overlay', opacity: 0.35, seed: 53 },
+    ],
+  },
+  {
+    id: 'core:painted',
+    shading: 0.6,
+    occlusion: 0.25,
+    layers: [
+      { kind: 'fibers', colors: ['#a8a8a8', '#d8d8d8'], scale: 3, octaves: 4, relief: 0.35, params: { stretch: 4 }, warp: 0.1, seed: 54 },
+      { kind: 'noise', colors: ['#b0b0b0', '#d6d6d6'], scale: 2, octaves: 3, blend: 'overlay', opacity: 0.4, seed: 55 },
+    ],
+  },
+  // --- motifs for rare patterns (decor:patterns): white = the motif, black = the thing's own color ---
+  { id: 'core:motif_stars', shading: 0, occlusion: 0, layers: [{ kind: 'stars', colors: ['#000000', '#ffffff'], scale: 3, params: { size: 0.3 }, seed: 60 }] },
+  { id: 'core:motif_dots', shading: 0, occlusion: 0, layers: [{ kind: 'dots', colors: ['#000000', '#ffffff'], scale: 4, params: { size: 0.22, vary: 0 }, seed: 61 }] },
+  { id: 'core:motif_hearts', shading: 0, occlusion: 0, layers: [{ kind: 'hearts', colors: ['#000000', '#ffffff'], scale: 3, params: { size: 0.24 }, seed: 62 }] },
+  { id: 'core:motif_flowers', shading: 0, occlusion: 0, layers: [{ kind: 'flowers', colors: ['#000000', '#ffffff'], scale: 3, params: { size: 0.3 }, seed: 63 }] },
+  { id: 'core:motif_stripes', shading: 0, occlusion: 0, layers: [{ kind: 'stripes', colors: ['#000000', '#ffffff'], scale: 4, params: { turns: 1, width: 0.4 }, seed: 64 }] },
+  { id: 'core:motif_checker', shading: 0, occlusion: 0, layers: [{ kind: 'checker', colors: ['#000000', '#ffffff'], scale: 4, seed: 65 }] },
+  { id: 'core:motif_waves', shading: 0, occlusion: 0, layers: [{ kind: 'waves', colors: ['#000000', '#ffffff'], scale: 4, params: { width: 0.35 }, seed: 66 }] },
+  { id: 'core:motif_zigzag', shading: 0, occlusion: 0, layers: [{ kind: 'zigzag', colors: ['#000000', '#ffffff'], scale: 4, params: { width: 0.35 }, seed: 67 }] },
 ]

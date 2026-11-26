@@ -64,10 +64,16 @@ export function stepBlink(c: FaceClock, dt: number, rand: () => number, every: [
   return false
 }
 
-/** Mouth openness while talking: 0 shut, 1 half, 2 open — a lively, uneven rhythm. */
-export function mouthFrame(talking: boolean, t: number): 0 | 1 | 2 {
+/** How shut the eyes are during a blink (0 open … 1 shut), easing down and back up. */
+export function blinkAmount(c: FaceClock): number {
+  if (c.blinkLeft <= 0) return 0
+  return Math.sin(Math.PI * (1 - c.blinkLeft / BLINK_SECONDS))
+}
+
+/** Mouth openness while talking, continuous 0…2: an uneven, lively rhythm with no jumps. */
+export function mouthOpen(talking: boolean, t: number): number {
   if (!talking) return 0
-  const beat = Math.floor(t * 11)
-  const pattern = [1, 2, 1, 0, 2, 1, 2, 0, 1, 2, 2, 0] as const
-  return pattern[beat % pattern.length]!
+  const syllable = 0.5 - 0.5 * Math.cos(t * 13 + Math.sin(t * 3.1) * 2.2)
+  const loud = 0.65 + 0.35 * Math.sin(t * 2.3 + 1)
+  return 2 * syllable * loud
 }

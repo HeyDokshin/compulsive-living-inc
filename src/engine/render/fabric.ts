@@ -14,6 +14,8 @@ export const fabricUniforms = {
  */
 export class FabricTextures {
   private uniforms = new Map<string, { value: Texture }>()
+  /** Pattern masks: a material's own brightness (motif = light), not normalized. */
+  private masks = new Map<string, { value: Texture }>()
   private level = 0
   private token = 0
   private readonly neutral: DataTexture
@@ -34,11 +36,43 @@ export class FabricTextures {
     return u
   }
 
+  /** A material as a motif mask for rare patterns (rendered once, at a fixed size). */
+  mask(id: string): { value: Texture } {
+    let u = this.masks.get(id)
+    if (!u) {
+      u = { value: this.neutral }
+      this.masks.set(id, u)
+      void this.renderMask(id, u)
+    }
+    return u
+  }
+
+  private async renderMask(id: string, u: { value: Texture }): Promise<void> {
+    if (!this.materials.has(id)) return
+    const size = 256
+    const px = await this.materials.render(id, size)
+    if (!px) return
+    const data = new Uint8Array(size * size * 4)
+    for (let i = 0; i < size * size; i++) {
+      const lum = px[i * 4]! * 0.299 + px[i * 4 + 1]! * 0.587 + px[i * 4 + 2]! * 0.114
+      data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = lum
+      data[i * 4 + 3] = 255
+    }
+    const tex = new DataTexture(data, size, size, RGBAFormat)
+    tex.wrapS = tex.wrapT = RepeatWrapping
+    tex.magFilter = LinearFilter
+    tex.minFilter = LinearMipmapLinearFilter
+    tex.generateMipmaps = true
+    tex.needsUpdate = true
+    u.value = tex
+  }
+
   /** Materials changed: render them again. */
   invalidate(): void {
     const level = this.level
     this.level = 0
     if (level) this.setLevel(level)
+    for (const [id, u] of this.masks) void this.renderMask(id, u)
   }
 
   /** Texels per tile wanted now (a power of two); re-renders when it changes. */

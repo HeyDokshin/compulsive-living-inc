@@ -7,6 +7,29 @@ export function Pill({ children }: { children: ComponentChildren }) {
   return <div class="cl-pill">{children}</div>
 }
 
+/**
+ * A quiet part of the HUD: shows for `seconds` whenever `watch` changes (and while the HUD peeks,
+ * e.g. the phone is out), then fades away. Keeps the screen clear.
+ */
+export function Quiet({ watch, seconds = 4, children }: { watch: unknown; seconds?: number; children: ComponentChildren }) {
+  const [awake, setAwake] = useState(false)
+  const first = useRef(true)
+  useEffect(() => {
+    if (first.current) {
+      first.current = false
+      return
+    }
+    setAwake(true)
+    const t = window.setTimeout(() => setAwake(false), seconds * 1000)
+    return () => window.clearTimeout(t)
+  }, [watch])
+  return (
+    <div class="cl-quiet" data-awake={awake || undefined}>
+      {children}
+    </div>
+  )
+}
+
 /** Keyboard/gamepad key cap. */
 export function Key({ children }: { children: ComponentChildren }) {
   return <span class="cl-key">{children}</span>

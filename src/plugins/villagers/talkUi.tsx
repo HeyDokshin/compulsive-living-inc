@@ -100,7 +100,7 @@ export function Talk(props: Props) {
       const variant = p?.variants[Math.floor(Math.random() * p.variants.length)]
       if (p && variant) {
         const back = api.services.get('decor:pieces').itemId(p.id, variant.id)
-        if (inv.add(actor, back, 1, { quiet: true }) === 0) reply = `${reply} ${say('gift_back', { item: items.get(back)?.name ?? back })}`
+        if (inv.add(actor, back, 1, { quiet: true, fresh: true }) === 0) reply = `${reply} ${say('gift_back', { item: items.get(back)?.name ?? back })}`
       }
     }
     props.touch()
