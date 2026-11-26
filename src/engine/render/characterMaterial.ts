@@ -106,6 +106,29 @@ export interface FabricSlots {
   uMatAlways: { value: number }
 }
 
+/** A rare pattern laid over a model: a motif mask from a material, in one color. */
+export interface PatternUniforms {
+  uPat: { value: Texture }
+  uPatColor: { value: [number, number, number] }
+  /** Tiles per voxel. */
+  uPatScale: { value: number }
+}
+
+const PATTERN_DECLS = `
+uniform sampler2D uPat;
+uniform vec3 uPatColor;
+uniform float uPatScale;
+`
+const PATTERN_SAMPLE = `
+  {
+    vec3 tw2 = pow(abs(normalize(vObjNormal)), vec3(4.0));
+    tw2 /= (tw2.x + tw2.y + tw2.z + 1e-5);
+    vec3 pp = vMatPos * uPatScale;
+    float m = texture2D(uPat, pp.zy).r * tw2.x + texture2D(uPat, pp.xz).r * tw2.y + texture2D(uPat, pp.xy).r * tw2.z;
+    diffuseColor.rgb = mix(diffuseColor.rgb, uPatColor, smoothstep(0.35, 0.65, m) * 0.92);
+  }
+`
+
 const FABRIC_DECLS = `
 uniform sampler2D uMat0;
 uniform sampler2D uMat1;
@@ -115,6 +138,7 @@ uniform float uMatStrength;
 uniform float uMatFade;
 uniform float uMatAlways;
 varying vec3 vFabric;
+varying vec3 vMatPos;
 vec3 tri3(sampler2D t, vec3 p, vec3 w) {
   return texture2D(t, p.zy).rgb * w.x + texture2D(t, p.xz).rgb * w.y + texture2D(t, p.xy).rgb * w.z;
 }
@@ -124,7 +148,7 @@ const FABRIC_SAMPLE = `
   if (matFade > 0.0) {
     vec3 tw = pow(abs(normalize(vObjNormal)), vec3(4.0));
     tw /= (tw.x + tw.y + tw.z + 1e-5);
-    vec3 mp = vObjPos * uMatScale;
+    vec3 mp = vMatPos * uMatScale;
     float rest = max(0.0, 1.0 - vFabric.x - vFabric.y - vFabric.z);
     vec3 detail = tri3(uMat0, mp, tw) * vFabric.x + tri3(uMat1, mp, tw) * vFabric.y + tri3(uMat2, mp, tw) * vFabric.z + vec3(0.5) * rest;
     diffuseColor.rgb *= mix(vec3(1.0), detail * 2.0, matFade * uMatStrength);
@@ -132,32 +156,52 @@ const FABRIC_SAMPLE = `
 `
 
 /** The body of a round character; with `face`, the face picture is painted on it; with `fabric`, the weave of its clothes. */
-export function createCharacterMaterial(face?: FaceUniforms, fabric?: FabricSlots): MeshLambertMaterial {
+export function createCharacterMaterial(face?: FaceUniforms, fabric?: FabricSlots, pattern?: PatternUniforms): MeshLambertMaterial {
   const mat = new MeshLambertMaterial({ vertexColors: true })
-  const local = !!face || !!fabric
+  const local = !!face || !!fabric || !!pattern
+  const mapped = !!fabric || !!pattern
   mat.onBeforeCompile = (shader) => {
     if (face) Object.assign(shader.uniforms, face)
     if (fabric) Object.assign(shader.uniforms, fabric, fabricUniforms)
+    if (pattern) Object.assign(shader.uniforms, pattern)
+    // where surface patterns are read: the part's own space, shifted per instance so that every
+    // copy of a thing (each tree, each chair) shows its own piece of the pattern
+    const matPos = `
+      vec3 instShift = vec3(0.0);
+      #ifdef USE_INSTANCING
+        instShift = instanceMatrix[3].xyz * 7.31;
+      #endif
+      vMatPos = position + instShift;`
     shader.vertexShader = shader.vertexShader
       .replace(
         '#include <common>',
-        '#include <common>\n' + (local ? 'varying vec3 vObjPos;\nvarying vec3 vObjNormal;\n' : '') + (fabric ? 'attribute vec3 fabric;\nvarying vec3 vFabric;' : ''),
+        '#include <common>\n' +
+          (local ? 'varying vec3 vObjPos;\nvarying vec3 vObjNormal;\n' : '') +
+          (mapped ? 'varying vec3 vMatPos;\n' : '') +
+          (fabric ? 'attribute vec3 fabric;\nvarying vec3 vFabric;' : ''),
       )
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\n' + (local ? 'vObjPos = position; vObjNormal = normal;' : '') + (fabric ? 'vFabric = fabric;' : ''))
+      .replace(
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\n' + (local ? 'vObjPos = position; vObjNormal = normal;' : '') + (mapped ? matPos : '') + (fabric ? 'vFabric = fabric;' : ''),
+      )
     shader.fragmentShader = shader.fragmentShader
       .replace(
         '#include <common>',
-        '#include <common>\n' + (face ? FACE_DECLS : local ? 'varying vec3 vObjPos;\nvarying vec3 vObjNormal;\n' : '') + (fabric ? FABRIC_DECLS : ''),
+        '#include <common>\n' +
+          (face ? FACE_DECLS : local ? 'varying vec3 vObjPos;\nvarying vec3 vObjNormal;\n' : '') +
+          (fabric ? FABRIC_DECLS : mapped ? 'varying vec3 vMatPos;\n' : '') +
+          (pattern ? PATTERN_DECLS : ''),
       )
       .replace(
         '#include <color_fragment>',
         '#include <color_fragment>\n' +
           (fabric ? FABRIC_SAMPLE : '') +
+          (pattern ? PATTERN_SAMPLE : '') +
           (face ? FACE_SAMPLE + 'diffuseColor.rgb = mix(diffuseColor.rgb, faceColor.rgb, faceColor.a);' : ''),
       )
       .replace('#include <opaque_fragment>', RIM + '#include <opaque_fragment>')
   }
-  mat.customProgramCacheKey = () => `character:${face ? 'face' : 'plain'}:${fabric ? 'fabric' : ''}`
+  mat.customProgramCacheKey = () => `character:${face ? 'face' : 'plain'}:${fabric ? 'fabric' : ''}:${pattern ? 'pattern' : ''}`
   return stylize(mat)
 }
 

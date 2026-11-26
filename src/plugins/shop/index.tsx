@@ -136,7 +136,7 @@ export default definePlugin({
         if (!g) return 'unknown'
         if (g.left <= 0) return 'sold_out'
         if (wallet().bells.value < g.price) return 'poor'
-        if (inventory().add(actor, id, 1, { quiet: true }) > 0) return 'full'
+        if (inventory().add(actor, id, 1, { quiet: true, fresh: true }) > 0) return 'full'
         wallet().spend(g.price)
         bought.set(id, (bought.get(id) ?? 0) + 1)
         version.value++

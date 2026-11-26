@@ -49,6 +49,15 @@ export const ModelSchema = z.object({
   parts: z.record(z.string(), z.string()).optional(),
   /** Voxel models that just stand there (flowers, furniture): drawn together, with no `view` of their own. */
   instanced: z.boolean().optional(),
+  /** A rare pattern over the model: a motif material (light = motif) in one color. */
+  pattern: z
+    .object({
+      material: z.string(),
+      color: z.string().default('#ffd76a'),
+      /** Voxels one tile of the motif covers. */
+      tile: z.number().positive().default(6),
+    })
+    .optional(),
 })
 export type ModelSpec = z.infer<typeof ModelSchema>
 

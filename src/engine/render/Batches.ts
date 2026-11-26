@@ -149,7 +149,7 @@ export class ModelBatches {
       pieces.push({ batch, scale, x: at[0], y: at[1], z: at[2] })
     }
     if (spec.shape === 'rig') this.library.rigGeometry(spec.ref!, spec, add)
-    else this.library.voxelGeometry(spec.ref!, spec.palette, (geo, scale, key, material) => add(geo, spec.scale ?? scale, key, HERE, material))
+    else this.library.voxelGeometry(spec.ref!, spec.palette, (geo, scale, key, material) => add(geo, spec.scale ?? scale, key, HERE, material), spec.pattern)
     return pieces
   }
 

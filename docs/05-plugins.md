@@ -151,7 +151,11 @@ export default definePlugin({
 // textures.json5: { id: 'my_pack:brick', pattern: 'planks', colors: ['#b5543c'], material: 'my_pack:brick' }
 ```
 
-Слой — узор (`fill noise ridged cells cracks strata wood boards grain fibers knit pebbles twill weave`) через цветовую рампу `colors`, наложенный режимом `blend` (`normal multiply screen overlay soft add darken lighten`) с `opacity` и маской; `scale` — сколько деталей на тайл (целые — без швов), `octaves`, `roughness`, `warp`, `contrast`, `relief` (рельеф для запечённого света). Настройки детализации — `engine → render.detail`.
+Слой — узор (`fill noise ridged cells cracks strata wood boards grain fibers knit pebbles twill weave`, мотивы `stripes dots stars hearts flowers checker waves marble terrazzo scales herringbone zigzag`) через цветовую рампу `colors`, наложенный режимом `blend` (`normal multiply screen overlay soft add darken lighten`) с `opacity` и маской; `scale` — сколько деталей на тайл (целые — без швов), `octaves`, `roughness`, `warp`, `contrast`, `relief` (рельеф для запечённого света). Настройки детализации — `engine → render.detail`.
+
+**Поверхность у каждой модели.** Модель без своей ткани получает материал по цвету вокселей (светлое — штукатурка, серое — камень, коричневое — дерево, зелёное — листва, остальное — крашеная поверхность), сдвинутый на каждый экземпляр, чтобы соседние предметы не были одинаковыми.
+
+**Узор поверх.** `ModelSpec.pattern: { material, color, tile }` накладывает маску материала-мотива цветом `color` поверх обычной текстуры (`tile` — повторов на модель). Так сделаны редкие предметы `decor`: узоры — данные (`content/<pack>/decor.patterns.json5`: `id`, `name`, `material`, `colors`, `weight`), каждый новый предмет мебели с шансом `decor.rareChance` выпадает узорным (`decor:<piece>_<variant>_rare_<pattern>`, тег `#decor:rare`, цена ×`rarePrice`). «Новый предмет» — хук `items:fresh` (`add(..., { fresh: true })` в магазине, крафте, подарках, событиях, заданиях): тапните его, чтобы подменить id того, что получил игрок.
 
 ## Предметы и взаимодействия
 

@@ -36,7 +36,7 @@ export function Bench({ api, cfg, recipes, book, resultName }: Props) {
     if (!take) return
     for (const [id, n] of take) inv.remove(actor, id, n)
     const out = resultItem(rec, v?.id)
-    const left = inv.add(actor, out, rec.count, { quiet: true }) // the note below says what was made
+    const left = inv.add(actor, out, rec.count, { quiet: true, fresh: true }) // the note below says what was made
     if (left) inv.spawnDrop(out, left, actor.transform!.x, actor.transform!.y, actor.transform!.z)
     api.audio.play('crafting:hammer')
     api.events.emit('crafting:crafted', { actor, recipe: rec.id, item: out, count: rec.count })
