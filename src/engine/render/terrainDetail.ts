@@ -1,5 +1,6 @@
 import { DataTexture, LinearFilter, LinearMipmapLinearFilter, RGBAFormat } from 'three'
 import type { MaterialService } from '../materials/MaterialService'
+import type { DetailPlan } from './BlockAtlas'
 import { terrainUniforms } from './terrainMaterial'
 
 const SIZE = 256
@@ -16,7 +17,8 @@ export class TerrainDetail {
 
   constructor(private materials: MaterialService) {}
 
-  async build(ids: string[]): Promise<void> {
+  async build(plan: DetailPlan): Promise<void> {
+    const ids = plan.materials
     const token = ++this.token
     const rows = Math.max(1, Math.ceil(ids.length / COLS))
     const W = COLS * SIZE
@@ -55,5 +57,7 @@ export class TerrainDetail {
     this.texture = tex
     terrainUniforms.uDetailAtlas.value = tex
     terrainUniforms.uDetailGrid.value = [COLS, rows]
+    terrainUniforms.uVariants.value = plan.variants
+    terrainUniforms.uVariantLooks.value = plan.looks
   }
 }

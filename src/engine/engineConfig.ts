@@ -79,6 +79,9 @@ export const EngineConfigSchema = z.object({
           detail: z.number().min(0).max(1).default(0.7).meta({ label: 'material detail', step: 0.05 }),
           /** Material tiles per block. */
           detailScale: z.number().min(0.05).max(4).default(0.5).meta({ label: 'detail tiles per block', step: 0.05 }),
+          /** Patches of other ground materials (texture `variants`): their size (per block, smaller = larger) and tint. */
+          varietyScale: z.number().min(0.005).max(0.5).default(0.06).meta({ label: 'patch scale', step: 0.005 }),
+          varietyTint: z.number().min(0).max(1).default(1).meta({ label: 'patch tint', step: 0.05 }),
           /** Seconds an edited piece of ground takes to dissolve into its new shape (0 = at once). */
           editFade: z.number().min(0).max(2).default(0.4).meta({ label: 'edit fade (s)', step: 0.05 }),
         })

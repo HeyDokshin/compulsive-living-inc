@@ -94,6 +94,8 @@ const Config = z.object({
   /** Seconds the mouse cursor keeps showing the hovered cell after it stops moving. */
   hoverTimeout: z.number().min(0).max(30).default(4).meta({ label: 'hover timeout (s)', step: 0.5 }),
   cursor: z.boolean().default(true),
+  /** Show the marker on the cell under the mouse too (off: only the cell in front and where a click walks). */
+  cursorOnHover: z.boolean().default(false).meta({ label: 'cursor on hover' }),
   cursorColor: z.string().default('#ffffff').meta({ color: true }),
   hint: z.boolean().default(true),
 })
@@ -327,7 +329,10 @@ export default definePlugin({
       id: 'cursor',
       phase: 'render',
       priority: 800,
-      run: ({ dt }) => cursor.update(player, dt, st.walk?.target ?? hovered()),
+      run: ({ dt }) => {
+        const walking = st.walk?.target
+        cursor.update(player, dt, walking ?? hovered(), !walking && !cfg.cursorOnHover)
+      },
     })
     api.ui.slot('hud.bottom', () => <Hint cursor={cursor} cfg={cfg} api={api} />)
 
@@ -488,14 +493,19 @@ class Cursor {
     this.mesh.renderOrder = 2
   }
 
-  update(e: Entity, dt: number, pointed: Cell | null = null): void {
+  /** `quiet`: a hovered cell is resolved (hint, target) but the marker is not drawn on it. */
+  update(e: Entity, dt: number, pointed: Cell | null = null, quiet = false): void {
     this.time += dt
     const t = e.transform
     const view = e.view
     const show = this.cfg.cursor && !this.api.ui.modalOpen.value && !!t && !!view
-    this.mesh.visible = show
+    // the marker fades out and in instead of blinking
+    const mat = this.mesh.material as InstanceType<Three['MeshBasicMaterial']>
+    const goal = show && !(pointed && quiet) ? 1 : 0
+    mat.opacity += (goal - mat.opacity) * Math.min(1, dt * 12)
+    this.mesh.visible = mat.opacity > 0.01
     if (!show) return
-    ;(this.mesh.material as InstanceType<Three['MeshBasicMaterial']>).color.set(this.cfg.cursorColor)
+    mat.color.set(this.cfg.cursorColor)
     // The cell one step ahead in the facing direction.
     const fx = Math.sin(t.rotY)
     const fz = Math.cos(t.rotY)

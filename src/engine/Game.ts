@@ -419,7 +419,7 @@ export class Game {
       const ok = await this.renderer.atlas.rebuild(this.blocks.all(), (id) => this.textures.get(id), this.world.voxels.palette)
       if (!ok) return
       this.renderer.detail?.invalidate()
-      void this.terrainDetail.build(this.renderer.atlas.detailMaterials)
+      void this.terrainDetail.build(this.renderer.atlas.detail)
       this.icons.clear()
       this.renderer.refreshSurfaces()
       this.renderer.chunks.remeshAll()

@@ -55,16 +55,6 @@ interface ToastEntry {
 /** Milliseconds things take to leave the screen (windows, toasts): nothing just vanishes. */
 const LEAVE_MS = 220
 
-/** SVG filter that makes panel backgrounds wavy (only backgrounds: text stays crisp). */
-const WAVE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true">
-<filter id="cl-wave" x="-6%" y="-12%" width="112%" height="124%" color-interpolation-filters="sRGB">
-<feTurbulence type="fractalNoise" baseFrequency="0.011 0.019" numOctaves="1" seed="7" result="n"/>
-<feDisplacementMap in="SourceGraphic" in2="n" scale="9" xChannelSelector="R" yChannelSelector="G"/>
-</filter>
-<filter id="cl-wave-small" x="-10%" y="-30%" width="120%" height="160%" color-interpolation-filters="sRGB">
-<feTurbulence type="fractalNoise" baseFrequency="0.035 0.05" numOctaves="1" seed="3" result="n"/>
-<feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/>
-</filter></svg>`
 
 /**
  * Preact UI overlay. Plugins add components to slots and register windows;
@@ -172,7 +162,6 @@ export class UiHost {
       style.textContent = UI_CSS
       document.head.appendChild(style)
     }
-    if (!document.getElementById('cl-wave')) document.body.insertAdjacentHTML('beforeend', WAVE_SVG)
     const root = document.createElement('div')
     root.className = 'cl-ui'
     this.root = root

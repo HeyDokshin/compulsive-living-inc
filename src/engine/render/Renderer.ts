@@ -153,6 +153,8 @@ export class Renderer {
     terrainUniforms.uDetailStrength.value = tr.detail
     terrainUniforms.uDetailScale.value = tr.detailScale
     this.chunks.editFade = tr.editFade
+    terrainUniforms.uVarietyScale.value = tr.varietyScale
+    terrainUniforms.uVarietyTint.value = tr.varietyTint
     this.chunks.waterOpacity = render.waterOpacity
     if (debug.showChunks !== this.last.borders) {
       this.last.borders = debug.showChunks

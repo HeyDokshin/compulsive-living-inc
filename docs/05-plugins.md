@@ -152,6 +152,8 @@ export default definePlugin({
 // textures.json5: { id: 'my_pack:brick', pattern: 'planks', colors: ['#b5543c'], material: 'my_pack:brick' }
 ```
 
+**Пятна на острове.** У текстуры с `material` могут быть `variants: [{ material, tint, share }]` — другие материалы мягкими пятнами по земле (клевер, луг, сухая трава): `tint` окрашивает пятно (умножением), `share` — доля земли под ним. Размер пятен и сила оттенка — `engine → render.terrain.varietyScale / varietyTint`.
+
 Слой — узор (`fill noise ridged cells cracks strata wood boards grain fibers knit pebbles twill weave`, мотивы `stripes dots stars hearts flowers checker waves marble terrazzo scales herringbone zigzag`) через цветовую рампу `colors`, наложенный режимом `blend` (`normal multiply screen overlay soft add darken lighten`) с `opacity` и маской; `scale` — сколько деталей на тайл (целые — без швов), `octaves`, `roughness`, `warp`, `contrast`, `relief` (рельеф для запечённого света). Настройки детализации — `engine → render.detail`.
 
 **Поверхность у каждой модели.** Модель без своей ткани получает материал по цвету вокселей (светлое — штукатурка, серое — камень, коричневое — дерево, зелёное — листва, остальное — крашеная поверхность), сдвинутый на каждый экземпляр, чтобы соседние предметы не были одинаковыми.
