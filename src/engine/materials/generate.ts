@@ -108,6 +108,51 @@ interface PatternArgs {
   params: Record<string, number>
 }
 
+/**
+ * A motif value from a signed distance (`d` > 0 inside, in cell units): crisp but antialiased
+ * edges about a texel wide; motifs too small for the texture fade to half (no shimmer).
+ */
+function motif(d: number, cells: number, res: number, soft: number): number {
+  const texel = cells / res
+  const v = smoothstep(-texel * 1.2, texel * 1.2, d / Math.max(soft, 1e-3))
+  const f = fineness(cells, res)
+  return 0.5 + (v - 0.5) * f
+}
+
+/** Five-pointed star, signed distance (negative inside), outer radius 1. */
+function sdStar5(px: number, py: number): number {
+  const k1x = 0.809016994375
+  const k1y = -0.587785252292
+  const k2x = -k1x
+  const k2y = k1y
+  let x = Math.abs(px)
+  let y = py
+  let d = 2 * Math.max(k1x * x + k1y * y, 0)
+  x -= d * k1x
+  y -= d * k1y
+  d = 2 * Math.max(k2x * x + k2y * y, 0)
+  x -= d * k2x
+  y -= d * k2y
+  x = Math.abs(x)
+  y -= 1
+  const rf = 0.45
+  const bax = rf * -k1y - 0
+  const bay = rf * k1x - 1
+  const h = clamp01((x * bax + y * bay) / (bax * bax + bay * bay))
+  return Math.hypot(x - bax * h, y - bay * h) * Math.sign(y * bax - x * bay)
+}
+
+/** Heart, signed distance (negative inside), roughly 1 tall from y 0 up. */
+function sdHeart(px: number, py: number): number {
+  const x = Math.abs(px)
+  const y = py
+  if (y + x > 1) return Math.hypot(x - 0.25, y - 0.75) - Math.SQRT2 / 4
+  const a = Math.hypot(x, y - 1)
+  const m = 0.5 * Math.max(x + y, 0)
+  const b = Math.hypot(x - m, y - m)
+  return Math.min(a, b) * Math.sign(x - y)
+}
+
 /** 1 while `features` across the tile get ≥ 6 texels each in a `res` texture, fading to 0 by 3. */
 function fineness(features: number, res: number): number {
   return clamp01((res / features - 3) / 3)
@@ -205,6 +250,105 @@ export function pattern(a: PatternArgs, u: number, v: number, res: number): numb
       const bulge = 0.5 + (Math.sin(across * Math.PI) * (0.75 + 0.25 * Math.sin(along * Math.PI)) - 0.5) * fineness(n * 2, res)
       const slub = fbm(u, v, n, 2, 0.5, a.seed + (over ? 1 : 2), res, over ? 0.25 : 4)
       return clamp01(bulge * 0.8 + slub * 0.2)
+    }
+    case 'stripes': {
+      // straight bands at an angle (whole turns per tile, so they tile)
+      const turns = Math.max(1, Math.round(p.turns ?? 0))
+      const t = (u * turns + v) * n
+      const band = 0.5 + 0.5 * Math.cos((t - Math.floor(t)) * Math.PI * 2)
+      return motif(band - (1 - (p.width ?? 0.5)), n * Math.max(1, turns), res, 0.25)
+    }
+    case 'waves': {
+      const t = v * n + Math.sin(u * Math.PI * 2 * Math.max(1, Math.round(p.waves ?? 2))) * (p.amp ?? 0.35)
+      const band = 0.5 + 0.5 * Math.cos((t - Math.floor(t)) * Math.PI * 2)
+      return motif(band - (1 - (p.width ?? 0.45)), n * 2, res, 0.2)
+    }
+    case 'zigzag': {
+      const x = u * Math.max(1, Math.round(p.teeth ?? n))
+      const t = v * n + Math.abs(x - Math.floor(x) - 0.5) * (p.amp ?? 1)
+      const band = 0.5 + 0.5 * Math.cos((t - Math.floor(t)) * Math.PI * 2)
+      return motif(band - (1 - (p.width ?? 0.45)), n * 2, res, 0.2)
+    }
+    case 'checker': {
+      const x = u * n
+      const y = v * n
+      const dx = Math.abs(x - Math.round(x))
+      const dy = Math.abs(y - Math.round(y))
+      const edge = Math.min(dx, dy) // distance to the nearest grid line (cells)
+      const on = (Math.floor(x) + Math.floor(y)) % 2 === 0 ? 1 : -1
+      return 0.5 + 0.5 * on * Math.min(1, edge / ((1.5 * n) / res + 1e-6)) * fineness(n * 2, res)
+    }
+    case 'dots':
+    case 'stars':
+    case 'hearts':
+    case 'flowers': {
+      // a motif per cell, rows staggered; each motif turned and sized a little differently
+      const rows = n
+      const y = v * rows
+      const row = Math.floor(y)
+      const x = u * n + (row % 2 === 1 ? (p.stagger ?? 0.5) : 0)
+      const col = Math.floor(x)
+      const id = hash2(mod(col, n), mod(row, rows), a.seed)
+      let lx = x - col - 0.5
+      let ly = y - row - 0.5
+      const tilt = ((p.tilt ?? 0.4) * (id - 0.5) * Math.PI) / 2
+      const c = Math.cos(tilt)
+      const s = Math.sin(tilt)
+      ;[lx, ly] = [lx * c - ly * s, lx * s + ly * c]
+      const size = (p.size ?? 0.32) * (1 + ((p.vary ?? 0.25) * (id - 0.5)))
+      let d: number
+      if (a.kind === 'dots') d = Math.hypot(lx, ly) - size
+      else if (a.kind === 'stars') d = sdStar5(lx / size, -ly / size) * size
+      else if (a.kind === 'hearts') d = sdHeart(lx / (size * 1.6), -ly / (size * 1.6) + 0.5) * size * 1.6
+      else {
+        const r = Math.hypot(lx, ly)
+        const th = Math.atan2(ly, lx)
+        d = r - size * (0.55 + 0.45 * Math.abs(Math.cos(th * 2.5)))
+      }
+      return motif(-d, n, res, 1)
+    }
+    case 'marble': {
+      const w = fbm(u, v, Math.max(1, Math.round(p.swirl ?? 3)), a.octaves, a.roughness, a.seed, res) * (p.warp ?? 4)
+      const t = (u + v * 0.5) * n + w
+      const vein = Math.abs(Math.sin(t * Math.PI))
+      return clamp01(1 - Math.pow(vein, p.sharp ?? 0.18))
+    }
+    case 'terrazzo': {
+      // chips of stone set in a matrix: each chip its own shade
+      const c = cellsAt(u, v, n, a.seed, 1)
+      const size = (p.size ?? 0.26) * (0.6 + 0.6 * c.id)
+      const inside = 1 - smoothstep(size * 0.85, size, c.f1)
+      return inside * (0.25 + 0.75 * c.id)
+    }
+    case 'scales': {
+      // overlapping rounded scales, row over row
+      // each scale is a disc hanging from its row's top; the row below lies over it
+      const y = v * n
+      const row = Math.floor(y)
+      let r = 1
+      for (const k of [row + 1, row]) {
+        const x = u * n + (mod(k, 2) ? 0.5 : 0)
+        const d = Math.hypot(x - Math.floor(x) - 0.5, y - k) / 1.5
+        if (d < 0.5) {
+          r = d
+          break
+        }
+      }
+      const rim = smoothstep(0.38, 0.5, r) * (1 - smoothstep(0.5, 0.56, r))
+      return clamp01(0.55 * (1 - Math.min(1, r)) + rim * 0.9) * fineness(n * 2, res) + (1 - fineness(n * 2, res)) * 0.5
+    }
+    case 'herringbone': {
+      // short boards slanting one way in odd columns, the other in even ones
+      const cols = n
+      const x = u * cols
+      const col = Math.floor(x)
+      const dir = col % 2 === 0 ? 1 : -1
+      const t = v * cols * 2 + (x - col) * dir * 2
+      const plank = t - Math.floor(t)
+      const gap = Math.min(plank, 1 - plank)
+      const id = hash2(mod(col, cols), mod(Math.floor(t), cols * 4), a.seed)
+      const edge = smoothstep(0, (1.5 * cols * 2) / res + 0.03, gap)
+      return clamp01((0.35 + 0.65 * id) * edge)
     }
     case 'knit': {
       // rows of V stitches: two slanted loops per cell
