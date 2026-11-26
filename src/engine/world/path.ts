@@ -71,3 +71,49 @@ export function findPath(start: Cell, opts: PathOptions): Cell[] | null {
   }
   return null
 }
+
+/** Sample spacing along a segment, in blocks (well under a cell, so no column is skipped). */
+const LINE_STEP = 0.2
+const from: Cell = { x: 0, z: 0 }
+const to: Cell = { x: 0, z: 0 }
+const corner: Cell = { x: 0, z: 0 }
+
+/**
+ * Can a walker of half width `radius` go straight from point (ax, az) to point (bx, bz)? Every
+ * column the segment crosses — and the two parallel edges `radius` to either side — must be
+ * steppable from the one before (diagonal moves only past free corners, as in `findPath`).
+ * Used to cut the corners of a grid path, so click-to-walk goes in straight lines. Doesn't allocate.
+ */
+export function lineWalkable(ax: number, az: number, bx: number, bz: number, radius: number, canStep: (a: Cell, b: Cell) => boolean): boolean {
+  const dx = bx - ax
+  const dz = bz - az
+  const len = Math.hypot(dx, dz)
+  if (len < 1e-6) return true
+  const nx = -dz / len
+  const nz = dx / len
+  const steps = Math.ceil(len / LINE_STEP)
+  for (let side = -1; side <= 1; side++) {
+    const ox = nx * radius * side
+    const oz = nz * radius * side
+    // every edge starts from the column the walker is in
+    from.x = Math.floor(ax)
+    from.z = Math.floor(az)
+    for (let i = 1; i <= steps; i++) {
+      const f = i / steps
+      to.x = Math.floor(ax + dx * f + ox)
+      to.z = Math.floor(az + dz * f + oz)
+      if (to.x === from.x && to.z === from.z) continue
+      if (to.x !== from.x && to.z !== from.z) {
+        corner.x = to.x
+        corner.z = from.z
+        if (!canStep(from, corner) || !canStep(corner, to)) return false
+        corner.x = from.x
+        corner.z = to.z
+        if (!canStep(from, corner) || !canStep(corner, to)) return false
+      } else if (!canStep(from, to)) return false
+      from.x = to.x
+      from.z = to.z
+    }
+  }
+  return true
+}

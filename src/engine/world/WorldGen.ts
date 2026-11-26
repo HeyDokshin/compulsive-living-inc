@@ -1,4 +1,5 @@
 import { createNoise2D } from 'simplex-noise'
+import { WorldConfigSchema } from '../engineConfig'
 import type { RegistryEntry } from '../registry/Registry'
 import { mulberry32 } from '../render/textures'
 import { AIR } from './BlockPalette'
@@ -14,6 +15,10 @@ export interface WorldGenContext {
   sizeX: number
   sizeZ: number
   height: number
+  /** Y a walker stands at on the lowest land (level 1); also the sea surface. */
+  ground: number
+  /** Levels from the ground up (see `api.world.levels`); natural land uses the first two at most. */
+  levels: number
   world: VoxelWorld
   /** Column height: y of the first empty cell (0 = nothing). Index x + z * sizeX. */
   heightMap: Int16Array
@@ -47,12 +52,17 @@ export interface GenerateOptions {
   chunksX: number
   chunksZ: number
   height: number
+  /** Defaults to the world config defaults. */
+  ground?: number
+  levels?: number
 }
 
 export interface GenerateReport {
   ms: number
   steps: { id: string; ms: number; error?: string }[]
 }
+
+const WORLD_DEFAULTS = WorldConfigSchema.parse({})
 
 function hashString(s: string): number {
   let h = 2166136261
@@ -76,6 +86,8 @@ export async function generateWorld(
     sizeX,
     sizeZ,
     height: opts.height,
+    ground: opts.ground ?? WORLD_DEFAULTS.ground,
+    levels: opts.levels ?? WORLD_DEFAULTS.levels,
     world,
     heightMap: new Int16Array(sizeX * sizeZ),
     surface: Array.from({ length: sizeX * sizeZ }, () => ''),

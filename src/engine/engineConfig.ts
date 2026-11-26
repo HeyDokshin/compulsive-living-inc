@@ -194,5 +194,12 @@ export const WorldConfigSchema = z.object({
   chunksX: z.number().int().min(1).max(32).default(8).meta({ label: 'chunks X', step: 1 }),
   chunksZ: z.number().int().min(1).max(32).default(8).meta({ label: 'chunks Z', step: 1 }),
   height: z.number().int().min(8).max(128).default(32).meta({ step: 1 }),
+  /** Y a walker stands at on the lowest land (level 1). The sea surface is level with it. */
+  ground: z.number().int().min(2).max(64).default(8).meta({ step: 1 }),
+  /**
+   * Levels one can stand on, from the ground up. The last one only holds things put on top of the
+   * highest blocks, so blocks are built at most `levels - 1` high.
+   */
+  levels: z.number().int().min(2).max(16).default(5).meta({ step: 1 }),
 })
 export type WorldConfig = z.infer<typeof WorldConfigSchema>

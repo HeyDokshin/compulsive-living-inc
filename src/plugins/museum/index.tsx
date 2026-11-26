@@ -84,9 +84,10 @@ export default definePlugin({
       for (const e of api.entities.world.with('museum', 'transform')) return e
       return undefined
     }
+    /** Grass on the ground level (buildings never go on raised land). */
     const grassTop = (x: number, z: number): number | null => {
       const y = api.world.surfaceY(x, z)
-      if (y <= 0 || api.world.getBlock(x, y - 1, z) !== 'core:grass' || api.world.getBlock(x, y, z) !== api.world.AIR) return null
+      if (y !== api.world.ground || api.world.getBlock(x, y - 1, z) !== 'core:grass' || api.world.getBlock(x, y, z) !== api.world.AIR) return null
       return y
     }
     /** Can a 5×5 plot (+ rows in front) go at x0, z0? Returns the ground height. */
@@ -95,10 +96,8 @@ export default definePlugin({
       if (base === null) return null
       for (let dz = 0; dz < cfg.depth + cfg.frontRows; dz++) {
         for (let dx = 0; dx < cfg.width; dx++) {
-          const y = grassTop(x0 + dx, z0 + dz)
-          if (y === null) return null
-          // the building sits on level ground; the rows in front may step by one
-          if (dz < cfg.depth ? y !== base : Math.abs(y - base) > 1) return null
+          // the building and the rows in front all stand on the ground level
+          if (grassTop(x0 + dx, z0 + dz) === null) return null
         }
       }
       return base

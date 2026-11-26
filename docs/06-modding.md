@@ -83,7 +83,7 @@ export default definePlugin({
 
 Всё, что умеет `api`, — в [05-plugins.md](05-plugins.md). Интерфейс без JSX: `h('div', {}, 'текст')` из `@sdk`. Внутри репозитория типы работают и в `.js` (`// @ts-check`, `npm run typecheck` проверяет `mods/`); свои компоненты и события объявляйте в `types.d.ts` мода.
 
-`@sdk` экспортирует: `definePlugin`, `z`, `h`, `Fragment`, хуки (`useState`, `useEffect`, `useMemo`, `useRef`, `useCallback`), сигналы (`signal`, `computed`, `effect`, `batch`, `useSignal`, `useComputed`), `ui` (кнопки, слоты, диалоги), `voiceBlip`, `findPath`, `deepMerge`, `downloadFile`, `JSON5`, `SDK_VERSION`.
+`@sdk` экспортирует: `definePlugin`, `z`, `h`, `Fragment`, хуки (`useState`, `useEffect`, `useMemo`, `useRef`, `useCallback`), сигналы (`signal`, `computed`, `effect`, `batch`, `useSignal`, `useComputed`), `ui` (кнопки, слоты, диалоги), `voiceBlip`, `findPath`, `lineWalkable` (прямая проходимость для срезания углов пути), `deepMerge`, `downloadFile`, `JSON5`, `SDK_VERSION`.
 
 ## Правила
 

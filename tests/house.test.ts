@@ -67,6 +67,15 @@ describe('terraforming', async () => {
     expect(terraformOp(11, 10, 12, lim)).toBeNull() // −1 already
     expect(terraformOp(9, 8, 9, lim)).toBeNull() // the sea level stays
   })
+  it('builds at most 4 blocks above the ground: the 5th level only holds things put on top', () => {
+    // ground 8 (level 1), top level 12 (level 5)
+    const world = { maxUp: 4, maxDown: 1, maxHeight: 12, minHeight: 7 }
+    expect(terraformOp(8, 8, 8, world)).toBe('raise') // 1st block
+    expect(terraformOp(11, 11, 8, world)).toBe('raise') // 4th block: one now stands on level 5
+    expect(terraformOp(12, 12, 8, world)).toBeNull() // a 5th block: no
+    expect(terraformOp(9, 8, 9, world)).toBe('lower') // raised land back to the ground
+    expect(terraformOp(8, 7, 8, world)).toBeNull() // never below the ground level
+  })
 })
 
 describe('a bigger room', () => {

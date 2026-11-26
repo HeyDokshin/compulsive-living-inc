@@ -67,6 +67,36 @@ describe('terrain island', () => {
     }
   })
 
+  it('has two land levels at most: the ground (level with the sea) and one block higher', async () => {
+    const ground = 8
+    for (const seed of [1, 2, 3, 42, 777, 12345, 99999, 2024]) {
+      const { world, data } = await island(seed)
+      let low = 0
+      let high = 0
+      for (let z = 0; z < 128; z++) {
+        for (let x = 0; x < 128; x++) {
+          const i = x + z * 128
+          let top = 0
+          for (let y = 31; y >= 0; y--) if (world.getId(x, y, z) !== 'air') { top = y + 1; break }
+          if (!data.land[i]) {
+            // the sea: water up to the ground level, nothing above
+            expect(top, `sea ${x},${z}`).toBe(ground)
+            expect(world.getId(x, ground - 1, z)).toBe('core:water')
+            continue
+          }
+          expect(top, `land ${x},${z}`).toBeGreaterThanOrEqual(ground)
+          expect(top, `land ${x},${z}`).toBeLessThanOrEqual(ground + 1)
+          if (data.river[i] || data.bridge![i]) continue
+          if (top === ground) low++
+          else high++
+        }
+      }
+      // most of the island is on the ground level, where the buildings go
+      expect(low / (low + high), `seed ${seed}`).toBeGreaterThan(0.5)
+      expect(high, `seed ${seed}`).toBeGreaterThan(0)
+    }
+  })
+
   it('helpers: quantile, largest component, enclosed water', () => {
     expect(quantile(new Float32Array([3, 1, 2, Infinity]), 0.5)).toBe(3)
     // two blobs: keep the 2-cell one

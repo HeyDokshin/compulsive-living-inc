@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { boxHits, canStand, moveBody, type Body, type WorldQuery } from '../src/plugins/player/physics'
+import { boxHits, canStand, gaitOf, moveBody, steer, type Body, type WorldQuery } from '../src/plugins/player/physics'
 
 /** Tiny world: ground height per column (solid below), optional water columns. */
 function world(heights: Record<string, number>, water = new Set<string>(), base = 1): WorldQuery {
@@ -74,5 +74,49 @@ describe('player physics', () => {
     expect(boxHits(q, shape, 0.8, 1, 0.5)).toBe(true)
     expect(canStand(q, rules, 0.5, 1, 0.5)).toBe(true)
     expect(canStand(q, rules, 0.5, 3, 0.5)).toBe(false)
+  })
+})
+
+describe('steering and gait', () => {
+  const r = { acceleration: 6, deceleration: 9, turnRate: 9 }
+  const run = (v: { vx: number; vz: number }, tx: number, tz: number, t: number) => {
+    for (let i = 0; i < t / 0.02; i++) steer(v, tx, tz, r, 0.02)
+  }
+
+  it('eases up to the wanted speed and down to a stop without sliding on', () => {
+    const v = { vx: 0, vz: 0 }
+    steer(v, 2.4, 0, r, 0.02)
+    expect(v.vx).toBeGreaterThan(0)
+    expect(v.vx).toBeLessThan(0.5) // a gentle start
+    run(v, 2.4, 0, 1.5)
+    expect(v.vx).toBeCloseTo(2.4, 1)
+    run(v, 0, 0, 1)
+    expect(Math.hypot(v.vx, v.vz)).toBeLessThan(0.01)
+  })
+
+  it('turns to a new direction in an arc, keeping its speed', () => {
+    const v = { vx: 2.4, vz: 0 }
+    steer(v, 0, 2.4, r, 0.02)
+    expect(v.vx).toBeGreaterThan(2) // still mostly heading on…
+    expect(v.vz).toBeGreaterThan(0) // …but already bending
+    expect(Math.hypot(v.vx, v.vz)).toBeGreaterThan(2.3)
+    run(v, 0, 2.4, 0.4)
+    expect(v.vz).toBeCloseTo(2.4, 1)
+    expect(Math.abs(v.vx)).toBeLessThan(0.05)
+  })
+
+  it('brakes while turning right around', () => {
+    const v = { vx: 2.4, vz: 0 }
+    run(v, -2.4, 0, 0.1)
+    expect(Math.hypot(v.vx, v.vz)).toBeLessThan(1.6)
+    run(v, -2.4, 0, 1.5)
+    expect(v.vx).toBeCloseTo(-2.4, 1)
+  })
+
+  it('names the gait by speed: standing and creeping are sneaking', () => {
+    expect(gaitOf(0, 1.2, 2.4)).toBe('sneak')
+    expect(gaitOf(1.2, 1.2, 2.4)).toBe('sneak')
+    expect(gaitOf(2.4, 1.2, 2.4)).toBe('walk')
+    expect(gaitOf(4.4, 1.2, 2.4)).toBe('run')
   })
 })

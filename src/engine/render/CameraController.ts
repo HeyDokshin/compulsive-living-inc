@@ -43,8 +43,8 @@ export class CameraController {
     private entities: Entities,
     private world: WorldService,
   ) {
-    input.define(ACTIONS.rotL, ['KeyQ', 'Pad6'], 'engine', 'Камера: повернуть влево')
-    input.define(ACTIONS.rotR, ['KeyE', 'Pad7'], 'engine', 'Камера: повернуть вправо')
+    input.define(ACTIONS.rotL, ['KeyZ', 'Pad6'], 'engine', 'Камера: повернуть влево')
+    input.define(ACTIONS.rotR, ['KeyX', 'Pad7'], 'engine', 'Камера: повернуть вправо')
     input.define(ACTIONS.up, ['KeyW', 'ArrowUp'], 'engine')
     input.define(ACTIONS.down, ['KeyS', 'ArrowDown'], 'engine')
     input.define(ACTIONS.left, ['KeyA', 'ArrowLeft'], 'engine')

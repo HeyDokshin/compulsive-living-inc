@@ -163,7 +163,7 @@ export default definePlugin({
             const x = cx + dx
             const z = cz + dz
             const y = api.world.surfaceY(x, z)
-            if (y > 0 && free(x, z, y)) {
+            if (y === api.world.ground && free(x, z, y)) {
               return api.entities.spawn({
                 name: 'Ящик для продажи',
                 transform: { x: x + 0.5, y, z: z + 0.5, rotY: 0 },

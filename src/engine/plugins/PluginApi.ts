@@ -140,6 +140,12 @@ export interface PluginApi {
     readonly AIR: string
     /** Seed of the current world (for deterministic placement). */
     readonly seed: number
+    /** Y a walker stands at on the lowest land (level 1); the sea surface is level with it. Buildings go here. */
+    readonly ground: number
+    /** Levels one can stand on from the ground up (level 1 = `ground`). Natural land is at most one block higher. */
+    readonly levels: number
+    /** Y one stands at on the top level, which only holds things put on top: blocks go no higher than `topY - 1`. */
+    readonly topY: number
     /** The walking-blocker entity covering a cell (tree, rock, building), if any. */
     blockerAt(x: number, z: number): Entity | undefined
     /** Call after moving an entity that has a `blocker`. */

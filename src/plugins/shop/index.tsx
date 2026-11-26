@@ -151,7 +151,7 @@ export default definePlugin({
     const stalls = () => [...api.entities.world.with('shopStall', 'transform')]
     const grass = (x: number, z: number) => {
       const y = api.world.surfaceY(x, z)
-      return y > 0 && api.world.getBlock(x, y - 1, z) === 'core:grass' && api.world.getBlock(x, y, z) === api.world.AIR ? y : null
+      return y === api.world.ground && api.world.getBlock(x, y - 1, z) === 'core:grass' && api.world.getBlock(x, y, z) === api.world.AIR ? y : null
     }
     const plotAt = (x0: number, z0: number): number | null => {
       const base = grass(x0, z0)
@@ -159,7 +159,7 @@ export default definePlugin({
       for (let dz = 0; dz < cfg.depth + cfg.frontRows; dz++)
         for (let dx = 0; dx < cfg.width; dx++) {
           const y = grass(x0 + dx, z0 + dz)
-          if (y === null || (dz < cfg.depth ? y !== base : Math.abs(y - base) > 1) || api.world.blockerAt(x0 + dx, z0 + dz)) return null
+          if (y === null || y !== base || api.world.blockerAt(x0 + dx, z0 + dz)) return null
         }
       const r = cfg.clearance
       for (let dz = -r; dz < cfg.depth + cfg.frontRows + r; dz++)

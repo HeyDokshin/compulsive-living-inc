@@ -1,5 +1,5 @@
 /**
- * Island generator: terraced island → rivers with waterfalls → ponds → beaches → voxels.
+ * Island generator: flat island with raised land one block high → rivers with waterfalls → ponds → beaches → voxels.
  * Every step is an entry in the `worldgen` registry, so other plugins can add steps between these
  * (orders 100…400), replace one (`registry.modify(id, s => ({ ...s, run }))`) or switch it off.
  * All numbers live in config/terrain.json5 and are tunable live in the debug panel (F2): the world regenerates.
@@ -87,8 +87,8 @@ export default definePlugin({
       ]
       // in tiles, so only the sea in the picture is drawn
       for (const tile of tileRects(rings, cfg.seaTile)) {
-        sea.push(api.render.blockSurface(cfg.blocks.sand, [tile], seaBedY(cfg), { cull: true }))
-        sea.push(api.render.blockSurface(cfg.blocks.water, [tile], cfg.waterLevel - 0.125, { cull: true }))
+        sea.push(api.render.blockSurface(cfg.blocks.sand, [tile], seaBedY(api.world.ground, cfg), { cull: true }))
+        sea.push(api.render.blockSurface(cfg.blocks.water, [tile], api.world.ground - 0.125, { cull: true }))
       }
       showSea()
     }

@@ -4,9 +4,9 @@ export interface TerraformLimits {
   /** How far above / below its original height a column may go. */
   maxUp: number
   maxDown: number
-  /** Never higher than this (world blocks). */
+  /** Never stand higher than this (the world's top level). */
   maxHeight: number
-  /** Never this low or lower (keeps the sea level). */
+  /** Never this low or lower (keeps the ground level). */
   minHeight: number
 }
 
