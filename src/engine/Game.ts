@@ -22,6 +22,9 @@ import { createPluginScope } from './plugins/createPluginApi'
 import { ServiceRegistry } from './plugins/ServiceRegistry'
 import { EngineConfigSchema, WorldConfigSchema, type EngineConfig, type WorldConfig } from './engineConfig'
 import { TextureSchema, type TextureDef } from './render/textures'
+import { MaterialSchema, type MaterialDef } from './materials/schema'
+import { MaterialService } from './materials/MaterialService'
+import { AtlasDetail } from './render/AtlasDetail'
 import { WorldService } from './world/WorldService'
 import type { WorldGenStep } from './world/WorldGen'
 import { ModelDefSchema, RigDefSchema, type ModelDef, type RigDef } from './models/defs'
@@ -90,6 +93,9 @@ export class Game {
   readonly commands: Registry<CommandDef>
   readonly optionDefs: Registry<OptionDef>
   readonly textures: Registry<TextureDef>
+  readonly materialDefs: Registry<MaterialDef>
+  /** Procedural materials rendered at any size (off the main thread). */
+  readonly materials: MaterialService
   readonly worldgen: Registry<WorldGenStep>
   readonly models: Registry<ModelDef>
   readonly rigs: Registry<RigDef>
@@ -137,6 +143,8 @@ export class Game {
     this.commands = reg<CommandDef>('commands')
     this.optionDefs = reg<OptionDef>('options')
     this.textures = reg('textures', TextureSchema as ZodType<TextureDef>)
+    this.materialDefs = reg('materials', MaterialSchema as ZodType<MaterialDef>)
+    this.materials = new MaterialService(this.materialDefs)
     this.worldgen = reg<WorldGenStep>('worldgen')
     this.models = reg('models', ModelDefSchema as ZodType<ModelDef>)
     this.rigs = reg('rigs', RigDefSchema as ZodType<RigDef>)
@@ -154,6 +162,7 @@ export class Game {
     this.modelLibrary = new ModelLibrary(this.models, this.rigs)
     this.renderer = new Renderer(container, this.engineConfig, this.entities, this.world.voxels, this.modelLibrary)
     this.input.attach(this.renderer.renderer.domElement)
+    this.renderer.detail = new AtlasDetail(this.renderer.atlas, this.materials, (id) => this.textures.get(id))
     this.camera = new CameraController(this.renderer.iso, this.engineConfig.camera, this.input, this.entities, this.world)
     this.interactions = new Interactions(this.interactionDefs, this.items, this.blocks, this.hooks, this.events)
     this.icons = new IconService(this.items, this.blocks, this.modelLibrary, this.renderer.atlas)
@@ -401,6 +410,7 @@ export class Game {
       this.atlasScheduled = false
       const ok = await this.renderer.atlas.rebuild(this.blocks.all(), (id) => this.textures.get(id), this.world.voxels.palette)
       if (!ok) return
+      this.renderer.detail?.invalidate()
       this.icons.clear()
       this.renderer.refreshSurfaces()
       this.renderer.chunks.remeshAll()
@@ -450,6 +460,7 @@ export class Game {
     this.config.onChange('engine', () => this.applyEngineConfig())
     this.blocks.onChange(() => this.scheduleAtlas())
     this.textures.onChange(() => this.scheduleAtlas())
+    this.materialDefs.onChange(() => this.scheduleAtlas())
     this.models.onChange(() => this.scheduleModels())
     this.rigs.onChange(() => this.scheduleModels())
     this.items.onChange(() => this.icons.clear())

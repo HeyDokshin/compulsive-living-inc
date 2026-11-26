@@ -59,6 +59,18 @@ export const EngineConfigSchema = z.object({
       msaaDense: z.number().int().min(0).max(8).default(2).meta({ label: 'MSAA on dense screens', step: 1 }),
       ao: z.number().min(0).max(1).default(0.4).meta({ label: 'ambient occlusion', step: 0.05 }),
       waterOpacity: z.number().min(0).max(1).default(0.72).meta({ step: 0.01 }),
+      /** Close-up block textures: finer atlases (procedural materials) as the camera comes closer. */
+      detail: z
+        .object({
+          enabled: z.boolean().default(true),
+          /** Texels per screen pixel to aim for. */
+          bias: z.number().min(0.25).max(2).default(0.9).meta({ step: 0.05 }),
+          /** Finest level: texels per block (rounded down to a power of two). */
+          max: z.number().int().min(16).max(1024).default(256).meta({ label: 'max texels', step: 16 }),
+          /** Seconds a crossfade between levels takes. */
+          fade: z.number().min(0).max(3).default(0.45).meta({ step: 0.05 }),
+        })
+        .prefault({}),
       /** Soft color patches on blocks with `tint: true` (lawns). */
       tint: z
         .object({

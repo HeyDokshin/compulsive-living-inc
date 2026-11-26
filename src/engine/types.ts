@@ -11,6 +11,7 @@ import { z } from 'zod'
 import type { Object3D } from 'three'
 import type { RegistryEntry } from './registry/Registry'
 import type { TextureDef } from './render/textures'
+import type { MaterialDef } from './materials/schema'
 import type { WorldGenStep } from './world/WorldGen'
 import type { ModelDef, RigDef } from './models/defs'
 import type { ItemDef } from './items/defs'
@@ -138,6 +139,7 @@ export interface Registries {
   rigs: RigDef
   blocks: BlockDef
   textures: TextureDef
+  materials: MaterialDef
   prefabs: PrefabDef
   commands: CommandDef
   options: OptionDef
