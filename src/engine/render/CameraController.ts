@@ -17,7 +17,7 @@ const ACTIONS = {
 
 /**
  * Where the camera looks: chases a followed entity (with look-ahead), or pans freely with keys.
- * Q/E rotate in 90° steps, the wheel zooms.
+ * Z/X rotate in 90° steps, the wheel zooms.
  */
 export class CameraController {
   /** Entity the camera follows (`api.render.follow`). */

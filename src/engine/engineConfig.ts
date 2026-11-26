@@ -201,5 +201,10 @@ export const WorldConfigSchema = z.object({
    * highest blocks, so blocks are built at most `levels - 1` high.
    */
   levels: z.number().int().min(2).max(16).default(5).meta({ step: 1 }),
+  /**
+   * Y of the sea surface, if not level with the ground. Islands made before 0.16 stood one block above
+   * the sea (their saves get `ground: 9, sea: 8`).
+   */
+  sea: z.number().int().min(1).max(64).optional(),
 })
 export type WorldConfig = z.infer<typeof WorldConfigSchema>

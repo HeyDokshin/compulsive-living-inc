@@ -152,6 +152,9 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       get topY() {
         return game.world.topY
       },
+      get sea() {
+        return game.world.sea
+      },
       pick: (clientX, clientY) => game.renderer.pick(clientX, clientY),
       blockerAt: (x, z) => game.blockers.at(x, z),
       updateBlocker: (e) => game.blockers.update(e),

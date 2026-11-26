@@ -87,8 +87,8 @@ export default definePlugin({
       ]
       // in tiles, so only the sea in the picture is drawn
       for (const tile of tileRects(rings, cfg.seaTile)) {
-        sea.push(api.render.blockSurface(cfg.blocks.sand, [tile], seaBedY(api.world.ground, cfg), { cull: true }))
-        sea.push(api.render.blockSurface(cfg.blocks.water, [tile], api.world.ground - 0.125, { cull: true }))
+        sea.push(api.render.blockSurface(cfg.blocks.sand, [tile], seaBedY(api.world.sea, cfg), { cull: true }))
+        sea.push(api.render.blockSurface(cfg.blocks.water, [tile], api.world.sea - 0.125, { cull: true }))
       }
       showSea()
     }

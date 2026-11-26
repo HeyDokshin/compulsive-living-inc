@@ -146,6 +146,8 @@ export interface PluginApi {
     readonly levels: number
     /** Y one stands at on the top level, which only holds things put on top: blocks go no higher than `topY - 1`. */
     readonly topY: number
+    /** Y of the sea surface: level with `ground`, except on islands made before 0.16 (one block lower). */
+    readonly sea: number
     /** The walking-blocker entity covering a cell (tree, rock, building), if any. */
     blockerAt(x: number, z: number): Entity | undefined
     /** Call after moving an entity that has a `blocker`. */

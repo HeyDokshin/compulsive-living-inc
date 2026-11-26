@@ -168,7 +168,7 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
     dirty = true
   }
 
-  // Walls on the side facing the camera stay low (a cutaway, like a dollhouse); they follow Q/E.
+  // Walls on the side facing the camera stay low (a cutaway, like a dollhouse); they follow Z/X.
   const near = (x: number, z: number, p: HallPlan) => {
     const yaw = (api.render.camera.targetYaw * Math.PI) / 180
     const cx = Math.sin(yaw)

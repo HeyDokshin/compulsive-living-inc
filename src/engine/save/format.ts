@@ -1,5 +1,5 @@
 /** Save file format. Bump SAVE_FORMAT and add a migration in migrations.ts when it changes. */
-export const SAVE_FORMAT = 1
+export const SAVE_FORMAT = 2
 
 export interface SaveMeta {
   slot: string

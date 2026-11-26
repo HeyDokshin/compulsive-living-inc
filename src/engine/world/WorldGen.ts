@@ -19,6 +19,8 @@ export interface WorldGenContext {
   ground: number
   /** Levels from the ground up (see `api.world.levels`); natural land uses the first two at most. */
   levels: number
+  /** Y of the sea surface: `ground`, except on islands made before 0.16 (one below). */
+  sea: number
   world: VoxelWorld
   /** Column height: y of the first empty cell (0 = nothing). Index x + z * sizeX. */
   heightMap: Int16Array
@@ -55,6 +57,8 @@ export interface GenerateOptions {
   /** Defaults to the world config defaults. */
   ground?: number
   levels?: number
+  /** Defaults to `ground`. */
+  sea?: number
 }
 
 export interface GenerateReport {
@@ -88,6 +92,7 @@ export async function generateWorld(
     height: opts.height,
     ground: opts.ground ?? WORLD_DEFAULTS.ground,
     levels: opts.levels ?? WORLD_DEFAULTS.levels,
+    sea: opts.sea ?? opts.ground ?? WORLD_DEFAULTS.ground,
     world,
     heightMap: new Int16Array(sizeX * sizeZ),
     surface: Array.from({ length: sizeX * sizeZ }, () => ''),

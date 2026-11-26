@@ -19,7 +19,7 @@ export interface InteractionContext {
   entities: Entity[]
   /** The entity that matched `entity` in the definition, if any. */
   target?: Entity
-  /** Which button: the main action (Space) or the second one (F) — default primary. */
+  /** Which button: the main action (E) or the second one (F) — default primary. */
   button?: 'primary' | 'secondary'
 }
 

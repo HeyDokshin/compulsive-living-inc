@@ -114,8 +114,8 @@ export function tileRects(rects: readonly SurfaceRect[], cells: number): Surface
 }
 
 /** Height of the sea bed surface outside the world (matches the in-world floor near the edge). */
-export function seaBedY(ground: number, cfg: Config): number {
-  return Math.max(1, ground - cfg.island.oceanDepth - 1)
+export function seaBedY(sea: number, cfg: Config): number {
+  return Math.max(1, sea - cfg.island.oceanDepth - 1)
 }
 
 /** Where one stands on a land level: the ground, or one block higher. The sea is level with the ground. */
@@ -173,8 +173,8 @@ export function shape(ctx: WorldGenContext, cfg: Config): void {
         const edgeDist = Math.min(x, z, sizeX - 1 - x, sizeZ - 1 - z)
         const vary = Math.min(1, edgeDist / 8)
         const depth = oceanDepth + 1 + Math.round(floorNoise(x * 0.08, z * 0.08) * 1.2 * vary)
-        ctx.heightMap[i] = Math.max(1, ctx.ground - depth)
-        ctx.waterMap[i] = ctx.ground
+        ctx.heightMap[i] = Math.max(1, ctx.sea - depth)
+        ctx.waterMap[i] = ctx.sea
       }
     }
   }

@@ -154,4 +154,10 @@ describe('SaveService', () => {
     expect(migrateSave(d)).toBe(d)
     expect(() => migrateSave({ format: SAVE_FORMAT + 1 } as SaveData)).toThrow(/newer/)
   })
+
+  it('keeps islands from before world levels one block above the sea', () => {
+    const old = { format: 1, world: { config: { seed: 5 } } } as unknown as SaveData
+    expect(migrateSave(old).world.config).toEqual({ ground: 9, sea: 8, seed: 5 })
+    expect(migrateSave(old).format).toBe(SAVE_FORMAT)
+  })
 })
