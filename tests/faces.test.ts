@@ -11,6 +11,8 @@ describe('faces', () => {
     expect(moodOfLine('Хм, дай подумать...')).toBe('thinking')
     expect(moodOfLine('Привет!')).toBe('happy')
     expect(moodOfLine('Хорошая погода.')).toBeNull()
+    expect(moodOfLine('Мой дом там.')).toBeNull() // not «ой»
+    expect(stripTag('Привет. [sad] Пока.')).toBe('Привет. Пока.')
     expect(moodOfLine('[nonsense] Привет.')).toBeNull()
   })
 

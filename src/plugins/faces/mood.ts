@@ -3,27 +3,29 @@
 export const EXPRESSIONS = ['neutral', 'happy', 'joy', 'sad', 'worried', 'angry', 'surprised', 'sleepy', 'love', 'shy', 'thinking', 'wink'] as const
 export type Expression = (typeof EXPRESSIONS)[number]
 
-/** `[joy] Hello!` → joy (the tag is for the face, not to be shown). */
-const TAG = /^\s*\[([a-z]+)\]\s*/
+/** `[joy] Hello!` → joy (the tag is for the face, not to be shown). Lines put together keep theirs. */
+const TAG = /\[([a-z]+)\]\s*/
+const TAGS = /\[[a-z]+\]\s*/g
 
-/** A line without its leading face tag. */
+/** A line without its face tags. */
 export function stripTag(text: string): string {
-  return text.replace(TAG, '')
+  return text.replace(TAGS, '').trim()
 }
 
 const WORDS: Array<[Expression, RegExp]> = [
   ['love', /❤|♥|💕|обожаю|люблю|прелесть|чудо как/i],
   ['sad', /жаль|грустн|скуча|увы|эх[,.!…\s]|печал|плак|одиноко|прощай/i],
-  ['angry', /\bфу\b|хмф|грр|не люблю|сердит|злит|безобраз|ну уж нет/i],
+  // whole words: \b knows only Latin letters ("мой" must not read as "ой")
+  ['angry', /(?<!\p{L})фу(?!\p{L})|хмф|грр|не люблю|сердит|злит|безобраз|ну уж нет/iu],
   ['sleepy', /зев|сонн|спать|спим|хр-р|ночи|устал/i],
-  ['surprised', /\?!|!\?|\bой\b|\bого\b|неужели|правда\?|вот это да|ух ты/i],
+  ['surprised', /\?!|!\?|(?<!\p{L})(ой|ого)(?!\p{L})|неужели|правда\?|вот это да|ух ты/iu],
   ['shy', /смущ|стесн|краснею|неловко/i],
-  ['thinking', /\bхм+|интересно\.\.\.|интересно…|дума(ю|ет)|может быть|наверное/i],
+  ['thinking', /(?<!\p{L})хм+|интересно\.\.\.|интересно…|дума(ю|ет)|может быть|наверное/iu],
   ['joy', /ура|здорово|отлично|чудесн|прекрасн|замечательн|потрясающ|класс/i],
 ]
 
 /**
- * The expression a line suggests: a leading `[tag]` wins, then telling words, then punctuation
+ * The expression a line suggests: its first `[tag]` wins, then telling words, then punctuation
  * ("!" — happy, "…" — thinking). Null when nothing stands out (the face keeps its mood).
  */
 export function moodOfLine(text: string): Expression | null {

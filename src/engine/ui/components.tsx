@@ -90,8 +90,8 @@ export function Dialogue(props: {
   children?: ComponentChildren
 }) {
   const { typeSpeed = 0.028 } = props
-  // a leading [mood] tag is a stage direction for the speaker's face, not something to show
-  const text = props.text.replace(/^\s*\[[a-z]+\]\s*/, '')
+  // [mood] tags are stage directions for the speaker's face, not something to show
+  const text = props.text.replace(/\[[a-z]+\]\s*/g, '').trim()
   const [shown, setShown] = useState(0)
   const [skipped, setSkipped] = useState(false)
   const timerRef = useRef(0)

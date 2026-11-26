@@ -141,6 +141,14 @@ export default definePlugin({
     }
     api.services.provide('faces:control', control)
 
+    // a line over the head: the lips move for a moment, the face shows what it says
+    const saying = new Map<Target, number>()
+    api.events.on('emotes:said', ({ entity, text }) => {
+      const expr = moodOfLine(text)
+      if (expr) control.show(entity, expr, cfg.emoteSeconds)
+      control.talk(entity, true)
+      saying.set(entity, time + Math.min(2.5, 0.4 + stripTag(text).length * 0.05))
+    })
     api.events.on('emotes:shown', ({ entity, id }) => {
       const expr = cfg.emotes[id]
       if (expr) control.show(entity, expr, cfg.emoteSeconds)
@@ -210,6 +218,11 @@ export default definePlugin({
       run: ({ dt }) => {
         time += dt
         frameDt = dt
+        for (const [who, until] of saying) {
+          if (time < until) continue
+          control.talk(who, false)
+          saying.delete(who)
+        }
         // now and then: free the pictures of characters that are gone
         if (++frames % 300 === 0) {
           for (const [s, root] of textures) {
