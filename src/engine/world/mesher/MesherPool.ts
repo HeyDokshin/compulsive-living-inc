@@ -1,4 +1,5 @@
-import { meshChunk, type MeshInput, type MeshOutput } from './mesher'
+import type { MeshOutput } from './mesher'
+import { runMeshJob, type MeshJob } from './meshJob'
 import type { MeshRequest, MeshResponse } from './mesher.worker'
 // Inlined as a blob so the game also runs from a single HTML file opened via file://.
 import MesherWorker from './mesher.worker?worker&inline'
@@ -52,8 +53,8 @@ export class MesherPool {
     return Math.max(1, this.workers.length) * 4
   }
 
-  mesh(input: MeshInput): Promise<MeshOutput> {
-    if (!this.workers.length) return Promise.resolve(meshChunk(input))
+  mesh(input: MeshJob): Promise<MeshOutput> {
+    if (!this.workers.length) return Promise.resolve(runMeshJob(input))
     const id = this.nextId++
     const worker = [...this.busy].sort((a, b) => a[1] - b[1])[0]![0]
     this.busy.set(worker, this.busy.get(worker)! + 1)

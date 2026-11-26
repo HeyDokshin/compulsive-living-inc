@@ -12,7 +12,9 @@ import {
 import type { VoxelWorld } from '../world/VoxelWorld'
 import type { MesherPool } from '../world/mesher/MesherPool'
 import type { MeshBuffers, TintParams } from '../world/mesher/mesher'
+import type { RoundParams } from '../world/mesher/roundMesher'
 import type { BlockAtlas } from './BlockAtlas'
+import { createTerrainMaterial, createWaterMaterial } from './terrainMaterial'
 import { createVoxelMaterial } from './voxelMaterial'
 
 interface ChunkMeshes {
@@ -25,6 +27,11 @@ export class ChunkRenderer {
   readonly group = new Group()
   readonly opaqueMaterial: MeshLambertMaterial
   readonly transparentMaterial: MeshLambertMaterial
+  /** The rounded island's ground and water (style 'round'). */
+  readonly roundMaterial: MeshLambertMaterial = createTerrainMaterial()
+  readonly roundWaterMaterial: MeshLambertMaterial = createWaterMaterial(0.8)
+  /** Rounded island (no pixel textures) when set; blocks otherwise. Change → call reset(). */
+  round: RoundParams | null = null
   aoCurve: [number, number, number, number] = [0.5, 0.68, 0.84, 1]
   /** See MeshInput.maxMerge. Change → call remeshAll(). */
   maxMerge = Infinity
@@ -54,6 +61,16 @@ export class ChunkRenderer {
 
   set waterOpacity(v: number) {
     this.transparentMaterial.opacity = v
+    this.roundWaterMaterial.opacity = Math.min(1, v + 0.08)
+  }
+
+  /** Materials for the current style. */
+  get ground(): MeshLambertMaterial {
+    return this.round ? this.roundMaterial : this.opaqueMaterial
+  }
+
+  get water(): MeshLambertMaterial {
+    return this.round ? this.roundWaterMaterial : this.transparentMaterial
   }
 
   /** Forget all meshes (world was recreated). */
@@ -86,24 +103,52 @@ export class ChunkRenderer {
       this.inFlight.add(ci)
       const epoch = this.epoch
       const table = this.atlas.table
+      const tint = this.tint ? { ...this.tint, origin: [world.chunks[ci]!.cx * 16, world.chunks[ci]!.cz * 16] as [number, number] } : undefined
+      const round = this.round
+      // blocks of the neighbours the blur and the normals read (and that make them remesh when edited)
+      const pad = round ? Math.ceil((round.smoothAcross + 2) / round.subdiv) + 1 : 1
+      world.neighbourReach = pad
       this.pool
-        .mesh({
-          vol: world.paddedVolume(ci),
-          sx: 16,
-          sy: world.height,
-          sz: 16,
-          table: { kind: table.kind.slice(), tiles: table.tiles.slice(), liquid: table.liquid?.slice(), tint: table.tint?.slice() },
-          tint: this.tint ? { ...this.tint, origin: [world.chunks[ci]!.cx * 16, world.chunks[ci]!.cz * 16] } : undefined,
-          aoCurve: this.aoCurve,
-          maxMerge: this.maxMerge,
-        })
+        .mesh(
+          round
+            ? {
+                mode: 'round',
+                vol: world.paddedVolume(ci, undefined, pad),
+                sx: 16,
+                sy: world.height,
+                sz: 16,
+                pad,
+                round,
+                tint,
+                table: {
+                  kind: table.kind.slice(),
+                  tiles: new Float32Array(0),
+                  liquid: table.liquid?.slice(),
+                  tint: table.tint?.slice(),
+                  topColor: table.topColor?.slice(),
+                  sideColor: table.sideColor?.slice(),
+                  detailTop: table.detailTop?.slice(),
+                  detailSide: table.detailSide?.slice(),
+                },
+              }
+            : {
+                vol: world.paddedVolume(ci),
+                sx: 16,
+                sy: world.height,
+                sz: 16,
+                table: { kind: table.kind.slice(), tiles: table.tiles.slice(), liquid: table.liquid?.slice(), tint: table.tint?.slice() },
+                tint,
+                aoCurve: this.aoCurve,
+                maxMerge: this.maxMerge,
+              },
+        )
         .then((out) => {
           if (epoch !== this.epoch) return // reset() already forgot this job
           this.inFlight.delete(ci)
           const c = world.chunks[ci]!
           const meshes = this.meshes.get(ci) ?? {}
-          meshes.opaque = this.replace(meshes.opaque, out.opaque, this.opaqueMaterial, c.cx, c.cz)
-          meshes.transparent = this.replace(meshes.transparent, out.transparent, this.transparentMaterial, c.cx, c.cz)
+          meshes.opaque = this.replace(meshes.opaque, out.opaque, this.ground, c.cx, c.cz)
+          meshes.transparent = this.replace(meshes.transparent, out.transparent, this.water, c.cx, c.cz)
           this.meshes.set(ci, meshes)
           this.meshedCount++
           // Keep the pipeline full without waiting for the next frame (matters in background tabs).
@@ -168,6 +213,8 @@ export class ChunkRenderer {
     this.reset()
     this.opaqueMaterial.dispose()
     this.transparentMaterial.dispose()
+    this.roundMaterial.dispose()
+    this.roundWaterMaterial.dispose()
     this.setBorders(false)
   }
 
@@ -180,8 +227,9 @@ export class ChunkRenderer {
     const geo = new BufferGeometry()
     geo.setAttribute('position', new BufferAttribute(buf.position, 3))
     geo.setAttribute('normal', new BufferAttribute(buf.normal, 3))
-    geo.setAttribute('uv', new BufferAttribute(buf.uv, 2))
-    geo.setAttribute('tile', new BufferAttribute(buf.tile, 4))
+    if (buf.uv.length) geo.setAttribute('uv', new BufferAttribute(buf.uv, 2))
+    if (buf.tile.length) geo.setAttribute('tile', new BufferAttribute(buf.tile, 4))
+    if (buf.detail?.length) geo.setAttribute('detail', new BufferAttribute(buf.detail, 1))
     geo.setAttribute('color', new BufferAttribute(buf.color, 3))
     geo.setIndex(new BufferAttribute(buf.index, 1))
     geo.computeBoundingSphere()
@@ -189,7 +237,7 @@ export class ChunkRenderer {
     mesh.position.set(cx * 16, 0, cz * 16)
     mesh.visible = this.isVisible(cx, cz)
     mesh.frustumCulled = false // see cull()
-    mesh.castShadow = mat === this.opaqueMaterial
+    mesh.castShadow = mat === this.opaqueMaterial || mat === this.roundMaterial
     mesh.receiveShadow = true
     mesh.matrixAutoUpdate = false
     mesh.updateMatrix()

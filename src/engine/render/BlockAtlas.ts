@@ -102,6 +102,9 @@ export class BlockAtlas {
   readonly patterns = new Map<string, PatternFn>(Object.entries(BUILTIN_PATTERNS))
   private images = new Map<string, Promise<HTMLImageElement | null>>()
   private building = 0
+  private textureDefs: (id: string) => TextureDef | undefined = () => undefined
+  /** Materials the rounded island shows close up, by detail slot (see roundColors). */
+  detailMaterials: string[] = []
 
   constructor() {
     this.canvas = document.createElement('canvas')
@@ -116,6 +119,7 @@ export class BlockAtlas {
   /** Rebuild from registries. Resolves false if a newer rebuild started meanwhile. */
   async rebuild(blocks: BlockDef[], textures: (id: string) => TextureDef | undefined, palette: BlockPalette): Promise<boolean> {
     const token = ++this.building
+    this.textureDefs = textures
     const plan = planAtlas(blocks)
     const urls = plan.tiles.map((id) => textures(id)?.url)
     const images = await Promise.all(urls.map((u) => (u ? this.loadImage(u) : Promise.resolve(null))))
@@ -152,12 +156,14 @@ export class BlockAtlas {
     this.texture.needsUpdate = true
     this.plan = plan
     this.table = buildBlockTable(plan, blocks, palette)
+    this.detailMaterials = roundColors(this.table, blocks, palette, textures)
     return true
   }
 
   /** Recompute the table only (palette grew, textures unchanged). */
   refreshTable(blocks: BlockDef[], palette: BlockPalette): void {
     this.table = buildBlockTable(this.plan, blocks, palette)
+    this.detailMaterials = roundColors(this.table, blocks, palette, this.textureDefs)
   }
 
   private loadImage(url: string): Promise<HTMLImageElement | null> {
@@ -209,6 +215,61 @@ function drawPattern(
     log.error('pattern failed', e)
   }
   g.putImageData(data, x0, y0)
+}
+
+/**
+ * Colors and detail materials for the rounded island: each block's top and sides get the average
+ * color of their texture (no pixels), and the texture's `material` becomes a detail slot.
+ * Fills the table's topColor / sideColor / detailTop / detailSide; returns the materials by slot.
+ */
+export function roundColors(table: BlockTable, blocks: BlockDef[], palette: BlockPalette, textures: (id: string) => TextureDef | undefined): string[] {
+  const n = table.kind.length
+  const top = new Float32Array(n * 3).fill(0.8)
+  const side = new Float32Array(n * 3).fill(0.8)
+  const detailTop = new Int16Array(n).fill(-1)
+  const detailSide = new Int16Array(n).fill(-1)
+  const slots: string[] = []
+  const slotOf = (m: string | undefined) => {
+    if (!m) return -1
+    let i = slots.indexOf(m)
+    if (i < 0) i = slots.push(m) - 1
+    return i
+  }
+  for (const b of blocks) {
+    const num = palette.peek(b.id)
+    if (num === undefined || num >= n) continue
+    const faces = faceTextures(b)
+    const fill = (out: Float32Array, texId: string) => {
+      const t = textures(texId)
+      // the texture's own colors, the first counting most; the block's color without one
+      const cols = t?.colors?.length && !t.url ? t.colors : [b.color ?? '#cccccc']
+      let r = 0
+      let g = 0
+      let bl = 0
+      let w = 0
+      cols.forEach((c, i) => {
+        const k = i === 0 ? 2 : 1
+        const [cr, cg, cb] = shade(c, 1)
+        r += cr * k
+        g += cg * k
+        bl += cb * k
+        w += k
+      })
+      // sRGB → linear (vertex colors are linear)
+      const lin = (v: number) => Math.pow(v / w / 255, 2.2)
+      out[num * 3] = lin(r)
+      out[num * 3 + 1] = lin(g)
+      out[num * 3 + 2] = lin(bl)
+      return t?.material
+    }
+    detailTop[num] = slotOf(fill(top, faces[2]!))
+    detailSide[num] = slotOf(fill(side, faces[4]!))
+  }
+  table.topColor = top
+  table.sideColor = side
+  table.detailTop = detailTop
+  table.detailSide = detailSide
+  return slots
 }
 
 function hash(s: string): number {

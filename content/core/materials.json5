@@ -5,6 +5,18 @@
 // overlay, soft, add, darken, lighten. `relief` adds a layer to the surface height (baked light and shade).
 [
   {
+    // soft lawn: tufts and clover in light and shade (the color comes from the block)
+    id: 'core:grass',
+    shading: 0.9,
+    occlusion: 0.5,
+    layers: [
+      { kind: 'noise', colors: ['#8fb86c', '#a8cf86', '#b9dd96'], scale: 3, octaves: 5, relief: 0.5, seed: 41 },
+      { kind: 'fibers', colors: ['#7aa65a', '#c6e3a6'], scale: 18, octaves: 3, blend: 'overlay', opacity: 0.55, relief: 0.5, params: { stretch: 0.15 }, warp: 0.08, seed: 42 },
+      { kind: 'pebbles', colors: ['#a5cf86', '#c9e8ad'], scale: 7, opacity: 0.6, relief: 0.35, params: { size: 0.24 }, seed: 43,
+        mask: { kind: 'pebbles', scale: 7, threshold: 0.05, softness: 0.05, params: { size: 0.24 }, seed: 43 } },
+    ],
+  },
+  {
     id: 'core:stone',
     shading: 0.8,
     occlusion: 0.35,

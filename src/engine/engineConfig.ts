@@ -59,6 +59,28 @@ export const EngineConfigSchema = z.object({
       msaaDense: z.number().int().min(0).max(8).default(2).meta({ label: 'MSAA on dense screens', step: 1 }),
       ao: z.number().min(0).max(1).default(0.4).meta({ label: 'ambient occlusion', step: 0.05 }),
       waterOpacity: z.number().min(0).max(1).default(0.72).meta({ step: 0.01 }),
+      /**
+       * The island's look: 'round' — soft rounded land without pixel textures (squircle outlines,
+       * block colors, material detail close up); 'blocks' — classic voxels with the pixel atlas.
+       */
+      terrain: z
+        .object({
+          style: z.enum(['round', 'blocks']).default('round'),
+          /** Fine samples per block (odd). */
+          subdiv: z.number().int().min(1).max(5).default(3).meta({ step: 2 }),
+          /** How round outlines get (blur passes across). */
+          smoothAcross: z.number().int().min(0).max(10).default(6).meta({ label: 'round outlines', step: 1 }),
+          /** How soft edges get (blur passes up and down; more turns steps into slopes). */
+          smoothUp: z.number().int().min(0).max(3).default(0).meta({ label: 'soft edges', step: 1 }),
+          keep: z.number().min(0).max(1).default(0.62).meta({ label: 'keep thin blocks', step: 0.01 }),
+          /** Shade in creases. */
+          ao: z.number().min(0).max(1).default(0.45).meta({ label: 'crease shade', step: 0.05 }),
+          /** Material detail close up (grass blades, rock…). */
+          detail: z.number().min(0).max(1).default(0.7).meta({ label: 'material detail', step: 0.05 }),
+          /** Material tiles per block. */
+          detailScale: z.number().min(0.05).max(4).default(0.5).meta({ label: 'detail tiles per block', step: 0.05 }),
+        })
+        .prefault({}),
       /** Round, plush characters: smooth parts, fur and hair, drawn faces. */
       characters: z
         .object({
