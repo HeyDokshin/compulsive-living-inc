@@ -18,6 +18,7 @@ import type { Logger } from '../util/log'
 import type { IsoCamera } from '../render/IsoCamera'
 import type { EngineConfig } from '../engineConfig'
 import type { ModInfo } from '../mods/ModManager'
+import type { FaceSlot } from '../models/ModelLibrary'
 import type { PlainObject } from '../util/objects'
 import type { VoxelWorld } from '../world/VoxelWorld'
 import type { PatternFn } from '../render/textures'
@@ -121,6 +122,10 @@ export interface PluginApi {
     setModel(entity: Entity, model: NonNullable<Entity['model']>): void
     /** Rebuild an entity's 3D view after changing its `model` (e.g. recolored clothes, another rig). */
     refreshView(entity: Entity): void
+    /** Every drawn face of round rigs in the scene (heads whose model has a `face`) — to paint expressions. */
+    eachFace(fn: (slot: FaceSlot) => void): void
+    /** Screen pixels per block at the current zoom (detail decisions: texture sizes, fur). */
+    readonly pixelsPerBlock: number
     /** Camera smoothly follows this entity (null = free camera). */
     follow(entity: Entity | null): void
     /**

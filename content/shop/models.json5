@@ -52,6 +52,7 @@
     id: 'shop:keeper_body',
     scale: 0.0625,
     palette: {"o": "#d9643a", "d": "#5a2e22", "a": "#7cc45e", "w": "#fff4e6", "n": "#2a1e1e", "e": "#2a2230"},
+    fur: {"keys": {"o": 1, "d": 0.8}, "length": 0.9, "density": 5, "droop": 0.35},
     layers: [
       ['............', '............', '............', '............', '............', '............', '............', '..dddddddd..', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '..dddddddd..', '............'],
       ['............', '............', '............', '............', '............', '.....oo.....', '.....oo.....', '..dddddddd..', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '.dddddddddd.', '..dddddddd..', '............'],
@@ -68,6 +69,8 @@
     id: 'shop:keeper_head',
     scale: 0.0625,
     palette: {"o": "#d9643a", "d": "#5a2e22", "a": "#7cc45e", "w": "#fff4e6", "n": "#2a1e1e", "e": "#2a2230"},
+    fur: {"keys": {"o": 1, "w": 0.8}, "length": 1.0, "density": 5, "droop": 0.3},
+    face: {"center": [5, 3.2], "size": [9, 6.2], "front": 9, "erase": {"e": "o"}, "style": {"eyeGap": 2.5, "eyeY": 4.5, "eyeSize": 0.8, "mouthY": 1.2, "mouthWide": 1.1}},
     layers: [
       ['.oooooooo.', '.oooooooo.', '.oooooooo.', '.oooooooo.', '.oooooooo.', '.oooooooo.', '.oooooooo.', '.oooooooo.', '.oooooooo.', '...wwww...', '..........'],
       ['oooooooooo', 'oooooooooo', 'oooooooooo', 'oooooooooo', 'oooooooooo', 'oooooooooo', 'oooooooooo', 'oooooooooo', 'owwwwwwwwo', '...wwww...', '..........'],

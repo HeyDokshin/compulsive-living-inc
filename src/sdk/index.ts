@@ -20,6 +20,7 @@ export type { PluginMeta } from '../engine/plugins/PluginManager'
 export type { RegistryEntry, RegistryView, RegistryChange } from '../engine/registry/Registry'
 export type { SystemDef } from '../engine/loop/Scheduler'
 export type { Dispose } from '../engine/util/disposables'
+export type { FaceSlot } from '../engine/models/ModelLibrary'
 export type {
   Components,
   Entity,

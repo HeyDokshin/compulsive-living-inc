@@ -4,6 +4,8 @@
 [
   {
     id: 'core:chibi',
+    // smooth and rounded instead of blocky (render.characters.round)
+    round: { subdiv: 3, smooth: 2, iso: 0.42 },
     parts: [
       { name: 'legL', model: 'core:chibi_leg', pivot: [1, 4, 1], at: [-1, 4, 0] },
       { name: 'legR', model: 'core:chibi_leg', pivot: [1, 4, 1], at: [1, 4, 0] },

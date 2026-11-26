@@ -64,7 +64,7 @@ export class Renderer {
     private cfg: EngineConfig,
     entities: Entities,
     private world: VoxelWorld,
-    library: ModelLibrary,
+    private library: ModelLibrary,
   ) {
     this.renderer = new WebGLRenderer({ antialias: true, stencil: true })
     this.renderer.shadowMap.type = PCFShadowMap
@@ -116,6 +116,13 @@ export class Renderer {
       this.ambient.intensity = light.ambientIntensity
     }
 
+    // Character look: rebuild every view when it changes.
+    const look = render.characters
+    const lookKey = JSON.stringify([look.round, look.fur, look.faces, look.maxShells])
+    Object.assign(this.library.look, look)
+    if (this.last.look && lookKey !== this.last.look) this.entityRenderer.rebuildAll()
+    this.last.look = lookKey
+
     // Mesh-affecting settings: remesh only when they actually change.
     const ao = render.ao
     const curve: [number, number, number, number] = [1 - ao * 0.75, 1 - ao * 0.5, 1 - ao * 0.25, 1]
@@ -163,7 +170,7 @@ export class Renderer {
   }
 
   /** Values from the previous applyConfig, to skip expensive work when nothing changed. */
-  private last = { mesh: '', borders: false, ratio: 0 }
+  private last = { mesh: '', borders: false, ratio: 0, look: '' }
   private tmpColor = new Color()
   private lightState = createLightState()
   /** Per-frame light adjustment (the engine routes it through the `light:adjust` hook — weather). */
@@ -175,6 +182,8 @@ export class Renderer {
   }
 
   private detailSettings = { bias: 1, max: 16, fade: 0.4 }
+  /** Screen (drawing buffer) pixels per block at the current zoom. */
+  pixelsPerBlock = 32
 
   /** What the camera sees, refreshed every frame. */
   private cull: CullView = { x: 0, y: 0, z: 0, fx: 0, fz: -1, halfW: 1, halfH: 1, pitch: 1, curvature: 0, margin: 0 }
@@ -204,9 +213,12 @@ export class Renderer {
 
     this.iso.update(ctx.dt)
     const d = this.cfg.render.detail
+    const cam = this.iso.camera
+    const ppb = this.renderer.domElement.height / Math.max(1e-3, cam.top - cam.bottom)
+    this.pixelsPerBlock = ppb
+    // characters are 12 voxels per block
+    this.library.updateFur(ppb / 12)
     if (this.detail) {
-      const cam = this.iso.camera
-      const ppb = this.renderer.domElement.height / Math.max(1e-3, cam.top - cam.bottom)
       this.detailSettings.bias = d.bias
       this.detailSettings.max = d.enabled ? 2 ** Math.floor(Math.log2(d.max)) : 16
       this.detailSettings.fade = d.fade

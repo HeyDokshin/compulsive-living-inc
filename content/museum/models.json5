@@ -169,6 +169,7 @@
     id: 'museum:curator_body',
     scale: 0.0625,
     palette: {"b": "#b9875a", "v": "#5aa596", "k": "#f2c14e", "f": "#8a5a3a", "t": "#e8645a", "s": "#9a6a48", "n": "#3a2a2a", "m": "#6e4630", "r": "#8a5a3a", "e": "#2a2230", "g": "#f2c14e"},
+    fur: {"keys": {"b": 0.6, "r": 0.5}, "length": 0.5, "density": 6, "droop": 0.2},
     layers: [
       ['..bbbbbbbb..', '.bffbbbbffb.', '.bffbbbbffb.', '.bbbbbbbbbb.', '.bbbbbbbbbb.', '.bffbbbbffb.', '.bffbbbbffb.', '..bvvkkvvb..', '............'],
       ['..bbbbbbbb..', '.bbbbbbbbbb.', '.bbbbbbbbbb.', '.bbbbbbbbbb.', '.bbbbbbbbbb.', '.bbbbbbbbbb.', '.bbbbbbbbbb.', '..bvvvvvvb..', '............'],
@@ -185,6 +186,8 @@
     id: 'museum:curator_head',
     scale: 0.0625,
     palette: {"b": "#b9875a", "v": "#5aa596", "k": "#f2c14e", "f": "#8a5a3a", "t": "#e8645a", "s": "#9a6a48", "n": "#3a2a2a", "m": "#6e4630", "r": "#8a5a3a", "e": "#2a2230", "g": "#f2c14e"},
+    fur: {"keys": {"b": 0.7, "s": 0.3, "r": 0.5}, "length": 0.55, "density": 6, "droop": 0.2},
+    face: {"center": [5, 3], "size": [9.6, 6.6], "front": 9, "erase": {"e": "b", "m": "s"}, "style": {"eyeGap": 2.5, "eyeY": 4.5, "eyeSize": 0.6, "mouthY": 1.5, "mouthWide": 0.9, "lids": 0.35}},
     layers: [
       ['.bbbbbbbb.', '.bbbbbbbb.', '.bbbbbbbb.', '.bbbbbbbb.', '.bbbbbbbb.', '.bbbbbbbb.', '.bbbbbbbb.', '.bbbbbbbb.', '.bbbbbbbb.', '..ssssss..', '..ssssss..', '..ssssss..'],
       ['bbbbbbbbbb', 'bbbbbbbbbb', 'bbbbbbbbbb', 'bbbbbbbbbb', 'bbbbbbbbbb', 'bbbbbbbbbb', 'bbbbbbbbbb', 'bbbbbbbbbb', 'bbbbbbbbbb', '..ssssss..', '..ssssss..', '..ssmmss..'],

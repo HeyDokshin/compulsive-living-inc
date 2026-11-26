@@ -18,6 +18,40 @@ export const ModelDefSchema = z.looseObject({
   scale: z.number().positive().default(1 / 12),
   /** Origin in voxel units; default: bottom center. */
   pivot: Vec3.optional(),
+  /**
+   * Fur or hair on round rigs: how much grows on each palette character (0…1), how long and how
+   * dense. Far away it fades out; close up it is drawn strand by strand (shells).
+   */
+  fur: z
+    .object({
+      keys: z.record(z.string(), z.number().min(0).max(1)),
+      /** Strand length in voxels. */
+      length: z.number().min(0.05).max(6).default(0.9),
+      /** Strands per voxel. */
+      density: z.number().min(0.5).max(16).default(5),
+      /** How much the tips hang down (hair more, short fur less). */
+      droop: z.number().min(0).max(3).default(0.4),
+      thickness: z.number().min(0.05).max(0.6).default(0.42),
+    })
+    .optional(),
+  /**
+   * A drawn face on round rigs (expressions, blinking, talking — the `faces` plugin): where it sits on the
+   * front of this model, which painted voxels it replaces, and its look.
+   */
+  face: z
+    .looseObject({
+      /** Middle of the face on the front, voxel units from the model's min corner (x, y). */
+      center: z.tuple([z.number(), z.number()]),
+      /** Width and height of the face area (voxels). */
+      size: z.tuple([z.number(), z.number()]).default([7, 5]),
+      /** Front surface z (voxels from the min corner); the face lies on surfaces in front of it. */
+      front: z.number(),
+      /** Painted features the drawn face takes over: palette character → character whose color it gets. */
+      erase: z.record(z.string(), z.string()).default({}),
+      /** Look of the face (eyes, brows, mouth…) — read by the faces plugin. */
+      style: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).default({}),
+    })
+    .optional(),
 })
 export type ModelDef = z.infer<typeof ModelDefSchema>
 
@@ -26,6 +60,17 @@ export const RigDefSchema = z.looseObject({
   id: z.string(),
   tags: z.array(z.string()).optional(),
   scale: z.number().positive().default(1 / 12),
+  /** Draw the parts as smooth, rounded shapes instead of blocks (characters); see smoothMesh. */
+  round: z
+    .object({
+      /** Fine samples per voxel (2…4). */
+      subdiv: z.number().int().min(1).max(4).default(3),
+      /** How round: blur passes. */
+      smooth: z.number().int().min(0).max(4).default(2),
+      /** Lower keeps thin parts (ears) fuller. */
+      iso: z.number().min(0.2).max(0.8).default(0.42),
+    })
+    .optional(),
   parts: z.array(
     z.object({
       /** Animations find parts by name (legL, legR, armL, armR, body, head…). */

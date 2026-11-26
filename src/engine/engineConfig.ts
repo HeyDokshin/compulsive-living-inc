@@ -59,6 +59,20 @@ export const EngineConfigSchema = z.object({
       msaaDense: z.number().int().min(0).max(8).default(2).meta({ label: 'MSAA on dense screens', step: 1 }),
       ao: z.number().min(0).max(1).default(0.4).meta({ label: 'ambient occlusion', step: 0.05 }),
       waterOpacity: z.number().min(0).max(1).default(0.72).meta({ step: 0.01 }),
+      /** Round, plush characters: smooth parts, fur and hair, drawn faces. */
+      characters: z
+        .object({
+          round: z.boolean().default(true),
+          fur: z.boolean().default(true),
+          faces: z.boolean().default(true),
+          /** Fur shells close up (more = denser, softer fur; costs drawing time). */
+          maxShells: z.number().int().min(2).max(32).default(14).meta({ label: 'fur shells', step: 1 }),
+          /** Fur appears from this many screen pixels per voxel… */
+          furFrom: z.number().min(0.5).max(20).default(1.6).meta({ label: 'fur from (px/voxel)', step: 0.1 }),
+          /** …and is fully grown at this many. */
+          furFull: z.number().min(0.5).max(40).default(5).meta({ label: 'fur full (px/voxel)', step: 0.1 }),
+        })
+        .prefault({}),
       /** Close-up block textures: finer atlases (procedural materials) as the camera comes closer. */
       detail: z
         .object({

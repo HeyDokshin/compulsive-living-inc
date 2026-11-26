@@ -103,6 +103,10 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
         const c = game.engineConfig.camera
         game.config.set('engine', 'camera.zoom', Math.min(c.maxZoom, Math.max(c.minZoom, zoom)))
       },
+      eachFace: (fn) => game.modelLibrary.eachFace(fn),
+      get pixelsPerBlock() {
+        return game.renderer.pixelsPerBlock
+      },
       follow: (entity) => {
         game.camera.follow = entity
         if (entity) game.camera.placed = true

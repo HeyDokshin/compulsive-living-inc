@@ -6,6 +6,9 @@
   {
     id: 'core:chibi_head',
     palette: {"s": "#ffdcc4", "h": "#8a5a48", "e": "#3d2b3a", "b": "#ffadbb", "m": "#e8899a"},
+    // round rigs: soft hair (strands hang down a little) and a drawn face over the painted one
+    fur: { keys: { h: 1 }, length: 1.3, density: 6, droop: 0.8, thickness: 0.45 },
+    face: { center: [4, 2.7], size: [7.4, 5.2], front: 7, erase: { e: 's', m: 's', b: 's' }, style: { eyeGap: 1.5, eyeY: 3.5, mouthY: 1.5 } },
     layers: [
       ['........', '.hhhhhh.', '.ssssss.', '.ssssss.', '.ssssss.', '.ssssss.', '........'],
       ['.hhhhhh.', 'hhhhhhhh', 'ssssssss', 'ssssssss', 'ssssssss', 'ssssssss', '.ssmmss.'],
@@ -21,6 +24,8 @@
   {
     id: 'core:chibi_body',
     palette: {"t": "#9fd0ff", "p": "#6f84c9", "c": "#ffffff"},
+    // a fuzzy knit sweater on round rigs
+    fur: { keys: { t: 0.6, c: 0.4 }, length: 0.3, density: 9, droop: 0, thickness: 0.35 },
     layers: [
       ['pppppp', 'pppppp', 'pppppp', 'pppppp'],
       ['tttttt', 'tttttt', 'tttttt', 'tttttt'],
@@ -32,6 +37,7 @@
   {
     id: 'core:chibi_arm',
     palette: {"s": "#ffdcc4", "t": "#9fd0ff"},
+    fur: { keys: { t: 0.6 }, length: 0.3, density: 9, droop: 0, thickness: 0.35 },
     layers: [
       ['ss', 'ss'],
       ['ss', 'ss'],
