@@ -3,6 +3,8 @@
 [
   {
     id: 'nature:tree',
+    // soft low-poly round shapes (a sample per voxel)
+    round: { subdiv: 1, smooth: 2, iso: 0.45 },
     parts: [
       { name: 'trunk', model: 'nature:trunk', pivot: [1.5, 0, 1.5], at: [0, 0, 0] },
       { name: 'canopy', model: 'nature:canopy', pivot: [7, 0, 7], at: [0, 10, 0] },
@@ -13,6 +15,7 @@
   },
   {
     id: 'nature:sapling',
+    round: { subdiv: 1, smooth: 2, iso: 0.45 },
     parts: [{ name: 'canopy', model: 'nature:sapling', pivot: [2.5, 0, 2.5], at: [0, 0, 0] }],
   },
 ]

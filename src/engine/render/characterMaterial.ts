@@ -94,6 +94,8 @@ export interface FabricSlots {
   uMatScale: { value: number }
   /** How strongly the weave shows (0…1). */
   uMatStrength: { value: number }
+  /** 1: shown at every distance (leaves); 0: grows in with the zoom (clothes). */
+  uMatAlways: { value: number }
 }
 
 const FABRIC_DECLS = `
@@ -103,19 +105,21 @@ uniform sampler2D uMat2;
 uniform float uMatScale;
 uniform float uMatStrength;
 uniform float uMatFade;
+uniform float uMatAlways;
 varying vec3 vFabric;
 vec3 tri3(sampler2D t, vec3 p, vec3 w) {
   return texture2D(t, p.zy).rgb * w.x + texture2D(t, p.xz).rgb * w.y + texture2D(t, p.xy).rgb * w.z;
 }
 `
 const FABRIC_SAMPLE = `
-  if (uMatFade > 0.0) {
+  float matFade = max(uMatFade, uMatAlways);
+  if (matFade > 0.0) {
     vec3 tw = pow(abs(normalize(vObjNormal)), vec3(4.0));
     tw /= (tw.x + tw.y + tw.z + 1e-5);
     vec3 mp = vObjPos * uMatScale;
     float rest = max(0.0, 1.0 - vFabric.x - vFabric.y - vFabric.z);
     vec3 detail = tri3(uMat0, mp, tw) * vFabric.x + tri3(uMat1, mp, tw) * vFabric.y + tri3(uMat2, mp, tw) * vFabric.z + vec3(0.5) * rest;
-    diffuseColor.rgb *= mix(vec3(1.0), detail * 2.0, uMatFade * uMatStrength);
+    diffuseColor.rgb *= mix(vec3(1.0), detail * 2.0, matFade * uMatStrength);
   }
 `
 

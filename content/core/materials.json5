@@ -17,6 +17,18 @@
     ],
   },
   {
+    // leaf clumps for tree crowns (model fabric): rounded lobes, dark gaps, lit tops
+    id: 'core:leaves',
+    shading: 1.3,
+    occlusion: 0.8,
+    layers: [
+      { kind: 'cells', colors: ['#5c8f45', '#8fc86e', '#b3e08f'], scale: 5, relief: 1.4, params: { jitter: 0.9, edge: 0.22, seams: 0.75 }, seed: 44 },
+      { kind: 'pebbles', colors: ['#7fb85f', '#c0e89c'], scale: 9, opacity: 0.7, relief: 0.8, params: { size: 0.34 }, seed: 45,
+        mask: { kind: 'pebbles', scale: 9, threshold: 0.05, softness: 0.05, params: { size: 0.34 }, seed: 45 } },
+      { kind: 'noise', colors: ['#6a9c50', '#a6d684'], scale: 2, octaves: 3, blend: 'soft', opacity: 0.4, seed: 46 },
+    ],
+  },
+  {
     id: 'core:stone',
     shading: 0.8,
     occlusion: 0.35,

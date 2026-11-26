@@ -23,6 +23,8 @@
   {
     id: 'nature:canopy',
     palette: {"l": "#7cc45e", "d": "#5aa64a", "h": "#9ad97a"},
+    // clumps of leaves in light and shade, at every distance
+    fabric: { keys: { l: 'core:leaves', d: 'core:leaves', h: 'core:leaves' }, tile: 7, strength: 0.85, always: true },
     layers: [
       ['..............', '..............', '..............', '......dd......', '.....dhddd....', '....ddddhd....', '...dddddhd....', '...dddddddd...', '....ddddddd...', '.....ddddd....', '.....dddd.....', '..............', '..............', '..............'],
       ['..............', '..............', '....ddddd.....', '...dddddddd...', '..ddhddddhh...', '..ddhddddddd..', '..ddddddhddd..', '..ddddddddhd..', '..dddddddddd..', '..ddddddddd...', '...dddhdddd...', '....ddddd.....', '..............', '..............'],
@@ -97,6 +99,7 @@
   {
     id: 'nature:rock',
     palette: {"r": "#aeb2bd", "h": "#c9ccd5", "d": "#8e93a0", "m": "#a5cf8a"},
+    round: { subdiv: 1, smooth: 2, iso: 0.45 },
     layers: [
       ['..rrddrd..', '.hrrrrrdr.', '.rhdrrrdr.', 'hrdrrrrrrr', 'rddrrrrrrd', 'rrrrrrdrrd', '.rdrrrrrrr', '.rhrrrrrr.', '..rrdrrr..'],
       ['..drdrrd..', '.rrhrdrrr.', '.rdddrrdr.', 'rdhrrhrrdr', 'rrrrrdrrdd', 'ddrdrdddrr', '.ddrdrrrd.', '.ddrdddrr.', '...rrdrr..'],

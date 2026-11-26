@@ -225,7 +225,7 @@ export class ModelLibrary {
     if (!f || !this.fabrics || !this.look.fabric || !geo.getAttribute('fabric')) return undefined
     const ids = [...new Set(Object.values(f.keys))].slice(0, 3)
     const tex = (i: number) => this.fabrics!.uniform(ids[i] ?? ids[0]!)
-    return { uMat0: tex(0), uMat1: tex(1), uMat2: tex(2), uMatScale: { value: 1 / f.tile }, uMatStrength: { value: f.strength } }
+    return { uMat0: tex(0), uMat1: tex(1), uMat2: tex(2), uMatScale: { value: 1 / f.tile }, uMatStrength: { value: f.strength }, uMatAlways: { value: f.always ? 1 : 0 } }
   }
 
   /** Every drawn face in the scene (rig heads with a `face`), for the plugin that paints them. */
@@ -311,10 +311,10 @@ export class ModelLibrary {
   }
 
   /** Geometry of a voxel model (voxel units), its scale and a key naming this exact look — for instancing. */
-  voxelGeometry(id: string, palette: Record<string, string> | undefined, cb: (geo: BufferGeometry, scale: number, key: string) => void): void {
+  voxelGeometry(id: string, palette: Record<string, string> | undefined, cb: (geo: BufferGeometry, scale: number, key: string, material: Material) => void): void {
     this.withModel(id, (model, def) => {
       const { geo, key } = this.geometry(id, model, def.pivot ?? defaultPivot(model), palette, def)
-      if (geo.index!.count) cb(geo, def.scale, key)
+      if (geo.index!.count) cb(geo, def.scale, key, this.materialOf(id, def, geo))
     })
   }
 
@@ -322,7 +322,7 @@ export class ModelLibrary {
   rigGeometry(
     id: string,
     opts: { scale?: number; palette?: Record<string, string>; parts?: Record<string, string> },
-    cb: (geo: BufferGeometry, scale: number, key: string, at: [number, number, number]) => void,
+    cb: (geo: BufferGeometry, scale: number, key: string, at: [number, number, number], material: Material) => void,
   ): void {
     const rig = this.rigs.get(id)
     if (!rig) return void log.warn(`unknown rig "${id}"`)
@@ -330,15 +330,41 @@ export class ModelLibrary {
     for (const part of rig.parts) {
       const modelId = opts.parts?.[part.name] ?? part.model
       this.withModel(modelId, (model, def) => {
-        const { geo, key } = this.geometry(modelId, model, part.pivot, opts.palette, def)
-        if (geo.index!.count) cb(geo, scale, key, [part.at[0] * scale, part.at[1] * scale, part.at[2] * scale])
+        const { geo, key } = this.geometry(modelId, model, part.pivot, opts.palette, def, rig.round)
+        if (geo.index!.count) cb(geo, scale, key, [part.at[0] * scale, part.at[1] * scale, part.at[2] * scale], this.materialOf(modelId, def, geo))
       })
     }
   }
 
-  private geometry(id: string, model: VoxelModel, pivot: [number, number, number], palette: Record<string, string> | undefined, def: ModelDef) {
-    const key = `${id}|${pivot.join(',')}|${palette ? JSON.stringify(palette) : ''}`
+  /** Plain voxel color, or the weave / leaves of the model's `fabric` (shown at every distance unless it is clothing). */
+  private materialOf(id: string, def: ModelDef, geo: BufferGeometry): Material {
+    const fabric = this.fabricSlots(def, geo)
+    if (!fabric) return this.material
+    let m = this.fabricMaterials.get(id)
+    if (!m) this.fabricMaterials.set(id, (m = createCharacterMaterial(undefined, fabric)))
+    return m
+  }
+
+  private geometry(id: string, model: VoxelModel, pivot: [number, number, number], palette: Record<string, string> | undefined, def: ModelDef, rigRound?: RigDef['round']) {
+    // soft and round (low-poly: a sample per voxel) where the model or its rig asks for it
+    const round = this.look.round ? (def.round ?? rigRound) : undefined
+    const key = `${id}|${pivot.join(',')}|${palette ? JSON.stringify(palette) : ''}|${round ? JSON.stringify(round) : ''}`
     let geo = this.geometries.get(key)
+    if (!geo && round) {
+      const data = buildSmoothGeometry(model, pivot, { ...round, keep: round.keep ?? 0.62 })
+      geo = toGeometry(data, resolveColors(model, def, palette))
+      if (def.fabric) {
+        const chars = Object.keys(def.palette)
+        const ids = [...new Set(Object.values(def.fabric.keys))].slice(0, 3)
+        const w = new Float32Array(data.colorIndex.length * 3)
+        data.colorIndex.forEach((ci, i) => {
+          const slot = ids.indexOf(def.fabric!.keys[chars[ci - 1] ?? ''] ?? '')
+          if (slot >= 0) w[i * 3 + slot] = 1
+        })
+        geo.setAttribute('fabric', new Float32BufferAttribute(w, 3))
+      }
+      this.geometries.set(key, geo)
+    }
     if (!geo) {
       // faces merge up to one block: longer quads would cut corners on the curved world
       const maxMerge = Math.max(1, Math.round(1 / def.scale))
@@ -352,7 +378,7 @@ export class ModelLibrary {
   private mesh(id: string, model: VoxelModel, pivot: [number, number, number], palette: Record<string, string> | undefined, def: ModelDef): Mesh | null {
     const { geo } = this.geometry(id, model, pivot, palette, def)
     if (!geo.index!.count) return null
-    const mesh = new Mesh(geo, this.material)
+    const mesh = new Mesh(geo, this.materialOf(id, def, geo))
     mesh.castShadow = true
     mesh.receiveShadow = true
     return mesh

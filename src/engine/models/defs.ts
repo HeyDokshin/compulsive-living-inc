@@ -2,6 +2,18 @@ import { z } from 'zod'
 
 const Vec3 = z.tuple([z.number(), z.number(), z.number()])
 
+/** Smooth, rounded meshing instead of blocks (see smoothMesh). */
+const RoundSchema = z.object({
+  /** Fine samples per voxel (1 = low-poly round, 3 = smooth). */
+  subdiv: z.number().int().min(1).max(4).default(3),
+  /** How round: blur passes. */
+  smooth: z.number().int().min(0).max(4).default(2),
+  /** Lower keeps thin parts (ears) fuller. */
+  iso: z.number().min(0.2).max(0.8).default(0.42),
+  /** A voxel's middle stays at least this dense (odd subdiv), so nothing thin vanishes. */
+  keep: z.number().min(0).max(1).optional(),
+})
+
 /**
  * A voxel model. Either drawn in data with `layers` (bottom → top; each layer is rows from back (-z)
  * to front (+z); each row is characters left (-x) → right (+x); `.` or space = empty), with `palette`
@@ -18,6 +30,8 @@ export const ModelDefSchema = z.looseObject({
   scale: z.number().positive().default(1 / 12),
   /** Origin in voxel units; default: bottom center. */
   pivot: Vec3.optional(),
+  /** Draw smooth and rounded instead of blocky (trees, rocks, bushes). */
+  round: RoundSchema.optional(),
   /**
    * Fur or hair on round rigs: how much grows on each palette character (0…1), how long and how
    * dense. Far away it fades out; close up it is drawn strand by strand (shells).
@@ -46,6 +60,8 @@ export const ModelDefSchema = z.looseObject({
       tile: z.number().min(0.25).max(64).default(4),
       /** How strongly the weave shows (0…1). */
       strength: z.number().min(0).max(1).default(0.7),
+      /** Shown at every distance (leaves), not only close up (clothes). */
+      always: z.boolean().default(false),
     })
     .optional(),
   /**
@@ -74,17 +90,8 @@ export const RigDefSchema = z.looseObject({
   id: z.string(),
   tags: z.array(z.string()).optional(),
   scale: z.number().positive().default(1 / 12),
-  /** Draw the parts as smooth, rounded shapes instead of blocks (characters); see smoothMesh. */
-  round: z
-    .object({
-      /** Fine samples per voxel (2…4). */
-      subdiv: z.number().int().min(1).max(4).default(3),
-      /** How round: blur passes. */
-      smooth: z.number().int().min(0).max(4).default(2),
-      /** Lower keeps thin parts (ears) fuller. */
-      iso: z.number().min(0.2).max(0.8).default(0.42),
-    })
-    .optional(),
+  /** Draw the parts as smooth, rounded shapes instead of blocks (characters, trees); see smoothMesh. */
+  round: RoundSchema.optional(),
   parts: z.array(
     z.object({
       /** Animations find parts by name (legL, legR, armL, armR, body, head…). */

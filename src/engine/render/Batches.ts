@@ -136,11 +136,11 @@ export class ModelBatches {
   private load(spec: ModelSpec): Piece[] {
     const pieces: Piece[] = []
     const epoch = this.epoch
-    const add = (geo: BufferGeometry, scale: number, key: string, at: readonly [number, number, number]) => {
+    const add = (geo: BufferGeometry, scale: number, key: string, at: readonly [number, number, number], material: Material) => {
       if (epoch !== this.epoch) return
       let batch = this.byKey.get(key)
       if (!batch) {
-        batch = new Instances(this.parent, geo, this.library.material, (mesh) => {
+        batch = new Instances(this.parent, geo, material, (mesh) => {
           mesh.castShadow = true
           mesh.receiveShadow = true
         })
@@ -149,7 +149,7 @@ export class ModelBatches {
       pieces.push({ batch, scale, x: at[0], y: at[1], z: at[2] })
     }
     if (spec.shape === 'rig') this.library.rigGeometry(spec.ref!, spec, add)
-    else this.library.voxelGeometry(spec.ref!, spec.palette, (geo, scale, key) => add(geo, spec.scale ?? scale, key, HERE))
+    else this.library.voxelGeometry(spec.ref!, spec.palette, (geo, scale, key, material) => add(geo, spec.scale ?? scale, key, HERE, material))
     return pieces
   }
 
