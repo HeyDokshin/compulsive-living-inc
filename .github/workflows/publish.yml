@@ -19,15 +19,15 @@ jobs:
     name: Check and build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run check
       - run: npm run build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: web
           path: dist/index.html
@@ -50,8 +50,8 @@ jobs:
     needs: web
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -59,26 +59,47 @@ jobs:
       - run: npm run app
       - name: Zip the app
         run: ditto -c -k --keepParent "dist/Compulsive Living.app" CompulsiveLiving-macOS.zip
-      - name: The app starts
+      - name: The app is universal and signed
         run: |
-          app="dist/Compulsive Living.app/Contents/MacOS/CompulsiveLiving"
-          lipo -archs "$app"
+          lipo -archs "dist/Compulsive Living.app/Contents/MacOS/CompulsiveLiving"
           codesign --verify --verbose "dist/Compulsive Living.app"
-      - uses: actions/upload-artifact@v4
+      - name: The app opens and keeps running
+        run: |
+          # unzip what is released (not the build folder) and start it
+          mkdir try && ditto -x -k CompulsiveLiving-macOS.zip try
+          "try/Compulsive Living.app/Contents/MacOS/CompulsiveLiving" > app.log 2>&1 &
+          pid=$!
+          sleep 25
+          screencapture -x app-running.png || true
+          kill -0 "$pid" || { echo "the app quit"; cat app.log; exit 1; }
+          kill "$pid"
+          cat app.log
+      - uses: actions/upload-artifact@v5
         with:
           name: mac
           path: CompulsiveLiving-macOS.zip
           if-no-files-found: error
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: mac-screenshot
+          path: app-running.png
+          if-no-files-found: ignore
 
   release:
     name: Release
     needs: [web, mac]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
         with:
-          path: out
+          name: web
+          path: out/web
+      - uses: actions/download-artifact@v5
+        with:
+          name: mac
+          path: out/mac
       - name: Create or update the release of this version
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
