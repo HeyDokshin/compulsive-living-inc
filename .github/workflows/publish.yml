@@ -1,0 +1,102 @@
+# Every push to main: check, build the one-file game, publish it to play in the browser
+# (branch gh-pages → GitHub Pages), build the macOS app, and put both on the release of this version.
+name: Publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Check and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: dist/index.html
+          if-no-files-found: error
+      - name: Publish to gh-pages (play in the browser)
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir site
+          cp dist/index.html site/index.html
+          touch site/.nojekyll
+          cd site
+          git init -q -b gh-pages
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "Play: ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+
+  mac:
+    name: macOS app
+    needs: web
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run app
+      - name: Zip the app
+        run: ditto -c -k --keepParent "dist/Compulsive Living.app" CompulsiveLiving-macOS.zip
+      - name: The app starts
+        run: |
+          app="dist/Compulsive Living.app/Contents/MacOS/CompulsiveLiving"
+          lipo -archs "$app"
+          codesign --verify --verbose "dist/Compulsive Living.app"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: CompulsiveLiving-macOS.zip
+          if-no-files-found: error
+
+  release:
+    name: Release
+    needs: [web, mac]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+      - name: Create or update the release of this version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag="v$version"
+          cp out/web/index.html "CompulsiveLiving-$version.html"
+          cp out/mac/CompulsiveLiving-macOS.zip "CompulsiveLiving-$version-macOS.zip"
+          notes="Compulsive Living $version.
+
+          - **Играть в браузере:** https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/
+          - **macOS:** CompulsiveLiving-$version-macOS.zip — распакуйте и откройте (в первый раз: правый клик → Открыть; программа подписана без аккаунта разработчика).
+          - **Любая система:** CompulsiveLiving-$version.html — весь остров в одном файле, открывается двойным щелчком.
+
+          Собрано из ${GITHUB_SHA::7}."
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "CompulsiveLiving-$version.html" "CompulsiveLiving-$version-macOS.zip" --clobber
+            gh release edit "$tag" --notes "$notes"
+          else
+            gh release create "$tag" "CompulsiveLiving-$version.html" "CompulsiveLiving-$version-macOS.zip" --title "Compulsive Living $version" --notes "$notes" --target "$GITHUB_SHA"
+          fi
