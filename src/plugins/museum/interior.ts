@@ -208,7 +208,15 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
       height: cfg.wallHeight,
       doors: cells((ch) => ch === 'D'),
       windows: cells((ch) => ch === 'w'),
-      look: { wall: l.look.wall, wainscot: l.look.wainscot, floor: floors['.'] ?? l.look.wall, trim: l.look.trim, door: l.look.door, curtain: l.look.curtain, mat: l.look.mat },
+      look: {
+        wall: l.look.wall,
+        wainscot: l.look.wainscot,
+        floor: floors['.'] ?? l.look.wall,
+        trim: l.look.trim,
+        door: l.look.door,
+        curtain: l.look.curtain,
+        mat: l.look.mat,
+      },
       floorAt: (x, z) => floors[p.at(x - area.x, z - area.z)] ?? null,
     })
   }
@@ -331,7 +339,11 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
         if (e.kind === 'fish') {
           // back and forth across the tank, turning at the ends
           const s = Math.sin(t)
-          e.obj.position.set(e.x + Math.sin(e.facing + Math.PI / 2) * s * 0.18, e.y + Math.sin(t * 2.3) * 0.03, e.z + Math.cos(e.facing + Math.PI / 2) * s * 0.18)
+          e.obj.position.set(
+            e.x + Math.sin(e.facing + Math.PI / 2) * s * 0.18,
+            e.y + Math.sin(t * 2.3) * 0.03,
+            e.z + Math.cos(e.facing + Math.PI / 2) * s * 0.18,
+          )
           e.obj.rotation.y = e.facing + (Math.cos(t) >= 0 ? 0 : Math.PI)
         } else if (e.kind === 'bug') {
           e.obj.position.y = e.y + Math.max(0, Math.sin(t * 1.3)) * 0.05

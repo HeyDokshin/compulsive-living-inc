@@ -185,7 +185,7 @@ export function meshChunk(input: MeshInput): MeshOutput {
 
         // 2. Greedy merge of equal keys into rectangles.
         for (let j = 0; j < V; j++) {
-          for (let i = 0; i < U; ) {
+          for (let i = 0; i < U;) {
             const key = mask[i + j * U]!
             if (!key) {
               i++
@@ -278,10 +278,7 @@ function emitQuad(
   out.vertexCount += 4
 
   // Split along the diagonal that keeps AO gradients smooth.
-  const tris =
-    ao[0]! + ao[2]! > ao[1]! + ao[3]!
-      ? [0, 1, 2, 0, 2, 3]
-      : [0, 1, 3, 1, 2, 3]
+  const tris = ao[0]! + ao[2]! > ao[1]! + ao[3]! ? [0, 1, 2, 0, 2, 3] : [0, 1, 3, 1, 2, 3]
   for (let t = 0; t < 6; t += 3) {
     if (dir > 0) out.index.push(start + tris[t]!, start + tris[t + 1]!, start + tris[t + 2]!)
     else out.index.push(start + tris[t]!, start + tris[t + 2]!, start + tris[t + 1]!)

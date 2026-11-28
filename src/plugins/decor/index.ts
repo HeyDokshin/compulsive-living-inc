@@ -110,7 +110,7 @@ const Config = z.object({
 
 export const variantItemId = (pieceId: string, variantId: string) => `${pieceId}_${variantId}`
 /** A rare piece's item: the variant's item and the pattern, e.g. decor:bench_mint_rare_stars. */
-export const rareItemId = (pieceId: string, variantId: string, patternId: string) => `${variantItemId(pieceId, variantId)}_rare_${patternId.split(":").pop()}`
+export const rareItemId = (pieceId: string, variantId: string, patternId: string) => `${variantItemId(pieceId, variantId)}_rare_${patternId.split(':').pop()}`
 
 const PatternSchema = z.object({
   id: z.string(),
@@ -444,7 +444,9 @@ function setupGlow(api: PluginApi, cfg: { glow: number; indoorGlow: number }, pi
         if (!glow) continue
         let s = halos.get(e)
         if (!s) {
-          s = new T.Sprite(new T.SpriteMaterial({ map: tex, color: glow.color, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: 0 }))
+          s = new T.Sprite(
+            new T.SpriteMaterial({ map: tex, color: glow.color, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: 0 }),
+          )
           s.scale.setScalar(glow.size)
           group.add(s)
           halos.set(e, s)

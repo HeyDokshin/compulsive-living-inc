@@ -192,11 +192,7 @@ export class Game {
     // Engine-level answer: entities with a `blocker` footprint are walked around.
     this.hooks.tap('movement:blocked', (b, { x, y, z }) => b || this.blockers.isBlocked(x, y, z), { priority: -100 })
     // The clock is part of every save; days missed while away are replayed after the session starts.
-    this.sessions.saves.register(
-      'engine:time',
-      { version: 1, save: () => this.time.save(), load: (d) => this.time.load(d as SavedTime) },
-      'engine',
-    )
+    this.sessions.saves.register('engine:time', { version: 1, save: () => this.time.save(), load: (d) => this.time.load(d as SavedTime) }, 'engine')
     this.renderer.adjustLight = (state, hour) => this.hooks.run('light:adjust', state, { hour })
     this.interiors = this.createInteriors()
     this.camera.insideRoom = () => this.interiors.current !== null
@@ -346,7 +342,6 @@ export class Game {
     this.camera.snap()
   }
 
-
   async boot(opts: BootOptions): Promise<void> {
     this.files = { contentFiles: opts.contentFiles, configFiles: opts.configFiles, assetFiles: opts.assetFiles }
     Object.assign(this.sdk, opts.sdk)
@@ -484,7 +479,10 @@ export class Game {
     await this.mods.write(id, path, text)
     this.setContentFiles()
     const registry = /^content\/([a-z0-9_]+)\.([a-z0-9_]+)\.json5$/.exec(path)
-    const owner = registry && this.registries.has(`${registry[1]}:${registry[2]}`) ? this.plugins.get(this.registries.get(`${registry[1]}:${registry[2]}`).owner) : undefined
+    const owner =
+      registry && this.registries.has(`${registry[1]}:${registry[2]}`)
+        ? this.plugins.get(this.registries.get(`${registry[1]}:${registry[2]}`).owner)
+        : undefined
     if (owner) return void (await this.reloadPlugins([owner], { keepWorld: true }))
     this.content.reloadPack(id)
     this.events.emit('content:loaded', { packs: [id] })

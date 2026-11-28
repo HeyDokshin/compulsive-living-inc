@@ -1,4 +1,16 @@
-import { BoxGeometry, Color, DynamicDrawUsage, Euler, InstancedMesh, Matrix4, MeshBasicMaterial, MeshLambertMaterial, Quaternion, Vector3, type Scene } from 'three'
+import {
+  BoxGeometry,
+  Color,
+  DynamicDrawUsage,
+  Euler,
+  InstancedMesh,
+  Matrix4,
+  MeshBasicMaterial,
+  MeshLambertMaterial,
+  Quaternion,
+  Vector3,
+  type Scene,
+} from 'three'
 import type { Registry } from '../registry/Registry'
 import { stylize } from '../render/style'
 import type { ParticleDef } from './defs'
@@ -75,7 +87,10 @@ export class Particles {
       const sp = rnd(def.speed)
       this.vel.set([Math.sin(tilt) * Math.cos(dir) * sp, Math.cos(tilt) * sp, Math.sin(tilt) * Math.sin(dir) * sp], i * 3)
       this.rot.set([Math.random() * 6, Math.random() * 6, Math.random() * 6], i * 3)
-      this.info.set([rnd(def.size) * (opts.scale ?? 1), rnd(def.life), 0, def.spin * (Math.random() * 2 - 1), def.gravity, def.drag, def.shrink ? 1 : 0, def.glow ? 1 : 0], i * 8)
+      this.info.set(
+        [rnd(def.size) * (opts.scale ?? 1), rnd(def.life), 0, def.spin * (Math.random() * 2 - 1), def.gravity, def.drag, def.shrink ? 1 : 0, def.glow ? 1 : 0],
+        i * 8,
+      )
       this.c.set(opts.color ?? def.colors[Math.floor(Math.random() * def.colors.length)] ?? '#ffffff')
       this.col.set([this.c.r, this.c.g, this.c.b], i * 3)
     }
@@ -117,7 +132,10 @@ export class Particles {
       mesh.setMatrixAt(idx, this.m)
       mesh.setColorAt(idx, this.c)
     }
-    for (const [mesh, n] of [[this.lit, nl], [this.glow, ng]] as const) {
+    for (const [mesh, n] of [
+      [this.lit, nl],
+      [this.glow, ng],
+    ] as const) {
       mesh.count = n
       mesh.instanceMatrix.needsUpdate = true
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true

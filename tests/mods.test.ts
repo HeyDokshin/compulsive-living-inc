@@ -19,7 +19,10 @@ function deflated(name: string, data: Uint8Array): Uint8Array {
   const zip = writeZip({ [name]: new Uint8Array(deflateRawSync(data)) })
   const v = new DataView(zip.buffer)
   const central = v.getUint32(zip.length - 22 + 16, true)
-  for (const [at, p] of [[0, 0], [central, 2]] as const) {
+  for (const [at, p] of [
+    [0, 0],
+    [central, 2],
+  ] as const) {
     v.setUint16(at + 8 + p, 8, true)
     v.setUint32(at + 14 + p, crc32(data), true)
     v.setUint32(at + 22 + p, data.length, true)
@@ -59,12 +62,18 @@ describe('mod packages', () => {
   it('finds the root inside a zip and groups folders', () => {
     expect(stripRoot({ 'bees-main/mod.json5': 1, 'bees-main/content/items.json5': 2, '__MACOSX/x': 3 })).toEqual({ 'mod.json5': 1, 'content/items.json5': 2 })
     expect(() => stripRoot({ 'a.txt': 1 })).toThrow('mod.json5')
-    expect(groupFolders({ '/mods/a/mod.json5': 1, '/mods/a/content/x.json5': 2, '/mods/b/mod.json5': 3 }).get('a')).toEqual({ 'mod.json5': 1, 'content/x.json5': 2 })
+    expect(groupFolders({ '/mods/a/mod.json5': 1, '/mods/a/content/x.json5': 2, '/mods/b/mod.json5': 3 }).get('a')).toEqual({
+      'mod.json5': 1,
+      'content/x.json5': 2,
+    })
     expect(contentPaths('a', { 'content/items.json5': 1, 'main.js': 2 })).toEqual({ '/content/a/items.json5': 1 })
   })
   it('orders by dependencies and reports missing ones and cycles', () => {
     const m = (id: string, ...dependsOn: string[]) => parseManifest(JSON.stringify({ id, name: id, dependsOn }))
-    const { order, problems } = orderMods([m('a_mod', 'b_mod', 'items'), m('b_mod'), m('c_mod', 'nope'), m('d_mod', 'c_mod'), m('x1', 'x2'), m('x2', 'x1')], (id) => id === 'items')
+    const { order, problems } = orderMods(
+      [m('a_mod', 'b_mod', 'items'), m('b_mod'), m('c_mod', 'nope'), m('d_mod', 'c_mod'), m('x1', 'x2'), m('x2', 'x1')],
+      (id) => id === 'items',
+    )
     expect(order.map((x) => x.id)).toEqual(['b_mod', 'a_mod'])
     expect([...problems.keys()].sort()).toEqual(['c_mod', 'd_mod', 'x1', 'x2'])
   })
@@ -105,7 +114,9 @@ describe('ModManager', () => {
   it('installs a data mod, gives its files, switches off and removes', async () => {
     const mods = make()
     await mods.init({}, {})
-    const opened = await mods.open(zip({ id: 'sweets', name: 'Сладости' }, { 'content/items.json5': '[]', 'config/player.json5': '{ walkSpeed: 9, a: { b: 1 } }' }))
+    const opened = await mods.open(
+      zip({ id: 'sweets', name: 'Сладости' }, { 'content/items.json5': '[]', 'config/player.json5': '{ walkSpeed: 9, a: { b: 1 } }' }),
+    )
     await mods.install(opened.manifest, opened.files)
     expect(await mods.activate()).toEqual([])
     expect(mods.contentFiles()).toEqual({ '/content/sweets/items.json5': '[]' })
@@ -152,7 +163,10 @@ describe('content patches', () => {
     const errors: string[] = []
     loader.onError = (pack, message) => errors.push(`${pack} ${message}`)
     const base = { '/content/core/items.json5': `[{ id: 'core:apple', name: 'Яблоко', price: 100 }]` }
-    loader.setFiles({ ...base, '/content/mine/items.json5': `{ patch: { 'core:apple': { price: 150 } }, entries: [{ id: 'mine:pie', name: 'Пирог' }, { id: 'Bad' }] }` })
+    loader.setFiles({
+      ...base,
+      '/content/mine/items.json5': `{ patch: { 'core:apple': { price: 150 } }, entries: [{ id: 'mine:pie', name: 'Пирог' }, { id: 'Bad' }] }`,
+    })
     loader.reloadAll()
     expect(items.get('core:apple')).toMatchObject({ name: 'Яблоко', price: 150 })
     expect(items.without('core:apple', 'content:mine')).toMatchObject({ price: 100 })

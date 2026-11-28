@@ -6,7 +6,13 @@ import { ModelDefSchema, RigDefSchema } from '../src/engine/models/defs'
 
 describe('voxel models', () => {
   it('parses text layers (bottom→top, back→front, left→right)', () => {
-    const m = parseLayers([['ab', '..'], ['.a', 'a.']], { a: '#ff0000', b: '#00ff00' })
+    const m = parseLayers(
+      [
+        ['ab', '..'],
+        ['.a', 'a.'],
+      ],
+      { a: '#ff0000', b: '#00ff00' },
+    )
     expect(m.size).toEqual([2, 2, 2])
     expect(voxelAt(m, 0, 0, 0)).toBe(1)
     expect(voxelAt(m, 1, 0, 0)).toBe(2)
@@ -27,12 +33,27 @@ describe('voxel models', () => {
     expect(buildVoxelGeometry(bar, [0, 0, 0]).index.length / 6).toBe(6)
     expect(buildVoxelGeometry(bar, [0, 0, 0], 2).index.length / 6).toBe(10)
     // an L with a hole, two colors: total area must equal the exposed voxel faces, normals must agree with winding
-    const m = parseLayers([['aab', 'a.b', 'aaa'], ['a..', 'a..', 'bbb']], { a: '#fff', b: '#000' })
+    const m = parseLayers(
+      [
+        ['aab', 'a.b', 'aaa'],
+        ['a..', 'a..', 'bbb'],
+      ],
+      { a: '#fff', b: '#000' },
+    )
     let faces = 0
     for (let x = 0; x < 3; x++)
       for (let y = 0; y < 2; y++)
         for (let z = 0; z < 3; z++)
-          if (voxelAt(m, x, y, z)) for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]] as const) if (!voxelAt(m, x + dx, y + dy, z + dz)) faces++
+          if (voxelAt(m, x, y, z))
+            for (const [dx, dy, dz] of [
+              [1, 0, 0],
+              [-1, 0, 0],
+              [0, 1, 0],
+              [0, -1, 0],
+              [0, 0, 1],
+              [0, 0, -1],
+            ] as const)
+              if (!voxelAt(m, x + dx, y + dy, z + dz)) faces++
     const g = buildVoxelGeometry(m, [1.5, 0, 1.5])
     const at = (i: number) => g.position.slice(i * 3, i * 3 + 3)
     let area = 0

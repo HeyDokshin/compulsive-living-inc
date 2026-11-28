@@ -21,11 +21,7 @@ export class MeshBuilder {
   }
 
   /** A quad from 4 corners (counter-clockwise seen from the front), uv from world coordinates. */
-  quad(
-    p: ReadonlyArray<readonly [number, number, number]>,
-    n: readonly [number, number, number],
-    shade: readonly number[] = [1, 1, 1, 1],
-  ): void {
+  quad(p: ReadonlyArray<readonly [number, number, number]>, n: readonly [number, number, number], shade: readonly number[] = [1, 1, 1, 1]): void {
     const base = this.pos.length / 3
     // uv: project on the plane the normal is most across
     const ax = Math.abs(n[0])
@@ -118,17 +114,7 @@ export class MeshBuilder {
    * A hanging cloth panel (a curtain): `width` along the wall from `a`, hanging from `top` to
    * `bottom`, with `folds` soft waves of `depth`, its middle at `perp` across the wall.
    */
-  cloth(
-    alongX: boolean,
-    a: number,
-    width: number,
-    perp: number,
-    top: number,
-    bottom: number,
-    folds: number,
-    depth: number,
-    facing: 1 | -1,
-  ): void {
+  cloth(alongX: boolean, a: number, width: number, perp: number, top: number, bottom: number, folds: number, depth: number, facing: 1 | -1): void {
     const n = Math.max(4, Math.round(folds * 6))
     const base = this.pos.length / 3
     for (let i = 0; i <= n; i++) {

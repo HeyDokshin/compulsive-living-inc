@@ -52,7 +52,9 @@ export function ModsTab({ game }: { game: Game }) {
         {m.author && <div style={{ fontSize: '13px', color: 'var(--ui-text-soft)' }}>Автор: {m.author}</div>}
         {m.description && <div style={{ fontSize: '14px' }}>{m.description}</div>}
         <div style={{ fontSize: '13px', fontWeight: 700, color: m.main ? '#c96f4a' : 'var(--ui-text-soft)' }}>
-          {m.main ? 'В моде есть код: он сможет всё, что может сама игра. Ставьте моды с кодом только от тех, кому доверяете.' : 'В моде только данные, кода нет.'}
+          {m.main
+            ? 'В моде есть код: он сможет всё, что может сама игра. Ставьте моды с кодом только от тех, кому доверяете.'
+            : 'В моде только данные, кода нет.'}
         </div>
         {replaces && (
           <div style={{ fontSize: '13px' }}>
@@ -81,7 +83,10 @@ export function ModsTab({ game }: { game: Game }) {
     >
       {!list.length && <div style={{ fontSize: '14px' }}>Модов пока нет. Установите .zip или положите папку в mods/.</div>}
       {list.map((m) => (
-        <div key={m.id} style={{ background: 'var(--ui-bg-2)', borderRadius: '16px', padding: '10px 14px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div
+          key={m.id}
+          style={{ background: 'var(--ui-bg-2)', borderRadius: '16px', padding: '10px 14px', display: 'flex', gap: '12px', alignItems: 'center' }}
+        >
           <input
             type="checkbox"
             checked={m.enabled}

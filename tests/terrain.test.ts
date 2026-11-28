@@ -1,7 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import { VoxelWorld } from '../src/engine/world/VoxelWorld'
 import { generateWorld, type WorldGenStep } from '../src/engine/world/WorldGen'
-import { Config, connect, fillEnclosedWater, keepLargestComponent, ponds, quantile, rivers, shape, surface, voxels, type TerrainData } from '../src/plugins/terrain/gen'
+import {
+  Config,
+  connect,
+  fillEnclosedWater,
+  keepLargestComponent,
+  ponds,
+  quantile,
+  rivers,
+  shape,
+  surface,
+  voxels,
+  type TerrainData,
+} from '../src/plugins/terrain/gen'
 
 const cfg = Config.parse({})
 const steps: WorldGenStep[] = [
@@ -77,7 +89,11 @@ describe('terrain island', () => {
         for (let x = 0; x < 128; x++) {
           const i = x + z * 128
           let top = 0
-          for (let y = 31; y >= 0; y--) if (world.getId(x, y, z) !== 'air') { top = y + 1; break }
+          for (let y = 31; y >= 0; y--)
+            if (world.getId(x, y, z) !== 'air') {
+              top = y + 1
+              break
+            }
           if (!data.land[i]) {
             // the sea: water up to the ground level, nothing above
             expect(top, `sea ${x},${z}`).toBe(ground)

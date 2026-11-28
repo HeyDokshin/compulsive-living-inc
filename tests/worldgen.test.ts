@@ -11,7 +11,13 @@ describe('generateWorld', () => {
     const steps: WorldGenStep[] = [
       { id: 't:voxels', order: 400, run: (ctx) => void (calls.push('voxels'), ctx.world.fillColumn(0, 0, 0, ctx.data.h as number, ctx.block('t:stone'))) },
       { id: 't:shape', order: 100, run: (ctx) => void (calls.push('shape'), (ctx.data.h = 5)) },
-      { id: 't:broken', order: 200, run: () => { throw new Error('boom') } },
+      {
+        id: 't:broken',
+        order: 200,
+        run: () => {
+          throw new Error('boom')
+        },
+      },
       { id: 't:off', order: 300, enabled: false, run: () => void calls.push('off') },
     ]
     const w = new VoxelWorld()

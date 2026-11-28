@@ -4,7 +4,7 @@ import { Composer, DAY, NIGHT, midiToHz } from '../src/plugins/ambience/music'
 describe('generative music', () => {
   it('plays pads on chord changes, bass on beats 1 and 3, melody inside the scale', () => {
     let seed = 1
-    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
+    const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647
     const c = new Composer(rand)
     const notes = Array.from({ length: 64 }, (_, step) => ({ step, n: c.notesAt(step, DAY) }))
     const pads = notes.filter(({ n }) => n.some((x) => x.voice === 'pad')).map(({ step }) => step)

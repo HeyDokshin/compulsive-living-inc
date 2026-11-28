@@ -52,5 +52,4 @@ describe('faces', () => {
     }
     expect(mouthOpen(false, 1)).toBe(0)
   })
-
 })

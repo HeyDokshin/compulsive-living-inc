@@ -75,7 +75,9 @@ export function SettingsTab({ game }: { game: Game }) {
               ))}
             </div>
           </Row>
-          <div style={{ color: 'var(--ui-text-soft)', fontSize: '13px', textAlign: 'right', marginTop: '-4px' }}>{QUALITY.find((q) => q.id === s.quality)?.hint}</div>
+          <div style={{ color: 'var(--ui-text-soft)', fontSize: '13px', textAlign: 'right', marginTop: '-4px' }}>
+            {QUALITY.find((q) => q.id === s.quality)?.hint}
+          </div>
           <Row label="Тряска камеры">{check('cameraShake', 'Тряска камеры')}</Row>
           <Row label="Показывать FPS">{check('showFps', 'Показывать FPS')}</Row>
         </>

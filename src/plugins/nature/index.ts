@@ -51,7 +51,12 @@ const Config = z.object({
   foreignShare: z.number().min(0).max(1).default(0.1).meta({ label: 'foreign fruit share', step: 0.05 }),
   rocks: z.number().int().min(0).max(40).default(6).meta({ step: 1 }),
   /** Size of grown trees: world units per voxel of the tree rig (1/12 = character scale). */
-  treeScale: z.number().min(0.03).max(0.2).default(1 / 9).meta({ label: 'tree scale', step: 0.005 }),
+  treeScale: z
+    .number()
+    .min(0.03)
+    .max(0.2)
+    .default(1 / 9)
+    .meta({ label: 'tree scale', step: 0.005 }),
   digSpots: z.number().int().min(0).max(30).default(4).meta({ label: 'dig spots per day', step: 1 }),
   rockHitsPerDay: z.number().int().min(1).max(20).default(5).meta({ label: 'rock hits per day', step: 1 }),
   daysPerStage: z.number().int().min(1).max(30).default(DEFAULT_RULES.daysPerStage).meta({ label: 'days per growth stage', step: 1 }),
@@ -96,7 +101,12 @@ export default definePlugin({
     api.components.define('digSpot', obj)
 
     // Trees and rocks carry a `blocker` component: the engine makes characters walk around them.
-    const blocked = { has: (k: string) => { const [x, z] = k.split(',').map(Number); return !!api.world.blockerAt(x!, z!) } }
+    const blocked = {
+      has: (k: string) => {
+        const [x, z] = k.split(',').map(Number)
+        return !!api.world.blockerAt(x!, z!)
+      },
+    }
     const cellKey = (x: number, z: number) => `${x},${z}`
 
     const wobble = new Map<Entity, number>()
@@ -172,7 +182,15 @@ export default definePlugin({
         const native = fruitKinds.length ? fruitKinds[Math.floor(rng() * fruitKinds.length)]!.id : undefined
         const oak = kinds.all().find((k) => !k.fruitItem)?.id
         const ok = (i: number, x: number, z: number) =>
-          x > 2 && z > 2 && x < ctx.sizeX - 3 && z < ctx.sizeZ - 3 && ctx.surface[i] === 'core:grass' && !t?.river[i] && !t?.stairs?.[i] && !t?.bridge?.[i] && ctx.waterMap[i]! <= ctx.heightMap[i]!
+          x > 2 &&
+          z > 2 &&
+          x < ctx.sizeX - 3 &&
+          z < ctx.sizeZ - 3 &&
+          ctx.surface[i] === 'core:grass' &&
+          !t?.river[i] &&
+          !t?.stairs?.[i] &&
+          !t?.bridge?.[i] &&
+          ctx.waterMap[i]! <= ctx.heightMap[i]!
         const taken = new Set<string>()
         const free = (x: number, z: number, r: number) => {
           for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) if (taken.has(`${x + dx},${z + dz}`)) return false
@@ -240,7 +258,7 @@ export default definePlugin({
       for (const e of [...api.entities.world.with('digSpot')]) api.entities.despawn(e)
       const w = api.world
       let seed = (w.seed ^ Math.imul(api.time.dayIndex, 0x9e3779b1)) >>> 0
-      const rand = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296)
+      const rand = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296
       let placed = 0
       for (let tries = 0; tries < 2000 && placed < cfg.digSpots; tries++) {
         const x = 3 + Math.floor(rand() * (w.sizeX - 6))
@@ -500,7 +518,13 @@ function entitiesAt(api: PluginApi, x: number, z: number): Entity[] {
 }
 
 /** Free neighbour cells of an entity (prefer the side facing `towards`) for dropping things. */
-function freeCellsAround(api: PluginApi, e: Entity, blocked: { has(k: string): boolean }, n: number, towards?: Entity): Array<{ x: number; y: number; z: number }> {
+function freeCellsAround(
+  api: PluginApi,
+  e: Entity,
+  blocked: { has(k: string): boolean },
+  n: number,
+  towards?: Entity,
+): Array<{ x: number; y: number; z: number }> {
   const t = e.transform!
   const cx = Math.floor(t.x)
   const cz = Math.floor(t.z)

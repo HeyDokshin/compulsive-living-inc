@@ -29,7 +29,8 @@ export function Bench({ api, cfg, recipes, book, resultName }: Props) {
   const r = known.find((x) => x.id === selected) ?? known[0]
   const piece = r?.piece ? decor.get(r.piece) : undefined
   const v = piece?.variants.find((x) => x.id === variant) ?? piece?.variants[0]
-  const resultItem = (rec: RecipeDef, vid?: string) => (rec.piece ? decor.itemId(rec.piece, vid ?? decor.get(rec.piece)?.variants[0]?.id ?? '') : (rec.item ?? ''))
+  const resultItem = (rec: RecipeDef, vid?: string) =>
+    rec.piece ? decor.itemId(rec.piece, vid ?? decor.get(rec.piece)?.variants[0]?.id ?? '') : (rec.item ?? '')
 
   const craft = (rec: RecipeDef) => {
     const take = plan(rec.ingredients, pocket, hasTag)
@@ -92,7 +93,10 @@ export function Bench({ api, cfg, recipes, book, resultName }: Props) {
                 const n = have(ing, pocket, hasTag)
                 const label = ing.item ? (items.get(ing.item)?.name ?? ing.item) : tagName(ing.tag ?? '')
                 return (
-                  <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: n >= ing.count ? 'var(--ui-text)' : '#d9774a' }}>
+                  <span
+                    key={i}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: n >= ing.count ? 'var(--ui-text)' : '#d9774a' }}
+                  >
                     {ing.item && <ui.AsyncIcon src={api.ui.itemIcon(ing.item)} size={24} />}
                     {label} {Math.min(n, ing.count)}/{ing.count}
                   </span>
@@ -137,7 +141,13 @@ function Paint({ api, cfg, actor, tabs }: { api: PluginApi; cfg: CraftingConfig;
               <ui.ItemSlot icon={api.ui.itemIcon(id)} count={inv.count(actor, id)} />
               <span style={{ flex: 1, fontWeight: 700 }}>{items.get(id)?.name}</span>
               {d.piece.variants.map((x) => (
-                <Swatch key={x.id} color={x.palette.p ?? '#ccc'} title={x.name} active={x.id === d.variant.id} onClick={() => repaint(id, decor.itemId(d.piece.id, x.id))} />
+                <Swatch
+                  key={x.id}
+                  color={x.palette.p ?? '#ccc'}
+                  title={x.name}
+                  active={x.id === d.variant.id}
+                  onClick={() => repaint(id, decor.itemId(d.piece.id, x.id))}
+                />
               ))}
             </div>
           )

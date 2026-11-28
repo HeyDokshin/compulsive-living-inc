@@ -67,12 +67,7 @@ class IslandPicture {
 }
 
 /** Draws the map (part of the island around a point, turned) with markers into a canvas. */
-function paint(
-  api: PluginApi,
-  picture: IslandPicture,
-  c: HTMLCanvasElement,
-  opts: { radius: number | null; turn: boolean },
-): void {
+function paint(api: PluginApi, picture: IslandPicture, c: HTMLCanvasElement, opts: { radius: number | null; turn: boolean }): void {
   if (!picture.version) picture.draw()
   const g = c.getContext('2d')!
   const W = c.width
@@ -136,22 +131,10 @@ function paint(
   g.restore()
 }
 
-function toScreen(
-  x: number,
-  z: number,
-  cx: number,
-  cz: number,
-  scale: number,
-  turn: number,
-  W: number,
-  H: number,
-): [number, number] {
+function toScreen(x: number, z: number, cx: number, cz: number, scale: number, turn: number, W: number, H: number): [number, number] {
   const dx = (x - cx) * scale
   const dz = (z - cz) * scale
-  return [
-    W / 2 + dx * Math.cos(turn) - dz * Math.sin(turn),
-    H / 2 + dx * Math.sin(turn) + dz * Math.cos(turn),
-  ]
+  return [W / 2 + dx * Math.cos(turn) - dz * Math.sin(turn), H / 2 + dx * Math.sin(turn) + dz * Math.cos(turn)]
 }
 
 function roundRect(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
@@ -160,19 +143,7 @@ function roundRect(g: CanvasRenderingContext2D, x: number, y: number, w: number,
   g.fill()
 }
 
-function MapCanvas({
-  api,
-  picture,
-  size,
-  radius,
-  turn,
-}: {
-  api: PluginApi
-  picture: IslandPicture
-  size: number
-  radius: number | null
-  turn: boolean
-}) {
+function MapCanvas({ api, picture, size, radius, turn }: { api: PluginApi; picture: IslandPicture; size: number; radius: number | null; turn: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     let raf = 0
@@ -187,14 +158,7 @@ function MapCanvas({
     return () => cancelAnimationFrame(raf)
   }, [radius, turn])
   const ratio = Math.min(2, window.devicePixelRatio || 1)
-  return (
-    <canvas
-      ref={ref}
-      width={size * ratio}
-      height={size * ratio}
-      style={{ width: `${size}px`, height: `${size}px`, display: 'block' }}
-    />
-  )
+  return <canvas ref={ref} width={size * ratio} height={size * ratio} style={{ width: `${size}px`, height: `${size}px`, display: 'block' }} />
 }
 
 export default definePlugin({
@@ -253,13 +217,7 @@ export default definePlugin({
       title: 'Карта острова',
       component: () => (
         <div style={{ borderRadius: '28px', overflow: 'hidden', boxShadow: 'inset 0 0 0 4px #fffaf0' }}>
-          <MapCanvas
-            api={api}
-            picture={picture}
-            size={Math.min(520, Math.floor(window.innerHeight * 0.6))}
-            radius={null}
-            turn={false}
-          />
+          <MapCanvas api={api} picture={picture} size={Math.min(520, Math.floor(window.innerHeight * 0.6))} radius={null} turn={false} />
         </div>
       ),
     })

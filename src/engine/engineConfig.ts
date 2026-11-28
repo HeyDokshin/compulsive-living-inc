@@ -267,7 +267,13 @@ export type EngineConfig = z.infer<typeof EngineConfigSchema>
 
 /** World shape. Changing any value regenerates the world. */
 export const WorldConfigSchema = z.object({
-  seed: z.number().int().min(0).max(2 ** 31 - 1).default(12345).meta({ step: 1 }),
+  seed: z
+    .number()
+    .int()
+    .min(0)
+    .max(2 ** 31 - 1)
+    .default(12345)
+    .meta({ step: 1 }),
   chunksX: z.number().int().min(1).max(32).default(8).meta({ label: 'chunks X', step: 1 }),
   chunksZ: z.number().int().min(1).max(32).default(8).meta({ label: 'chunks Z', step: 1 }),
   height: z.number().int().min(8).max(128).default(32).meta({ step: 1 }),

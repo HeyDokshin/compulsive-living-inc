@@ -119,9 +119,30 @@ describe('SaveService', () => {
     // an entity whose component changed shape, a saver that can't read its data, one that can't write
     const odd = { components: { uid: 9, pocket: { n: 'seven' } } }
     s.keepEntities(restoreEntities([odd, { components: { pocket: { n: 1 } } }], ents))
-    s.register('picky', { version: 1, save: () => 'fresh', load: () => { throw new Error('what is this') } }, 'picky')
+    s.register(
+      'picky',
+      {
+        version: 1,
+        save: () => 'fresh',
+        load: () => {
+          throw new Error('what is this')
+        },
+      },
+      'picky',
+    )
     let broken = false
-    s.register('shaky', { version: 1, save: () => { if (broken) throw new Error('oops'); return 'new' }, load: () => {} }, 'shaky')
+    s.register(
+      'shaky',
+      {
+        version: 1,
+        save: () => {
+          if (broken) throw new Error('oops')
+          return 'new'
+        },
+        load: () => {},
+      },
+      'shaky',
+    )
     expect(s.loadPlugins({ picky: { version: 1, data: 'old' }, shaky: { version: 1, data: 'before' } })).toEqual(['picky'])
     broken = true
     const out = s.collect(meta, world, {}, ents)

@@ -22,7 +22,7 @@ export interface DailyTask {
 
 function rng(seed: number, day: number): () => number {
   let s = (seed ^ Math.imul(day + 1, 0x9e3779b1)) >>> 0
-  return () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296)
+  return () => (s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296
 }
 
 /** `n` different tasks for a day (the same all day on the same island), weighted. */

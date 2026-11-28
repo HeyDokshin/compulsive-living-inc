@@ -298,7 +298,7 @@ export function pattern(a: PatternArgs, u0: number, v0: number, res: number): nu
       const c = Math.cos(tilt)
       const s = Math.sin(tilt)
       ;[lx, ly] = [lx * c - ly * s, lx * s + ly * c]
-      const size = (p.size ?? 0.32) * (1 + ((p.vary ?? 0.25) * (id - 0.5)))
+      const size = (p.size ?? 0.32) * (1 + (p.vary ?? 0.25) * (id - 0.5))
       let d: number
       if (a.kind === 'dots') d = Math.hypot(lx, ly) - size
       else if (a.kind === 'stars') d = sdStar5(lx / size, -ly / size) * size

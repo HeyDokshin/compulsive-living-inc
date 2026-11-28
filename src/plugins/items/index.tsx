@@ -188,7 +188,9 @@ export default definePlugin({
           name: def?.name ?? id,
           transform: { x, y, z, rotY: Math.random() * Math.PI * 2 },
           item: { id, count },
-          model: def?.model ? { shape: 'voxel', ref: def.model, palette: def.palette, size: [1, 1, 1], color: '#ccc', anchor: 'bottom' } : { shape: 'box', size: [0.3, 0.3, 0.3], color: def?.icon?.color ?? '#ccc', anchor: 'bottom' },
+          model: def?.model
+            ? { shape: 'voxel', ref: def.model, palette: def.palette, size: [1, 1, 1], color: '#ccc', anchor: 'bottom' }
+            : { shape: 'box', size: [0.3, 0.3, 0.3], color: def?.icon?.color ?? '#ccc', anchor: 'bottom' },
         })
       },
     }
@@ -387,7 +389,7 @@ function scatterShells(api: PluginApi, cfg: Config, service: InventoryService): 
   const w = api.world
   const blocks = api.registry('blocks')
   let seed = (w.seed ^ 0x5eed) >>> 0
-  const rand = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296)
+  const rand = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296
   const spots: Array<[number, number, number]> = []
   for (let z = 2; z < w.sizeZ - 2; z++) {
     for (let x = 2; x < w.sizeX - 2; x++) {
@@ -479,9 +481,7 @@ function Pockets({ api, service, owner, selected }: Props & { selected: Signal<n
               <div style={{ color: 'var(--ui-text-soft)', fontSize: '13px', maxWidth: '260px' }}>{def.description ?? ' '}</div>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <ui.Button onClick={() => service.equip(a, inv.equipped === sel ? null : sel)}>
-                {inv.equipped === sel ? 'Убрать из рук' : 'В руки'}
-              </ui.Button>
+              <ui.Button onClick={() => service.equip(a, inv.equipped === sel ? null : sel)}>{inv.equipped === sel ? 'Убрать из рук' : 'В руки'}</ui.Button>
               <ui.Button
                 secondary
                 onClick={() => {

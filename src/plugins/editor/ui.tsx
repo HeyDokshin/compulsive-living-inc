@@ -1,6 +1,22 @@
 import { deepMerge, downloadFile, JSON5, ui, useMemo, useState, type ComponentChildren, type PluginApi, type RegistryEntry, type RegistryView } from '@sdk'
 import type { EditorConfig, KindDef } from './index'
-import { dropEntry, fieldsOf, freeId, isObj, matches, packPath, putEntry, readPack, removedKeys, setField, slug, writePack, type Field, type Obj, type PackFile } from './logic'
+import {
+  dropEntry,
+  fieldsOf,
+  freeId,
+  isObj,
+  matches,
+  packPath,
+  putEntry,
+  readPack,
+  removedKeys,
+  setField,
+  slug,
+  writePack,
+  type Field,
+  type Obj,
+  type PackFile,
+} from './logic'
 
 type Entry = Obj & RegistryEntry
 
@@ -136,7 +152,8 @@ export function Editor({ api, cfg, kinds }: Props) {
             />
           ) : (
             <div style={{ ...soft, fontSize: '14px', lineHeight: 1.5 }}>
-              Выберите запись слева. Правки сохраняются в мод «{mod.name}» и сразу видны в игре, сами файлы игры не меняются. Чтобы добавить своё, откройте похожую запись и нажмите «Копия».
+              Выберите запись слева. Правки сохраняются в мод «{mod.name}» и сразу видны в игре, сами файлы игры не меняются. Чтобы добавить своё, откройте
+              похожую запись и нажмите «Копия».
             </div>
           )}
         </div>
@@ -217,19 +234,38 @@ function Form(p: FormProps) {
         <div style={{ ...row, minWidth: 0 }}>
           {registry === 'items' && !p.isNew && <ui.AsyncIcon src={api.ui.itemIcon(p.entry.id)} size={40} />}
           {p.isNew ? (
-            <input class="cl-input" style={{ width: '260px' }} aria-label="id" value={draft.id} onInput={(e) => setDraft({ ...draft, id: (e.target as HTMLInputElement).value.trim() })} />
+            <input
+              class="cl-input"
+              style={{ width: '260px' }}
+              aria-label="id"
+              value={draft.id}
+              onInput={(e) => setDraft({ ...draft, id: (e.target as HTMLInputElement).value.trim() })}
+            />
           ) : (
             <code style={{ fontWeight: 800 }}>{p.entry.id}</code>
           )}
         </div>
-        <span style={soft}>{p.isNew ? 'новая запись' : p.isOwn ? 'запись мода' : p.isChanged ? 'изменено' : (api.content.ownerOf(registry, p.entry.id) ?? '').replace('content:', 'из набора ')}</span>
+        <span style={soft}>
+          {p.isNew
+            ? 'новая запись'
+            : p.isOwn
+              ? 'запись мода'
+              : p.isChanged
+                ? 'изменено'
+                : (api.content.ownerOf(registry, p.entry.id) ?? '').replace('content:', 'из набора ')}
+        </span>
       </div>
       <div style={{ maxHeight: '46vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '6px' }}>
         {asText !== null ? (
           <textarea class="cl-input cl-code" rows={18} spellcheck={false} value={asText} onInput={(e) => setAsText((e.target as HTMLTextAreaElement).value)} />
         ) : (
           fields.map((f) => (
-            <FieldRow key={f.key} label={p.fieldNames[f.key] ?? f.key} field={f} changed={!!base && JSON.stringify(base[f.key]) !== JSON.stringify(draft[f.key])}>
+            <FieldRow
+              key={f.key}
+              label={p.fieldNames[f.key] ?? f.key}
+              field={f}
+              changed={!!base && JSON.stringify(base[f.key]) !== JSON.stringify(draft[f.key])}
+            >
               <FieldInput
                 field={f}
                 value={draft[f.key]}
@@ -309,7 +345,13 @@ function FieldInput({ field, value, onValue, onBroken }: { field: Field; value: 
       const n = Number(raw.replace(',', '.'))
       return Number.isFinite(n) ? onValue(n) : onBroken('нужно число')
     }
-    if (field.kind === 'lines') return onValue(raw.split('\n').map((l) => l.trim()).filter(Boolean))
+    if (field.kind === 'lines')
+      return onValue(
+        raw
+          .split('\n')
+          .map((l) => l.trim())
+          .filter(Boolean),
+      )
     if (field.kind === 'json') {
       try {
         return onValue(JSON5.parse(raw))
@@ -351,7 +393,15 @@ function FieldInput({ field, value, onValue, onBroken }: { field: Field; value: 
     case 'long':
     case 'lines':
     case 'json':
-      return <textarea class={`cl-input${field.kind === 'json' ? ' cl-code' : ''}`} rows={Math.min(8, Math.max(2, text.split('\n').length))} spellcheck={field.kind !== 'json'} value={text} onInput={input} />
+      return (
+        <textarea
+          class={`cl-input${field.kind === 'json' ? ' cl-code' : ''}`}
+          rows={Math.min(8, Math.max(2, text.split('\n').length))}
+          spellcheck={field.kind !== 'json'}
+          value={text}
+          onInput={input}
+        />
+      )
     default:
       return <input class="cl-input" inputMode={field.kind === 'number' ? 'decimal' : undefined} value={text} onInput={input} />
   }
@@ -380,7 +430,8 @@ function FirstMod({ api, onDone }: { api: PluginApi; onDone(id: string): void })
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: 'min(440px, 86vw)' }}>
       <div style={{ fontSize: '14px', lineHeight: 1.5 }}>
-        Здесь можно менять предметы, рецепты, жителей, их реплики и всё остальное — и добавлять своё. Правки живут в вашем моде: файлы игры не меняются, мод можно выключить или отдать другому.
+        Здесь можно менять предметы, рецепты, жителей, их реплики и всё остальное — и добавлять своё. Правки живут в вашем моде: файлы игры не меняются, мод
+        можно выключить или отдать другому.
       </div>
       <div style={{ fontWeight: 800 }}>Как назовём ваш мод?</div>
       <NameMod api={api} onDone={onDone} />
@@ -408,7 +459,15 @@ function NameMod({ api, onDone }: { api: PluginApi; onDone(id: string): void }) 
         void create()
       }}
     >
-      <input class="cl-input" style={{ width: '220px' }} maxLength={40} value={name} placeholder="Мой мод" aria-label="Название мода" onInput={(e) => setName((e.target as HTMLInputElement).value)} />
+      <input
+        class="cl-input"
+        style={{ width: '220px' }}
+        maxLength={40}
+        value={name}
+        placeholder="Мой мод"
+        aria-label="Название мода"
+        onInput={(e) => setName((e.target as HTMLInputElement).value)}
+      />
       <button type="submit" class="cl-btn">
         Создать
       </button>

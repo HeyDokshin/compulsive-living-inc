@@ -30,7 +30,14 @@ describe('recipes', () => {
 
   it('lets exact items go first so a tag cannot eat them', () => {
     // needs the red rose itself plus 2 flowers of any kind: only works if the rose is kept for the first
-    const p = plan([{ tag: '#garden:flowers', count: 2 }, { item: 'garden:rose_red', count: 1 }], pocket, hasTag)
+    const p = plan(
+      [
+        { tag: '#garden:flowers', count: 2 },
+        { item: 'garden:rose_red', count: 1 },
+      ],
+      pocket,
+      hasTag,
+    )
     expect(p).not.toBeNull()
     expect(Object.fromEntries(p!)).toEqual({ 'garden:rose_red': 1, 'garden:tulip_white': 2 })
   })

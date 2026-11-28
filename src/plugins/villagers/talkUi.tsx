@@ -33,8 +33,22 @@ export function Talk(props: Props) {
     const w = api.services.has('weather:forecast') ? api.services.get('weather:forecast').current() : undefined
     const others = Object.keys(props.state.value.residents).filter((id) => id !== v.id)
     const other = props.defs.get(others[Math.floor(Math.random() * others.length)] ?? '')?.name ?? 'кто-то'
-    const line = pickLine(props.lines.all(), topic, { personality: v.personality, hour: api.time.hour, raining: w?.precipitation === 'rain', hearts: hearts(r.points), season: api.time.season }, Math.random)
-    return fill(line ?? '…', { name: v.name, phrase: v.phrase, animal: v.animal, player: api.session.player || cfg.playerName, other, a: v.she ? 'а' : '', hearts: hearts(r.points), ...extra })
+    const line = pickLine(
+      props.lines.all(),
+      topic,
+      { personality: v.personality, hour: api.time.hour, raining: w?.precipitation === 'rain', hearts: hearts(r.points), season: api.time.season },
+      Math.random,
+    )
+    return fill(line ?? '…', {
+      name: v.name,
+      phrase: v.phrase,
+      animal: v.animal,
+      player: api.session.player || cfg.playerName,
+      other,
+      a: v.she ? 'а' : '',
+      hearts: hearts(r.points),
+      ...extra,
+    })
   }
   const add = (n: number) => {
     if (!r) return
@@ -84,7 +98,8 @@ export function Talk(props: Props) {
     const taste = giftTaste((t) => items.isTagged(id, t), pers?.likes ?? [], pers?.dislikes ?? [], items.get(id)?.price ?? 0)
     add(cfg.giftPoints[taste])
     api.events.emit('villagers:gifted', { id: v.id, item: id, taste })
-    if (api.services.has('emotes:show')) api.services.get('emotes:show').show(npc, taste === 'love' ? 'emotes:love' : taste === 'dislike' ? 'emotes:question' : 'emotes:gift')
+    if (api.services.has('emotes:show'))
+      api.services.get('emotes:show').show(npc, taste === 'love' ? 'emotes:love' : taste === 'dislike' ? 'emotes:question' : 'emotes:gift')
     let reply = say(`gift_${taste}`, { item: name })
     // a best friend's photo, once
     if (hearts(r.points) >= 5 && !r.photo && api.services.has('decor:pieces')) {
@@ -95,7 +110,10 @@ export function Talk(props: Props) {
       }
     } else if (taste === 'love' && h >= 2 && Math.random() < 0.35 && api.services.has('decor:pieces')) {
       // something back: a piece of furniture
-      const pieces = api.services.get('decor:pieces').all().filter((p) => p.price > 0)
+      const pieces = api.services
+        .get('decor:pieces')
+        .all()
+        .filter((p) => p.price > 0)
       const p = pieces[Math.floor(Math.random() * pieces.length)]
       const variant = p?.variants[Math.floor(Math.random() * p.variants.length)]
       if (p && variant) {
@@ -121,7 +139,9 @@ export function Talk(props: Props) {
     setText(say('request_ask', { request: req.label }))
   }
 
-  const gifts = [...new Set((inv.of(actor)?.slots ?? []).filter((s) => s && (items.get(s.id)?.price ?? 0) > 0 && !items.isTagged(s.id, '#core:tools')).map((s) => s!.id))]
+  const gifts = [
+    ...new Set((inv.of(actor)?.slots ?? []).filter((s) => s && (items.get(s.id)?.price ?? 0) > 0 && !items.isTagged(s.id, '#core:tools')).map((s) => s!.id)),
+  ]
   const leaving = r.leaving >= 0
   const scene = api.services.has('cutscene:talk') ? api.services.get('cutscene:talk') : undefined
   return (

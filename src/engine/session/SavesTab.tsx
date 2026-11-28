@@ -65,17 +65,19 @@ export function SavesTab({ game, onTitle = false }: { game: Game; onTitle?: bool
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
-      {!onTitle && <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: '16px' }}>{s.name}</div>
-          <div style={{ color: 'var(--ui-text-soft)', fontSize: '13px' }}>
-            {s.player ? `${s.player} · ` : ''}сид {game.worldConfig.seed} · в игре {fmtTime(s.playTime)} · слот {s.slot.replace('slot', '')}
+      {!onTitle && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '16px' }}>{s.name}</div>
+            <div style={{ color: 'var(--ui-text-soft)', fontSize: '13px' }}>
+              {s.player ? `${s.player} · ` : ''}сид {game.worldConfig.seed} · в игре {fmtTime(s.playTime)} · слот {s.slot.replace('slot', '')}
+            </div>
           </div>
+          <Button disabled={busy} onClick={() => run('Сохранено', () => sm.save())}>
+            Сохранить
+          </Button>
         </div>
-        <Button disabled={busy} onClick={() => run('Сохранено', () => sm.save())}>
-          Сохранить
-        </Button>
-      </div>}
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {sm.slotIds().map((slot, i) => {
@@ -110,7 +112,9 @@ export function SavesTab({ game, onTitle = false }: { game: Game; onTitle?: bool
                     Загрузить
                   </Button>
                 )}
-                {onTitle ? null : m ? ask(`save:${slot}`, 'Перезаписать', () => run('Сохранено', () => sm.save(slot))) : (
+                {onTitle ? null : m ? (
+                  ask(`save:${slot}`, 'Перезаписать', () => run('Сохранено', () => sm.save(slot)))
+                ) : (
                   <Button secondary disabled={busy} onClick={() => run('Сохранено', () => sm.save(slot))}>
                     Сохранить сюда
                   </Button>
@@ -120,7 +124,9 @@ export function SavesTab({ game, onTitle = false }: { game: Game; onTitle?: bool
                     Экспорт
                   </Button>
                 )}
-                {m ? ask(`del:${slot}`, 'Удалить', () => run('Удалено', () => sm.storage.remove(slot))) : (
+                {m ? (
+                  ask(`del:${slot}`, 'Удалить', () => run('Удалено', () => sm.storage.remove(slot)))
+                ) : (
                   <Button secondary disabled={busy} onClick={() => importInto(slot)}>
                     Импорт
                   </Button>

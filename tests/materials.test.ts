@@ -19,7 +19,11 @@ const diff = (a: number[], b: number[]) => Math.abs(a[0]! - b[0]!) + Math.abs(a[
 
 describe('procedural materials', () => {
   it('periodic noise wraps around its period', () => {
-    for (const [x, y] of [[0.3, 0.7], [2.5, 1.1], [3.99, 0.01]]) {
+    for (const [x, y] of [
+      [0.3, 0.7],
+      [2.5, 1.1],
+      [3.99, 0.01],
+    ]) {
       expect(periodicNoise(x!, y!, 4, 4, 9)).toBeCloseTo(periodicNoise(x! + 4, y! - 4, 4, 4, 9), 10)
     }
     expect(fbm(0, 0.4, 3, 5, 0.5, 1, 256)).toBeCloseTo(fbm(1, 0.4, 3, 5, 0.5, 1, 256), 10)
@@ -57,7 +61,34 @@ describe('procedural materials', () => {
   })
 
   it('every pattern renders', () => {
-    for (const kind of ['fill', 'noise', 'ridged', 'cells', 'cracks', 'strata', 'wood', 'boards', 'grain', 'fibers', 'knit', 'pebbles', 'twill', 'weave', 'stripes', 'dots', 'stars', 'hearts', 'flowers', 'checker', 'waves', 'marble', 'terrazzo', 'scales', 'herringbone', 'zigzag'] as const) {
+    for (const kind of [
+      'fill',
+      'noise',
+      'ridged',
+      'cells',
+      'cracks',
+      'strata',
+      'wood',
+      'boards',
+      'grain',
+      'fibers',
+      'knit',
+      'pebbles',
+      'twill',
+      'weave',
+      'stripes',
+      'dots',
+      'stars',
+      'hearts',
+      'flowers',
+      'checker',
+      'waves',
+      'marble',
+      'terrazzo',
+      'scales',
+      'herringbone',
+      'zigzag',
+    ] as const) {
       const m = MaterialSchema.parse({ id: 't:' + kind, layers: [{ kind, colors: ['#000000', '#ffffff'] }] })
       const d = renderMaterial(m, 16)
       expect(d.some((v, i) => i % 4 !== 3 && Number.isFinite(v))).toBe(true)

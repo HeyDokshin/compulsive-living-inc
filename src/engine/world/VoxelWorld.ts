@@ -168,9 +168,7 @@ export class VoxelWorld {
       for (let z = -pad; z < 16 + pad; z++) {
         for (let x = -pad; x < 16 + pad; x++) {
           const inside = x >= 0 && x < 16 && z >= 0 && z < 16
-          const v = inside
-            ? c.data[x + z * 16 + y * 256]!
-            : this.getLocal(clamp(ox + x, 0, this.sizeX - 1), y, clamp(oz + z, 0, this.sizeZ - 1))
+          const v = inside ? c.data[x + z * 16 + y * 256]! : this.getLocal(clamp(ox + x, 0, this.sizeX - 1), y, clamp(oz + z, 0, this.sizeZ - 1))
           if (v) vol[x + pad + (z + pad) * P + (y + 1) * P * P] = v
         }
       }

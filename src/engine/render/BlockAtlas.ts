@@ -2,16 +2,7 @@ import { CanvasTexture, NearestFilter, SRGBColorSpace } from 'three'
 import type { BlockDef } from '../types'
 import type { BlockPalette } from '../world/BlockPalette'
 import { KIND_AIR, KIND_OPAQUE, KIND_TRANSPARENT, type BlockTable } from '../world/mesher/mesher'
-import {
-  BUILTIN_PATTERNS,
-  MISSING_PATTERN,
-  TILE,
-  mulberry32,
-  shade,
-  type PatternContext,
-  type PatternFn,
-  type TextureDef,
-} from './textures'
+import { BUILTIN_PATTERNS, MISSING_PATTERN, TILE, mulberry32, shade, type PatternContext, type PatternFn, type TextureDef } from './textures'
 import { createLogger } from '../util/log'
 
 const log = createLogger('atlas')
@@ -21,14 +12,7 @@ export function faceTextures(block: BlockDef): string[] {
   const t = (block.textures ?? {}) as Record<string, string | undefined>
   const auto = `auto:${block.id}`
   const side = t.side ?? t.all ?? auto
-  return [
-    t.east ?? side,
-    t.west ?? side,
-    t.top ?? t.all ?? auto,
-    t.bottom ?? t.all ?? auto,
-    t.south ?? side,
-    t.north ?? side,
-  ]
+  return [t.east ?? side, t.west ?? side, t.top ?? t.all ?? auto, t.bottom ?? t.all ?? auto, t.south ?? side, t.north ?? side]
 }
 
 export interface AtlasPlan {
@@ -184,13 +168,7 @@ export class BlockAtlas {
   }
 }
 
-function drawPattern(
-  g: CanvasRenderingContext2D,
-  x0: number,
-  y0: number,
-  fn: PatternFn,
-  def: Pick<TextureDef, 'colors' | 'seed' | 'params'>,
-): void {
+function drawPattern(g: CanvasRenderingContext2D, x0: number, y0: number, fn: PatternFn, def: Pick<TextureDef, 'colors' | 'seed' | 'params'>): void {
   const data = g.createImageData(TILE, TILE)
   const rand = mulberry32(def.seed)
   const ctx: PatternContext = {

@@ -104,10 +104,7 @@ export function createTerrainMaterial(dissolve?: Dissolve): MeshLambertMaterial 
     Object.assign(shader.uniforms, terrainUniforms)
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nattribute float detail;\nvarying float vDetail;\nvarying vec3 vWPos;\nvarying vec3 vWNormal;')
-      .replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nvDetail = detail;\nvWPos = (modelMatrix * vec4(position, 1.0)).xyz;\nvWNormal = normal;',
-      )
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvDetail = detail;\nvWPos = (modelMatrix * vec4(position, 1.0)).xyz;\nvWNormal = normal;')
     shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uDissolve;\n' + DECLS).replace(
       '#include <color_fragment>',
       `${cut}#include <color_fragment>

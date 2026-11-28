@@ -155,13 +155,9 @@ export class WorldService {
     this.signature = this.stepSignature()
     const { seed, chunksX, chunksZ, height, ground, levels } = this.cfg
     const sea = this.sea
-    const report = await generateWorld(this.island, this.steps.all(), { seed, chunksX, chunksZ, height, ground, levels, sea }, (...a) =>
-      log.warn(...a),
-    )
+    const report = await generateWorld(this.island, this.steps.all(), { seed, chunksX, chunksZ, height, ground, levels, sea }, (...a) => log.warn(...a))
     this.lastReport = report
-    log.info(
-      `generated ${this.island.sizeX}×${height}×${this.island.sizeZ} seed=${seed} in ${report.ms.toFixed(0)} ms (${report.steps.length} steps)`,
-    )
+    log.info(`generated ${this.island.sizeX}×${height}×${this.island.sizeZ} seed=${seed} in ${report.ms.toFixed(0)} ms (${report.steps.length} steps)`)
     if (!report.steps.length) log.warn('no worldgen steps registered — the world is empty')
     this.events.emit('world:generated', { seed, ms: report.ms })
   }

@@ -89,7 +89,13 @@ describe('WorldService', () => {
     const run = vi.fn()
     const add = () => steps.register({ id: 't:step', order: 1, run: () => run() } as WorldGenStep, 'test')
     add()
-    const w = new WorldService({ seed: 1, chunksX: 1, chunksZ: 1, height: 8 } as never, new Registry<BlockDef>('blocks'), steps, new EventBus<GameEvents>(), new Hooks<GameHooks>())
+    const w = new WorldService(
+      { seed: 1, chunksX: 1, chunksZ: 1, height: 8 } as never,
+      new Registry<BlockDef>('blocks'),
+      steps,
+      new EventBus<GameEvents>(),
+      new Hooks<GameHooks>(),
+    )
     await w.regenerate()
     steps.removeOwner('test')
     add() // the same step from reloaded code

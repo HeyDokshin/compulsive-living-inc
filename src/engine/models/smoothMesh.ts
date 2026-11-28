@@ -55,7 +55,14 @@ export function buildSmoothGeometry(m: VoxelModel, pivot: [number, number, numbe
         }
   }
   const nets = surfaceNets(grid)
-  const out: SmoothGeometry = { position: [], normal: nets.normal, colorIndex: [], index: nets.index, min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] }
+  const out: SmoothGeometry = {
+    position: [],
+    normal: nets.normal,
+    colorIndex: [],
+    index: nets.index,
+    min: [Infinity, Infinity, Infinity],
+    max: [-Infinity, -Infinity, -Infinity],
+  }
   for (let i = 0; i < nets.position.length; i += 3) {
     // sample i sits at the center of fine cell i: (i + 0.5) / k voxels from the padded corner
     const vx = (nets.position[i]! + 0.5) / k - pad

@@ -167,9 +167,7 @@ export default definePlugin({
           night = Math.max(0, Math.min(1, (0.45 - amount) / 0.3))
           lightColor.set(cfg.sunlight).lerp(tmpA.set(cfg.moonlight), night).multiplyScalar(amount)
         }
-        const w = api.services.has('weather:forecast')
-          ? api.services.get('weather:forecast').current()
-          : undefined
+        const w = api.services.has('weather:forecast') ? api.services.get('weather:forecast').current() : undefined
         const wet = w && w.precipitation === 'rain' ? Math.min(1, 0.5 + w.intensity * 0.5) : 0
         rain += (wet - rain) * Math.min(1, dt * 0.8)
         const grey = w ? 1 - Math.min(0.6, (1 - w.light.sun) * 0.7) : 1
@@ -207,14 +205,7 @@ interface Live {
   ): void
 }
 
-function buildShell(
-  api: PluginApi,
-  cfg: Config,
-  T: Three,
-  tex: Textures,
-  spec: ShellSpec,
-  live: Set<Live>,
-): Shell {
+function buildShell(api: PluginApi, cfg: Config, T: Three, tex: Textures, spec: ShellSpec, live: Set<Live>): Shell {
   const root = api.render.add(new T.Group())
   root.name = 'room-shell'
   const { box, floorY: Y, height: H, look } = spec
@@ -232,12 +223,7 @@ function buildShell(
     disposables.push(m)
     return m
   }
-  const toMesh = (
-    b: MeshBuilder,
-    mat: InstanceType<Three['Material']>,
-    parent: Obj,
-    opts: { receive?: boolean; order?: number } = {},
-  ) => {
+  const toMesh = (b: MeshBuilder, mat: InstanceType<Three['Material']>, parent: Obj, opts: { receive?: boolean; order?: number } = {}) => {
     if (b.empty) return null
     const g = new T.BufferGeometry()
     g.setAttribute('position', new T.Float32BufferAttribute(b.pos, 3))
@@ -259,9 +245,7 @@ function buildShell(
   const wainMat = look.wainscot ? surfaceMaterial(look.wainscot) : null
   const doorMat = surfaceMaterial(look.door)
   const matMat = surfaceMaterial(look.mat)
-  const curtainMat = look.curtain
-    ? surfaceMaterial(look.curtain, { side: T.DoubleSide, vertexColors: true })
-    : null
+  const curtainMat = look.curtain ? surfaceMaterial(look.curtain, { side: T.DoubleSide, vertexColors: true }) : null
 
   // --- floor: cell by cell, grouped by surface, darker along the walls ---------------------------
   const floors = new Map<string, { s: Surface; b: MeshBuilder }>()
@@ -286,11 +270,7 @@ function buildShell(
   for (const { s, b } of floors.values()) toMesh(b, surfaceMaterial(s, { vertexColors: true }), root)
   // the floor slab under the room, seen in cross-section past the low walls
   const slab = new MeshBuilder(tiles)
-  slab.box(
-    [box.x0 + 1 - cfg.thick, Y - 0.45, box.z0 + 1 - cfg.thick],
-    [box.x0 + box.w - 1 + cfg.thick, Y - 0.002, box.z0 + box.d - 1 + cfg.thick],
-    ['top'],
-  )
+  slab.box([box.x0 + 1 - cfg.thick, Y - 0.45, box.z0 + 1 - cfg.thick], [box.x0 + box.w - 1 + cfg.thick, Y - 0.002, box.z0 + box.d - 1 + cfg.thick], ['top'])
   toMesh(slab, trimMat, root)
 
   // --- walls ---------------------------------------------------------------------------------------
@@ -345,10 +325,8 @@ function buildShell(
       )
       for (const p of pieces) {
         // wainscot below, paper above; the wall's top gets a cap of trim
-        if (wainH > p.y0)
-          boxOn(wood, run, p.a, p.b, p.y0, Math.min(p.y1, wainH), 0, cfg.thick, ['top', 'bottom'])
-        if (p.y1 > Math.max(p.y0, wainH))
-          boxOn(paper, run, p.a, p.b, Math.max(p.y0, wainH), p.y1, 0, cfg.thick, ['top', 'bottom'])
+        if (wainH > p.y0) boxOn(wood, run, p.a, p.b, p.y0, Math.min(p.y1, wainH), 0, cfg.thick, ['top', 'bottom'])
+        if (p.y1 > Math.max(p.y0, wainH)) boxOn(paper, run, p.a, p.b, Math.max(p.y0, wainH), p.y1, 0, cfg.thick, ['top', 'bottom'])
         if (p.y1 >= height - 1e-6) boxOn(trim, run, p.a, p.b, p.y1, p.y1 + 0.04, -0.02, cfg.thick + 0.02)
       }
       // trims along the wall, broken by the door
@@ -361,12 +339,9 @@ function buildShell(
       }
       if (run.to > at) spans.push([at, run.to])
       for (const [a, b] of spans) {
-        if (cfg.baseboard > 0)
-          boxOn(trim, run, a, b, 0, Math.min(height, cfg.baseboard), -cfg.trimDepth, 0.001, ['bottom'])
-        if (look.wainscot && wainH < height)
-          boxOn(trim, run, a, b, wainH - 0.03, wainH + 0.04, -cfg.trimDepth * 0.8, 0.001)
-        if (!cutaway && cfg.cornice > 0)
-          boxOn(trim, run, a, b, height - cfg.cornice, height, -cfg.trimDepth * 1.4, 0.001, ['top'])
+        if (cfg.baseboard > 0) boxOn(trim, run, a, b, 0, Math.min(height, cfg.baseboard), -cfg.trimDepth, 0.001, ['bottom'])
+        if (look.wainscot && wainH < height) boxOn(trim, run, a, b, wainH - 0.03, wainH + 0.04, -cfg.trimDepth * 0.8, 0.001)
+        if (!cutaway && cfg.cornice > 0) boxOn(trim, run, a, b, height - cfg.cornice, height, -cfg.trimDepth * 1.4, 0.001, ['top'])
       }
       for (const o of run.openings) {
         const top = o.kind === 'door' ? Math.min(height, cfg.doorTop) : cutaway ? height : cfg.windowTop
@@ -380,18 +355,8 @@ function buildShell(
           boxOn(trim, run, o.a - f, o.b + f, top, top + f, -cfg.trimDepth, 0.001)
           const mid = (o.a + o.b) / 2
           boxOn(trim, run, mid - 0.025, mid + 0.025, cfg.sill, top, cfg.thick * 0.45, cfg.thick * 0.55) // mullion
-          boxOn(
-            trim,
-            run,
-            o.a,
-            o.b,
-            (cfg.sill + top) / 2 - 0.025,
-            (cfg.sill + top) / 2 + 0.025,
-            cfg.thick * 0.45,
-            cfg.thick * 0.55,
-          )
-          for (const end of [o.a, o.b])
-            boxOn(paper, run, end - 0.001, end + 0.001, cfg.sill, top, 0, cfg.thick)
+          boxOn(trim, run, o.a, o.b, (cfg.sill + top) / 2 - 0.025, (cfg.sill + top) / 2 + 0.025, cfg.thick * 0.45, cfg.thick * 0.55)
+          for (const end of [o.a, o.b]) boxOn(paper, run, end - 0.001, end + 0.001, cfg.sill, top, 0, cfg.thick)
           boxOn(paper, run, o.a, o.b, top - 0.001, top, 0, cfg.thick)
           // a lamp on each side of a run of windows
           const ax = alongX(run)
@@ -417,16 +382,7 @@ function buildShell(
             ] as const)
               for (let k = 0; k < Math.max(1, Math.round(w)); k++) {
                 const a = o.a + k * (w / Math.max(1, Math.round(w)))
-                boxOn(
-                  door,
-                  run,
-                  a + 0.16,
-                  a + w / Math.max(1, Math.round(w)) - 0.16,
-                  y0,
-                  y1,
-                  cfg.thick * 0.5,
-                  cfg.thick * 0.55,
-                )
+                boxOn(door, run, a + 0.16, a + w / Math.max(1, Math.round(w)) - 0.16, y0, y1, cfg.thick * 0.5, cfg.thick * 0.55)
               }
             toMesh(door, doorMat, group)
             const knob = new MeshBuilder(tiles)
@@ -504,11 +460,7 @@ function buildShell(
     const h = cfg.windowTop - cfg.sill
     const [gp] = across(run, cfg.thick * 0.6, cfg.thick * 0.6)
     const inward: [number, number] = [-run.out[0], -run.out[1]]
-    const plane = (
-      geo: InstanceType<Three['PlaneGeometry']>,
-      mat: InstanceType<Three['Material']>,
-      order: number,
-    ) => {
+    const plane = (geo: InstanceType<Three['PlaneGeometry']>, mat: InstanceType<Three['Material']>, order: number) => {
       disposables.push(geo)
       const m = new T.Mesh(geo, mat)
       m.position.set(ax ? mid : gp, Y + cfg.sill + h / 2, ax ? gp : mid)
@@ -529,21 +481,13 @@ function buildShell(
     const poolGeo = new T.PlaneGeometry(width + 0.5, depth).rotateX(-Math.PI / 2)
     disposables.push(poolGeo)
     const pool = new T.Mesh(poolGeo, poolMat)
-    pool.position.set(
-      (ax ? mid : run.plane) + inward[0] * (depth / 2 + 0.25),
-      Y + 0.006,
-      (ax ? run.plane : mid) + inward[1] * (depth / 2 + 0.25),
-    )
+    pool.position.set((ax ? mid : run.plane) + inward[0] * (depth / 2 + 0.25), Y + 0.006, (ax ? run.plane : mid) + inward[1] * (depth / 2 + 0.25))
     pool.rotation.y = Math.atan2(inward[0], inward[1])
     pool.renderOrder = 3
     const beamGeo = new T.PlaneGeometry(width + 0.2, Math.hypot(depth, cfg.sill + h * 0.5))
     disposables.push(beamGeo)
     const beam = new T.Mesh(beamGeo, beamMat)
-    beam.position.set(
-      (ax ? mid : run.plane) + inward[0] * (depth * 0.55),
-      Y + (cfg.sill + h * 0.5) / 2,
-      (ax ? run.plane : mid) + inward[1] * (depth * 0.55),
-    )
+    beam.position.set((ax ? mid : run.plane) + inward[0] * (depth * 0.55), Y + (cfg.sill + h * 0.5) / 2, (ax ? run.plane : mid) + inward[1] * (depth * 0.55))
     beam.rotation.order = 'YXZ'
     beam.rotation.y = Math.atan2(inward[0], inward[1])
     beam.rotation.x = -Math.atan2(depth, cfg.sill + h * 0.5) + Math.PI / 2
@@ -573,7 +517,7 @@ function buildShell(
         const m = new T.Mesh(clothGeo, curtainMat)
         g.add(m)
         holder.add(g)
-        curtains.push({ obj: g, sign: dir * alongSign, open: 0.5, closed: (width / 2 + 0.47) })
+        curtains.push({ obj: g, sign: dir * alongSign, open: 0.5, closed: width / 2 + 0.47 })
       }
     }
     const lightHolder = new T.Group()
@@ -615,9 +559,7 @@ function buildShell(
   }
 
   // --- lamps on the walls ---------------------------------------------------------------------------
-  const lampMat = api.render.stylize(
-    new T.MeshLambertMaterial({ color: '#fff4dc', emissive: '#ffcf8a', emissiveIntensity: 0 }),
-  )
+  const lampMat = api.render.stylize(new T.MeshLambertMaterial({ color: '#fff4dc', emissive: '#ffcf8a', emissiveIntensity: 0 }))
   const glowMat = new T.SpriteMaterial({
     map: tex.glow,
     color: '#ffc978',

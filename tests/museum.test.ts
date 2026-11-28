@@ -5,9 +5,13 @@ import { floorBlock, parseHall } from '../src/plugins/museum/layout'
 import { Interiors } from '../src/engine/world/Interiors'
 
 describe('museum hall plan', () => {
-  const file = JSON5.parse(readFileSync(new URL('../content/museum/museum.layouts.json5', import.meta.url), 'utf8')) as { entries: Array<{ id: string; rows: string[] }> }
+  const file = JSON5.parse(readFileSync(new URL('../content/museum/museum.layouts.json5', import.meta.url), 'utf8')) as {
+    entries: Array<{ id: string; rows: string[] }>
+  }
   const hall = file.entries.find((e) => e.id === 'museum:hall')!
-  const species = JSON5.parse(readFileSync(new URL('../content/collection/collection.species.json5', import.meta.url), 'utf8')) as { entries: Array<{ kind: string }> }
+  const species = JSON5.parse(readFileSync(new URL('../content/collection/collection.species.json5', import.meta.url), 'utf8')) as {
+    entries: Array<{ kind: string }>
+  }
   const count = (kind: string) => species.entries.filter((s) => s.kind === kind).length
 
   it('has a slot for every species', () => {

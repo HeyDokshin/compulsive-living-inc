@@ -43,7 +43,7 @@ describe('flower genetics', () => {
   ]
   it('gives the special color by its chance, otherwise a parent color (order of parents ignored)', () => {
     let s = 1
-    const rand = () => ((s = (s * 16807) % 2147483647) / 2147483647)
+    const rand = () => (s = (s * 16807) % 2147483647) / 2147483647
     const kids = Array.from({ length: 1000 }, () => breedColor(rules, 'white', 'red', rand))
     const pink = kids.filter((k) => k === 'pink').length
     expect(pink).toBeGreaterThan(400)

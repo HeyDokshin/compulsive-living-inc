@@ -319,7 +319,10 @@ export default definePlugin({
       run: () =>
         shop
           .today()
-          .map((s) => `${s.shelf.name}: ${s.goods.map((g) => `${items.get(g.id)?.name ?? g.id} ${g.price}🔔${Number.isFinite(g.left) ? ` (${g.left})` : ''}`).join(', ')}`)
+          .map(
+            (s) =>
+              `${s.shelf.name}: ${s.goods.map((g) => `${items.get(g.id)?.name ?? g.id} ${g.price}🔔${Number.isFinite(g.left) ? ` (${g.left})` : ''}`).join(', ')}`,
+          )
           .join('\n'),
     })
   },

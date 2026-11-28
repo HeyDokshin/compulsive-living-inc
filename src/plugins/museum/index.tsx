@@ -278,7 +278,14 @@ export default definePlugin({
           if (!e) return 'нет места'
           return `музей на ${Math.floor(e.transform!.x)}, ${Math.floor(e.transform!.z)}`
         }
-        const counts = HALLS.map((h) => `${h.title}: ${catalog().all(h.kind).filter((s) => donated.has(s.id)).length}/${catalog().all(h.kind).length}`)
+        const counts = HALLS.map(
+          (h) =>
+            `${h.title}: ${
+              catalog()
+                .all(h.kind)
+                .filter((s) => donated.has(s.id)).length
+            }/${catalog().all(h.kind).length}`,
+        )
         const m = museumEntity()
         return `${counts.join(' · ')}\nздание: ${m ? `${Math.floor(m.transform!.x)}, ${Math.floor(m.transform!.z)}` : 'нет'}`
       },

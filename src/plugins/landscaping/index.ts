@@ -58,7 +58,15 @@ export default definePlugin({
       const items = api.registry('items')
       for (const p of paths.all()) {
         if (items.has(p.id)) continue
-        items.register({ id: p.id, name: p.name, description: 'Проложите дорожку: действие на траве, песке или земле.', stack: cfg.pathStack, price: p.price, icon: { block: p.block }, tags: ['landscaping:paths'] })
+        items.register({
+          id: p.id,
+          name: p.name,
+          description: 'Проложите дорожку: действие на траве, песке или земле.',
+          stack: cfg.pathStack,
+          price: p.price,
+          icon: { block: p.block },
+          tags: ['landscaping:paths'],
+        })
       }
     }
     api.events.on('content:loaded', registerItems)

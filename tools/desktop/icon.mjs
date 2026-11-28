@@ -7,7 +7,15 @@ const S = 62 // half width of a cube on screen
 const H = 66 // its height
 const CX = 512
 const CY = 640
-const shade = (hex, k) => '#' + [1, 3, 5].map((i) => Math.round(Math.min(255, parseInt(hex.slice(i, i + 2), 16) * k)).toString(16).padStart(2, '0')).join('')
+const shade = (hex, k) =>
+  '#' +
+  [1, 3, 5]
+    .map((i) =>
+      Math.round(Math.min(255, parseInt(hex.slice(i, i + 2), 16) * k))
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('')
 const cubes = []
 const add = (x, y, z, color, side = color) => cubes.push({ x, y, z, color, side })
 // water, sand, grass
@@ -17,23 +25,59 @@ for (let x = -3; x <= 3; x++)
     if (d > 4) continue
     if (d === 4) add(x, 0, z, '#7fd8ec')
     else if (d === 3) add(x, 0, z, '#f8ebc4')
-    else add(x, 0, z, '#9bd67a', '#c79a72'), d <= 1 && add(x, 1, z, '#a5dd7c', '#c79a72')
+    else (add(x, 0, z, '#9bd67a', '#c79a72'), d <= 1 && add(x, 1, z, '#a5dd7c', '#c79a72'))
   }
 // a tree, a flower, a shell
 add(0, 2, 0, '#a8705a')
 for (let x = -1; x <= 1; x++) for (let z = -1; z <= 1; z++) add(x, 3, z, '#6fbf5c')
-for (const [x, z] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) add(x, 4, z, '#86d06e')
+for (const [x, z] of [
+  [0, 0],
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+])
+  add(x, 4, z, '#86d06e')
 add(0, 5, 0, '#9be07f')
-const apples = [[1, 3, 1], [0, 4, 1], [1, 4, 0]]
+const apples = [
+  [1, 3, 1],
+  [0, 4, 1],
+  [1, 4, 0],
+]
 cubes.sort((a, b) => a.x + a.z - (b.x + b.z) || a.y - b.y)
 const at = (x, y, z) => [CX + (x - z) * S, CY + (x + z) * S * 0.5 - y * H]
-const poly = (pts, fill) => `<polygon points="${pts.map((p) => p.map((v) => v.toFixed(1)).join(',')).join(' ')}" fill="${fill}" stroke="${fill}" stroke-width="1.5" stroke-linejoin="round"/>`
+const poly = (pts, fill) =>
+  `<polygon points="${pts.map((p) => p.map((v) => v.toFixed(1)).join(',')).join(' ')}" fill="${fill}" stroke="${fill}" stroke-width="1.5" stroke-linejoin="round"/>`
 let body = ''
 for (const c of cubes) {
   const [x, y] = at(c.x, c.y, c.z)
-  body += poly([[x, y - S * 0.5], [x + S, y], [x, y + S * 0.5], [x - S, y]], c.color)
-  body += poly([[x - S, y], [x, y + S * 0.5], [x, y + S * 0.5 + H], [x - S, y + H]], shade(c.side, 0.84))
-  body += poly([[x + S, y], [x, y + S * 0.5], [x, y + S * 0.5 + H], [x + S, y + H]], shade(c.side, 0.7))
+  body += poly(
+    [
+      [x, y - S * 0.5],
+      [x + S, y],
+      [x, y + S * 0.5],
+      [x - S, y],
+    ],
+    c.color,
+  )
+  body += poly(
+    [
+      [x - S, y],
+      [x, y + S * 0.5],
+      [x, y + S * 0.5 + H],
+      [x - S, y + H],
+    ],
+    shade(c.side, 0.84),
+  )
+  body += poly(
+    [
+      [x + S, y],
+      [x, y + S * 0.5],
+      [x, y + S * 0.5 + H],
+      [x + S, y + H],
+    ],
+    shade(c.side, 0.7),
+  )
 }
 for (const [ax, ay, az] of apples) {
   const [x, y] = at(ax, ay, az)

@@ -65,7 +65,19 @@ export default definePlugin({
   },
 })
 
-function Chest({ api, cfg, chest, slotsOf, version }: { api: PluginApi; cfg: Config; chest: Signal<Entity | null>; slotsOf: (e: Entity) => Slot[]; version: Signal<number> }) {
+function Chest({
+  api,
+  cfg,
+  chest,
+  slotsOf,
+  version,
+}: {
+  api: PluginApi
+  cfg: Config
+  chest: Signal<Entity | null>
+  slotsOf: (e: Entity) => Slot[]
+  version: Signal<number>
+}) {
   const inv = api.services.get('items:inventory')
   inv.version.value
   version.value

@@ -31,7 +31,21 @@ export interface UserSettings {
 
 export const UI_SCALES = [0.85, 1, 1.15, 1.3, 1.5]
 
-export const DEFAULT_SETTINGS: UserSettings = { quality: 'high', master: 0.8, sfx: 0.9, ui: 0.7, ambient: 0.6, music: 0.5, muted: false, showFps: false, cameraShake: true, uiScale: 1, instantText: false, bindings: {}, options: {} }
+export const DEFAULT_SETTINGS: UserSettings = {
+  quality: 'high',
+  master: 0.8,
+  sfx: 0.9,
+  ui: 0.7,
+  ambient: 0.6,
+  music: 0.5,
+  muted: false,
+  showFps: false,
+  cameraShake: true,
+  uiScale: 1,
+  instantText: false,
+  bindings: {},
+  options: {},
+}
 
 /** Engine config values per quality level (paths in config · engine). */
 export const QUALITY_PRESETS: Record<Quality, Record<string, number | boolean>> = {

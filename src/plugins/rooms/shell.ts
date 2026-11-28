@@ -107,12 +107,7 @@ export function planWalls(
  * The boxes a wall is made of: whole pieces between openings, and around each opening what is
  * below and above it (a door from the floor up to `doorTop`, a window from `sill` to `top`).
  */
-export function wallPieces(
-  run: WallRun,
-  height: number,
-  door: { top: number },
-  window: { sill: number; top: number },
-): Piece[] {
+export function wallPieces(run: WallRun, height: number, door: { top: number }, window: { sill: number; top: number }): Piece[] {
   const out: Piece[] = []
   let at = run.from
   for (const o of run.openings) {
@@ -143,10 +138,7 @@ export function floorShade(box: RoomBox, x: number, z: number, reach: number): n
 }
 
 /** A color along the day: keys [hour, value] wrap around midnight; returns the blend weights. */
-export function dayBlend(
-  keys: ReadonlyArray<{ h: number }>,
-  hour: number,
-): { i: number; j: number; k: number } {
+export function dayBlend(keys: ReadonlyArray<{ h: number }>, hour: number): { i: number; j: number; k: number } {
   const h = ((hour % 24) + 24) % 24
   let j = keys.findIndex((key) => key.h > h)
   if (j < 0) j = 0

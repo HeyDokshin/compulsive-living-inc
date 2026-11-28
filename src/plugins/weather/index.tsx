@@ -349,7 +349,15 @@ export default definePlugin({
     })
     api.onDispose(() => api.render.setWind(1))
 
-    api.ui.slot('hud.topRight', () => <ui.Quiet watch={shown.value?.def.id} seconds={6}><WeatherPill shown={shown} /></ui.Quiet>, { order: 10 })
+    api.ui.slot(
+      'hud.topRight',
+      () => (
+        <ui.Quiet watch={shown.value?.def.id} seconds={6}>
+          <WeatherPill shown={shown} />
+        </ui.Quiet>
+      ),
+      { order: 10 },
+    )
 
     // A line for the morning note: the day's forecast, merging repeats ("утром и днём ясно").
     const atHour = (hour: number): WeatherDef | undefined => {
@@ -375,7 +383,10 @@ export default definePlugin({
             else groups.push([[when], w])
           }
           if (!groups.length) return null
-          const text = groups.length === 1 ? `Весь день ${groups[0]![1].name.toLowerCase()}` : groups.map(([w, d]) => `${w.join(' и ')} ${d.name.toLowerCase()}`).join(', ')
+          const text =
+            groups.length === 1
+              ? `Весь день ${groups[0]![1].name.toLowerCase()}`
+              : groups.map(([w, d]) => `${w.join(' и ')} ${d.name.toLowerCase()}`).join(', ')
           return { icon: (current ?? groups[0]![1]).icon, text: text[0]!.toUpperCase() + text.slice(1) + '.' }
         },
       })

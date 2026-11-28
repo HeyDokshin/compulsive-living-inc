@@ -40,8 +40,7 @@ const TILES: Record<UiPattern, { size: number; svg: string }> = {
   },
   leaves: {
     size: 34,
-    svg:
-      '<path d="M6 13C6 7 10 4 14 4c0 5-3 9-8 9z" fill="F"/><path d="M24 30c-1-4 1-7 5-8 1 4-1 7-5 8z" fill="F"/>',
+    svg: '<path d="M6 13C6 7 10 4 14 4c0 5-3 9-8 9z" fill="F"/><path d="M24 30c-1-4 1-7 5-8 1 4-1 7-5 8z" fill="F"/>',
   },
 }
 

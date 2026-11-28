@@ -64,7 +64,11 @@ export function builtinCommands(game: Game): Cmd[] {
       description: 'Реестры или содержимое одного',
       usage: '[name] [#tag]',
       run: ([name, tag]) => {
-        if (!name) return game.registries.names().map((n) => `${n} (${game.registries.get(n).size})`).join('\n')
+        if (!name)
+          return game.registries
+            .names()
+            .map((n) => `${n} (${game.registries.get(n).size})`)
+            .join('\n')
         const r = game.registries.get(name)
         const entries = tag ? r.tagged(tag) : r.all()
         return entries.map((e) => e.id + (e.tags?.length ? `  [${e.tags.join(' ')}]` : '')).join('\n') || '(empty)'
@@ -234,7 +238,11 @@ export function builtinCommands(game: Game): Cmd[] {
     {
       name: 'actions',
       description: 'Действия ввода и их клавиши',
-      run: () => game.input.list().map((a) => `${a.id.padEnd(24)} ${a.keys.join(', ')}`).join('\n'),
+      run: () =>
+        game.input
+          .list()
+          .map((a) => `${a.id.padEnd(24)} ${a.keys.join(', ')}`)
+          .join('\n'),
     },
   ]
 }

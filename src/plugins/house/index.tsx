@@ -5,17 +5,7 @@
  * it to grow the house (the builders finish overnight), pay it back whenever you like.
  * Levels and finishes are data: content/house/house.levels.json5, house.finishes.json5.
  */
-import {
-  definePlugin,
-  signal,
-  ui,
-  z,
-  type Entity,
-  type PluginApi,
-  type ReadonlySignal,
-  type RegistryEntry,
-  type Services,
-} from '@sdk'
+import { definePlugin, signal, ui, z, type Entity, type PluginApi, type ReadonlySignal, type RegistryEntry, type Services } from '@sdk'
 import { moveToWall, payment, planRoom, windowsOf, type RoomPlan } from './room'
 
 export const HOME = 'house:home'
@@ -80,28 +70,18 @@ const Config = z.object({
   wall: z.string().default('house:wall_cream'),
   floor: z.string().default('house:floor_planks'),
   /** Trims, the door and the mat (rooms kit surfaces). */
-  trim: z
-    .object({ material: z.string(), color: z.string() })
-    .default({ material: 'house:painted_wood', color: '#fbf6ee' }),
-  door: z
-    .object({ material: z.string(), color: z.string() })
-    .default({ material: 'core:wood', color: '#e9c9a3' }),
-  curtain: z
-    .object({ material: z.string(), color: z.string() })
-    .default({ material: 'house:curtain', color: '#fffaf2' }),
-  mat: z
-    .object({ material: z.string(), color: z.string() })
-    .default({ material: 'house:doormat', color: '#e8d2ae' }),
+  trim: z.object({ material: z.string(), color: z.string() }).default({ material: 'house:painted_wood', color: '#fbf6ee' }),
+  door: z.object({ material: z.string(), color: z.string() }).default({ material: 'core:wood', color: '#e9c9a3' }),
+  curtain: z.object({ material: z.string(), color: z.string() }).default({ material: 'house:curtain', color: '#fffaf2' }),
+  mat: z.object({ material: z.string(), color: z.string() }).default({ material: 'house:doormat', color: '#e8d2ae' }),
   /** With the lights off: share of the room light left. */
   dark: z.number().min(0).max(1).default(0.4).meta({ label: 'lights off', step: 0.05 }),
   /** Furniture put in the room the first time you come home. */
-  starter: z
-    .array(z.object({ piece: z.string(), variant: z.string(), dx: z.number(), dz: z.number() }))
-    .default([
-      { piece: 'decor:bed', variant: 'mint', dx: -2, dz: -2 },
-      { piece: 'decor:rug_round', variant: 'pink', dx: 0, dz: 0 },
-      { piece: 'decor:table', variant: 'natural', dx: 2, dz: -2 },
-    ]),
+  starter: z.array(z.object({ piece: z.string(), variant: z.string(), dx: z.number(), dz: z.number() })).default([
+    { piece: 'decor:bed', variant: 'mint', dx: -2, dz: -2 },
+    { piece: 'decor:rug_round', variant: 'pink', dx: 0, dz: 0 },
+    { piece: 'decor:table', variant: 'natural', dx: 2, dz: -2 },
+  ]),
 })
 type Config = z.infer<typeof Config>
 
@@ -135,9 +115,7 @@ export default definePlugin({
         block: z.string(),
         price: z.number().int().min(0).default(500),
         look: z.object({ material: z.string(), color: z.string() }),
-        wainscot: z
-          .object({ material: z.string(), color: z.string(), height: z.number().min(0.1).max(3) })
-          .optional(),
+        wainscot: z.object({ material: z.string(), color: z.string(), height: z.number().min(0.1).max(3) }).optional(),
       }) as never,
     )
     api.interiors.define(HOME, { name: 'Мой дом', icon: '🏠' })
@@ -185,8 +163,7 @@ export default definePlugin({
         items.register({
           id: f.id,
           name: f.name,
-          description:
-            f.kind === 'wall' ? 'Используйте дома, чтобы поклеить.' : 'Используйте дома, чтобы постелить.',
+          description: f.kind === 'wall' ? 'Используйте дома, чтобы поклеить.' : 'Используйте дома, чтобы постелить.',
           stack: 1,
           price: f.price,
           icon: { block: f.block },
@@ -292,11 +269,7 @@ export default definePlugin({
         const pl = player()
         if (!pl) return
         const p = plan()
-        if (
-          Math.floor(pl.transform.x) - area.x === p.door.x &&
-          Math.floor(pl.transform.z) - area.z === p.door.z
-        )
-          goOut(pl)
+        if (Math.floor(pl.transform.x) - area.x === p.door.x && Math.floor(pl.transform.z) - area.z === p.door.z) goOut(pl)
       },
     })
     // Lights: dim the room when they're off (after the engine's indoor light).
@@ -316,11 +289,7 @@ export default definePlugin({
     const homes = () => [...api.entities.world.with('home', 'transform')]
     const grass = (x: number, zz: number) => {
       const y = api.world.surfaceY(x, zz)
-      return y === api.world.ground &&
-        api.world.getBlock(x, y - 1, zz) === 'core:grass' &&
-        api.world.getBlock(x, y, zz) === api.world.AIR
-        ? y
-        : null
+      return y === api.world.ground && api.world.getBlock(x, y - 1, zz) === 'core:grass' && api.world.getBlock(x, y, zz) === api.world.AIR ? y : null
     }
     const plotAt = (x0: number, z0: number): number | null => {
       const base = grass(x0, z0)
@@ -332,8 +301,7 @@ export default definePlugin({
         }
       const r = cfg.clearance
       for (let dz = -r; dz < cfg.size + cfg.frontRows + r; dz++)
-        for (let dx = -r; dx < cfg.size + 1 + r; dx++)
-          if ((api.world.blockerAt(x0 + dx, z0 + dz)?.blocker?.w ?? 1) > 1) return null
+        for (let dx = -r; dx < cfg.size + 1 + r; dx++) if ((api.world.blockerAt(x0 + dx, z0 + dz)?.blocker?.w ?? 1) > 1) return null
       return base
     }
     const houseModel = () => ({
@@ -357,14 +325,7 @@ export default definePlugin({
             for (const e of [...api.entities.world.with('transform')]) {
               const ex = Math.floor(e.transform.x)
               const ez = Math.floor(e.transform.z)
-              if (
-                ex >= x0 &&
-                ex <= x0 + cfg.size &&
-                ez >= z0 &&
-                ez < z0 + cfg.size + cfg.frontRows &&
-                !e.inventory
-              )
-                api.entities.despawn(e)
+              if (ex >= x0 && ex <= x0 + cfg.size && ez >= z0 && ez < z0 + cfg.size + cfg.frontRows && !e.inventory) api.entities.despawn(e)
             }
             const home = api.entities.spawn({
               name: 'Мой дом',
@@ -408,17 +369,8 @@ export default definePlugin({
       // pictures and shelves go out with the walls they hang on
       const after = plan()
       for (const e of api.entities.world.with('decor', 'transform')) {
-        if (
-          api.interiors.roomAt(e.transform.x, e.transform.z) !== HOME ||
-          decor().get(e.decor.piece)?.layer !== 'wall'
-        )
-          continue
-        const at = moveToWall(
-          before,
-          after,
-          Math.floor(e.transform.x) - area.x,
-          Math.floor(e.transform.z) - area.z,
-        )
+        if (api.interiors.roomAt(e.transform.x, e.transform.z) !== HOME || decor().get(e.decor.piece)?.layer !== 'wall') continue
+        const at = moveToWall(before, after, Math.floor(e.transform.x) - area.x, Math.floor(e.transform.z) - area.z)
         if (!at) continue
         e.transform.x = area.x + at.x + 0.5
         e.transform.z = area.z + at.z + 0.5
@@ -516,16 +468,13 @@ export default definePlugin({
         order: 42,
         line: () => {
           const s = state.value
-          if (s.readyDay >= 0)
-            return { icon: '🏗', text: 'Строители заканчивают дом — к утру он станет больше.' }
+          if (s.readyDay >= 0) return { icon: '🏗', text: 'Строители заканчивают дом — к утру он станет больше.' }
           if (s.debt > 0)
             return {
               icon: '🏠',
               text: `Кредит за дом: ${s.debt.toLocaleString('ru-RU')} 🔔. Платить можно у почтового ящика.`,
             }
-          return levelDef(s.level + 1)
-            ? null
-            : { icon: '🏠', text: 'Дом построен полностью. Самое время его обставить!' }
+          return levelDef(s.level + 1) ? null : { icon: '🏠', text: 'Дом построен полностью. Самое время его обставить!' }
         },
       })
     } catch {
@@ -632,25 +581,19 @@ function Mailbox(props: {
         </div>
       ) : null}
       {s.readyDay >= 0 ? (
-        <div style={{ color: 'var(--ui-accent)', fontWeight: 700 }}>
-          🏗 Строители работают — к утру будет {next?.name.toLowerCase()}.
-        </div>
+        <div style={{ color: 'var(--ui-accent)', fontWeight: 700 }}>🏗 Строители работают — к утру будет {next?.name.toLowerCase()}.</div>
       ) : next ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
           <div style={{ fontSize: '13px' }}>
             Следующий: <b>{next.name}</b>, комната {next.room.w}×{next.room.d}. Кредит {fmt(next.cost)} 🔔.
-            {s.debt > 0 && (
-              <div style={{ color: 'var(--ui-text-soft)' }}>Сначала выплатите текущий кредит.</div>
-            )}
+            {s.debt > 0 && <div style={{ color: 'var(--ui-text-soft)' }}>Сначала выплатите текущий кредит.</div>}
           </div>
           <ui.Button disabled={s.debt > 0} onClick={build}>
             Расширить
           </ui.Button>
         </div>
       ) : (
-        <div style={{ fontSize: '13px', color: 'var(--ui-text-soft)' }}>
-          Это самый большой дом. Обставляйте!
-        </div>
+        <div style={{ fontSize: '13px', color: 'var(--ui-text-soft)' }}>Это самый большой дом. Обставляйте!</div>
       )}
     </div>
   )

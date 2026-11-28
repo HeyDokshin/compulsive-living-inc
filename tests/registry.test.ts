@@ -30,7 +30,12 @@ describe('Registry', () => {
     r.register({ id: 'core:apple', price: 1, tags: ['core:fruits'] }, 'core')
     r.register({ id: 'mod:mango', price: 1 }, 'mod')
     r.tag('#core:fruits', ['mod:mango'], 'mod')
-    expect(r.resolve('#core:fruits').map((e) => e.id).sort()).toEqual(['core:apple', 'mod:mango'])
+    expect(
+      r
+        .resolve('#core:fruits')
+        .map((e) => e.id)
+        .sort(),
+    ).toEqual(['core:apple', 'mod:mango'])
     expect(r.resolve('core:apple')).toHaveLength(1)
     r.removeOwner('mod')
     expect(r.resolve('#core:fruits').map((e) => e.id)).toEqual(['core:apple'])

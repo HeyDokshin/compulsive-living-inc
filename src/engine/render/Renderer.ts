@@ -294,8 +294,7 @@ export class Renderer {
     if (this.cfg.style.postfx) {
       this.postfx.setTiltScale(Math.min(1, this.cfg.style.tiltShiftZoom / this.iso.shownZoom))
       this.postfx.render(ctx.dt)
-    }
-    else this.renderer.render(this.scene, this.iso.camera)
+    } else this.renderer.render(this.scene, this.iso.camera)
   }
 
   /** Compile every material of the scene now (in the background where the browser can) instead of on first sight. */
@@ -359,7 +358,13 @@ export class Renderer {
     const n = pos.length / 3
     const geo = new BufferGeometry()
     geo.setAttribute('position', new BufferAttribute(new Float32Array(pos), 3))
-    geo.setAttribute('normal', new BufferAttribute(new Float32Array(n * 3).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3))
+    geo.setAttribute(
+      'normal',
+      new BufferAttribute(
+        new Float32Array(n * 3).map((_, i) => (i % 3 === 1 ? 1 : 0)),
+        3,
+      ),
+    )
     geo.setAttribute('uv', new BufferAttribute(new Float32Array(uv), 2))
     geo.setAttribute('color', new BufferAttribute(new Float32Array(n * 3).fill(1), 3))
     geo.setAttribute('tile', new BufferAttribute(new Float32Array(n * 4), 4))

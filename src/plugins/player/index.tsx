@@ -174,7 +174,7 @@ export default definePlugin({
           let r = locked ? 0 : Number(api.input.isDown(keys.right)) - Number(api.input.isDown(keys.left)) + api.input.stick.x
           let u = locked ? 0 : Number(api.input.isDown(keys.up)) - Number(api.input.isDown(keys.down)) - api.input.stick.y
           const mag = Math.hypot(r, u)
-          if (mag > 1) (r /= mag), (u /= mag)
+          if (mag > 1) ((r /= mag), (u /= mag))
           // Gait: run on its key; sneak while the use key or the left button is held; walk otherwise.
           const dragging = st.clickHeld && api.input.isDown(keys.click) && performance.now() - st.clickAt > cfg.holdDelay * 1000
           const speed = api.input.isDown(keys.run) ? cfg.runSpeed : st.useHeld || dragging ? cfg.sneakSpeed : cfg.walkSpeed
@@ -561,22 +561,22 @@ function Hint({ cursor, cfg, api }: { cursor: Cursor; cfg: Config; api: PluginAp
   // a new hint cross-fades in (keyed by what it says)
   return (
     <div key={`${h.action}|${h.name}|${h.alt}`} style={{ animation: 'cl-rise .25s ease-out' }}>
-    <ui.Pill>
-      {h.action ? (
-        <>
-          <ui.Key>{api.input.keyLabel(h.key)}</ui.Key>
-          <span>{h.action}</span>
-        </>
-      ) : (
-        !h.alt && <span style={{ opacity: 0.8 }}>{h.name}</span>
-      )}
-      {h.alt && (
-        <>
-          <ui.Key>{api.input.keyLabel('player:useAlt')}</ui.Key>
-          <span>{h.alt}</span>
-        </>
-      )}
-    </ui.Pill>
+      <ui.Pill>
+        {h.action ? (
+          <>
+            <ui.Key>{api.input.keyLabel(h.key)}</ui.Key>
+            <span>{h.action}</span>
+          </>
+        ) : (
+          !h.alt && <span style={{ opacity: 0.8 }}>{h.name}</span>
+        )}
+        {h.alt && (
+          <>
+            <ui.Key>{api.input.keyLabel('player:useAlt')}</ui.Key>
+            <span>{h.alt}</span>
+          </>
+        )}
+      </ui.Pill>
     </div>
   )
 }

@@ -41,7 +41,10 @@ export default definePlugin({
     const lines: Signal<Array<{ icon: string; text: string }>> = signal([])
     const collect = () => {
       const out: Array<{ icon: string; text: string }> = []
-      for (const s of api.registry('daily:sections').all().sort((a, b) => a.order - b.order)) {
+      for (const s of api
+        .registry('daily:sections')
+        .all()
+        .sort((a, b) => a.order - b.order)) {
         try {
           const l = s.line(api)
           if (l) out.push(l)

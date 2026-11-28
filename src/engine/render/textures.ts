@@ -25,9 +25,7 @@ export const TextureSchema = z.looseObject({
    * a meadow, dry grass…), each with a color it tints its patches (multiplied) and the share of the
    * ground it covers.
    */
-  variants: z
-    .array(z.object({ material: z.string(), tint: z.string().default('#ffffff'), share: z.number().min(0).max(1).default(0.3) }))
-    .optional(),
+  variants: z.array(z.object({ material: z.string(), tint: z.string().default('#ffffff'), share: z.number().min(0).max(1).default(0.3) })).optional(),
 })
 export type TextureDef = z.infer<typeof TextureSchema>
 

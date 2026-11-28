@@ -20,7 +20,19 @@ describe('room shell', () => {
     expect(sideOf(box, 13, 20)).toBe('north')
     expect(sideOf(box, 10, 22)).toBe('west')
     expect(sideOf(box, 12, 22)).toBeNull()
-    const runs = planWalls(box, [{ x: 13, z: 25 }, { x: 14, z: 25 }], [{ x: 12, z: 20 }, { x: 15, z: 20 }, { x: 10, z: 23 }], 0.3)
+    const runs = planWalls(
+      box,
+      [
+        { x: 13, z: 25 },
+        { x: 14, z: 25 },
+      ],
+      [
+        { x: 12, z: 20 },
+        { x: 15, z: 20 },
+        { x: 10, z: 23 },
+      ],
+      0.3,
+    )
     const by = Object.fromEntries(runs.map((r) => [r.side, r]))
     expect(by.south!.openings).toEqual([{ kind: 'door', a: 13, b: 15 }])
     expect(by.north!.openings).toEqual([
@@ -48,7 +60,11 @@ describe('room shell', () => {
 
   it('knows which walls stand between the room and the camera', () => {
     const runs = planWalls(box, [], [], 0.3)
-    const near = (yaw: number) => runs.filter((r) => facesCamera(r, yaw)).map((r) => r.side).sort()
+    const near = (yaw: number) =>
+      runs
+        .filter((r) => facesCamera(r, yaw))
+        .map((r) => r.side)
+        .sort()
     expect(near(45)).toEqual(['east', 'south'])
     expect(near(225)).toEqual(['north', 'west'])
   })

@@ -39,9 +39,18 @@ export interface WindowDef {
 }
 
 const NAV: Record<string, Dir> = {
-  ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-  Pad12: 'up', Pad13: 'down', Pad14: 'left', Pad15: 'right',
-  StickUp: 'up', StickDown: 'down', StickLeft: 'left', StickRight: 'right',
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  Pad12: 'up',
+  Pad13: 'down',
+  Pad14: 'left',
+  Pad15: 'right',
+  StickUp: 'up',
+  StickDown: 'down',
+  StickLeft: 'left',
+  StickRight: 'right',
 }
 
 interface ToastEntry {
@@ -54,7 +63,6 @@ interface ToastEntry {
 
 /** Milliseconds things take to leave the screen (windows, toasts): nothing just vanishes. */
 const LEAVE_MS = 220
-
 
 /**
  * Preact UI overlay. Plugins add components to slots and register windows;
@@ -110,7 +118,8 @@ export class UiHost {
     if (code === 'Enter' || code === 'Space' || code === 'NumpadEnter' || code === 'Pad0') {
       if (typing && code !== 'Pad0') return false // types, or sends its form
       const text = area.querySelector<HTMLElement>('.cl-dialogue[data-typing]')
-      if (text) text.click() // the whole line at once
+      if (text)
+        text.click() // the whole line at once
       else if (inside && focusables(area).includes(now!)) now!.click()
       else focusFirst(area)
       return true
@@ -247,9 +256,12 @@ export class UiHost {
     this.onSound?.('ui:pop')
     this.toasts.value = [...this.toasts.value, entry].slice(-4)
     const ms = opts.ms ?? 2200
-    setTimeout(() => {
-      this.toasts.value = this.toasts.value.map((t) => (t === entry ? { ...t, leaving: true } : t))
-    }, Math.max(0, ms - LEAVE_MS))
+    setTimeout(
+      () => {
+        this.toasts.value = this.toasts.value.map((t) => (t === entry ? { ...t, leaving: true } : t))
+      },
+      Math.max(0, ms - LEAVE_MS),
+    )
     setTimeout(() => {
       this.toasts.value = this.toasts.value.filter((t) => t.key !== entry.key)
     }, ms)

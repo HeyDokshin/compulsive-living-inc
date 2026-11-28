@@ -117,11 +117,25 @@ export default definePlugin({
     )
     const achievements = api.createRegistry<AchievementDef>(
       'quests:achievements',
-      z.looseObject({ id: z.string(), name: z.string(), text: z.string(), stat: z.string(), tiers: z.array(z.number()), points: z.array(z.number()), icon: z.string().default('⭐') }) as never,
+      z.looseObject({
+        id: z.string(),
+        name: z.string(),
+        text: z.string(),
+        stat: z.string(),
+        tiers: z.array(z.number()),
+        points: z.array(z.number()),
+        icon: z.string().default('⭐'),
+      }) as never,
     )
     const rewards = api.createRegistry<RewardDef>(
       'quests:rewards',
-      z.looseObject({ id: z.string(), item: z.string().default(''), count: z.number().int().min(1).default(1), bells: z.number().int().optional(), cost: z.number().int().min(0) }) as never,
+      z.looseObject({
+        id: z.string(),
+        item: z.string().default(''),
+        count: z.number().int().min(1).default(1),
+        bells: z.number().int().optional(),
+        cost: z.number().int().min(0),
+      }) as never,
     )
     const projects = api.createRegistry<ProjectDef>(
       'quests:projects',
@@ -156,7 +170,9 @@ export default definePlugin({
     api.events.on('time:day', roll)
 
     const jingle = () =>
-      [72, 76, 79].forEach((m, i) => api.audio.note({ wave: 'triangle', freq: 440 * 2 ** ((m - 69) / 12), duration: 0.14, gain: 0.1, at: i * 0.08, bus: 'sfx' }))
+      [72, 76, 79].forEach((m, i) =>
+        api.audio.note({ wave: 'triangle', freq: 440 * 2 ** ((m - 69) / 12), duration: 0.14, gain: 0.1, at: i * 0.08, bus: 'sfx' }),
+      )
     const addPoints = (n: number) => {
       state.value.points += n
       touch()
@@ -233,7 +249,10 @@ export default definePlugin({
       if (id === 'landscaping:pave') bump('pave', 1)
       if (STATS[id]) stat(STATS[id]!)
     })
-    api.events.on('items:picked', ({ actor, id, count }) => isPlayer(actor) && bump('pick', count, (p) => typeof p.tag === 'string' && items.isTagged(id, p.tag)))
+    api.events.on(
+      'items:picked',
+      ({ actor, id, count }) => isPlayer(actor) && bump('pick', count, (p) => typeof p.tag === 'string' && items.isTagged(id, p.tag)),
+    )
     api.events.on('economy:sold', ({ bells }) => {
       bump('sell', bells)
       stat('bells_earned', bells)
@@ -306,7 +325,15 @@ export default definePlugin({
       // no tutorial
     }
 
-    api.ui.slot('hud.topRight', () => <ui.Quiet watch={state.value.points}><Leaves state={state} /></ui.Quiet>, { order: 21 })
+    api.ui.slot(
+      'hud.topRight',
+      () => (
+        <ui.Quiet watch={state.value.points}>
+          <Leaves state={state} />
+        </ui.Quiet>
+      ),
+      { order: 21 },
+    )
 
     // --- rating and projects -------------------------------------------------------------------------------
     const rating = (): Rating => {
@@ -337,7 +364,8 @@ export default definePlugin({
       const inv = api.services.get('items:inventory')
       const wallet = api.services.has('economy:wallet') ? api.services.get('economy:wallet') : null
       if (!wallet || wallet.bells.value < p.bells) return 'Не хватает колокольчиков.'
-      for (const it of p.items) if (inv.count(actor, it.item) < it.count) return `Нужно ещё: ${items.get(it.item)?.name ?? it.item} ×${it.count - inv.count(actor, it.item)}.`
+      for (const it of p.items)
+        if (inv.count(actor, it.item) < it.count) return `Нужно ещё: ${items.get(it.item)?.name ?? it.item} ×${it.count - inv.count(actor, it.item)}.`
       wallet.spend(p.bells)
       for (const it of p.items) inv.remove(actor, it.item, it.count)
       state.value.projects[p.id] = { state: 'funded', day: api.time.dayIndex + 1 }
@@ -393,10 +421,16 @@ export default definePlugin({
         for (let x = 2; x < api.world.sizeX - 2; x++) {
           const y = api.world.surfaceY(x, z)
           if (y <= 0 || api.world.getBlock(x, y - 1, z) !== 'core:sand' || water.kindAt(x, z)) continue
-          for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+          for (const [dx, dz] of [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+          ] as const) {
             // straight out to sea, two cells wide
             let ok = true
-            for (let k = 1; k <= cfg.pierLength && ok; k++) ok = water.kindAt(x + dx * k, z + dz * k) === 'sea' && water.kindAt(x + dx * k + dz, z + dz * k + dx) === 'sea'
+            for (let k = 1; k <= cfg.pierLength && ok; k++)
+              ok = water.kindAt(x + dx * k, z + dz * k) === 'sea' && water.kindAt(x + dx * k + dz, z + dz * k + dx) === 'sea'
             const d = Math.hypot(x - cx, z - cz)
             if (ok && (!best || d < best.d)) best = { x, z, dx, dz, y, d }
           }
@@ -422,7 +456,8 @@ export default definePlugin({
       run: ({ dt }) => {
         if ((sparkle -= dt) > 0) return
         sparkle = 0.5
-        for (const f of api.entities.world.with('fountain', 'transform')) api.fx.burst('core:splash', { x: f.transform.x, y: f.transform.y + 1.8, z: f.transform.z }, { amount: 0.35, scale: 0.6 })
+        for (const f of api.entities.world.with('fountain', 'transform'))
+          api.fx.burst('core:splash', { x: f.transform.x, y: f.transform.y + 1.8, z: f.transform.z }, { amount: 0.35, scale: 0.6 })
       },
     })
 
@@ -493,7 +528,11 @@ function Leaves({ state }: { state: Signal<QuestState> }) {
     <div class="cl-pill" title="Листики за задания дня">
       <span>🍃</span>
       <span>{s.points.toLocaleString('ru-RU')}</span>
-      {s.tasks.length > 0 && <span style={{ opacity: 0.6, fontSize: '12px' }}>· {done}/{s.tasks.length}</span>}
+      {s.tasks.length > 0 && (
+        <span style={{ opacity: 0.6, fontSize: '12px' }}>
+          · {done}/{s.tasks.length}
+        </span>
+      )}
     </div>
   )
 }

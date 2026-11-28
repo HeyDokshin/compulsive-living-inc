@@ -34,8 +34,28 @@ export function paintVoxelIcon(model: VoxelModel, colors: string[], size = 64): 
       [px - a, py],
     ]
     if (!voxelAt(model, x, y + 1, z)) poly(g, top, shade(col, 1.08))
-    if (!voxelAt(model, x, y, z + 1)) poly(g, [[px - a, py], [px, py + a / 2], [px, py + a * 1.5], [px - a, py + a]], shade(col, 0.9))
-    if (!voxelAt(model, x + 1, y, z)) poly(g, [[px, py + a / 2], [px + a, py], [px + a, py + a], [px, py + a * 1.5]], shade(col, 0.74))
+    if (!voxelAt(model, x, y, z + 1))
+      poly(
+        g,
+        [
+          [px - a, py],
+          [px, py + a / 2],
+          [px, py + a * 1.5],
+          [px - a, py + a],
+        ],
+        shade(col, 0.9),
+      )
+    if (!voxelAt(model, x + 1, y, z))
+      poly(
+        g,
+        [
+          [px, py + a / 2],
+          [px + a, py],
+          [px + a, py + a],
+          [px, py + a * 1.5],
+        ],
+        shade(col, 0.74),
+      )
   }
   return c.toDataURL()
 }
@@ -76,7 +96,12 @@ export function paintSpriteIcon(model: VoxelModel, colors: string[], size = 64, 
   for (let y = 0; y < sy + 2; y++) {
     for (let x = 0; x < sx + 2; x++) {
       if (mask[y * (sx + 2) + x]) continue
-      const near = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => mask[(y + dy!) * (sx + 2) + (x + dx!)] === 1)
+      const near = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ].some(([dx, dy]) => mask[(y + dy!) * (sx + 2) + (x + dx!)] === 1)
       if (!near) continue
       const i = (y * (sx + 2) + x) * 4
       img.data[i] = 120
@@ -112,12 +137,7 @@ export function prefersSprite(model: VoxelModel): boolean {
 }
 
 /** Isometric cube icon from the block atlas: tiles for top and side faces (atlas pixel rects). */
-export function paintBlockIcon(
-  atlas: HTMLCanvasElement,
-  top: [number, number, number, number],
-  side: [number, number, number, number],
-  size = 64,
-): string {
+export function paintBlockIcon(atlas: HTMLCanvasElement, top: [number, number, number, number], side: [number, number, number, number], size = 64): string {
   const c = document.createElement('canvas')
   c.width = c.height = size
   const g = c.getContext('2d')!

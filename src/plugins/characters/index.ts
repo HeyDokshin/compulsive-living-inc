@@ -58,7 +58,10 @@ export default definePlugin({
         speed: z.number().default(0),
         phase: z.number().optional(),
         blend: z.number().optional(),
-        action: z.object({ name: z.enum(ACTIONS), t: z.number(), duration: z.number().optional() }).nullable().optional(),
+        action: z
+          .object({ name: z.enum(ACTIONS), t: z.number(), duration: z.number().optional() })
+          .nullable()
+          .optional(),
       }),
     )
     const cache = new WeakMap<object, Parts>()
@@ -139,8 +142,8 @@ export default definePlugin({
             }
             if (act.name === 'clap') {
               const beat = Math.sin(act.t * 22) * 0.3 * ease
-              if (p.armL) (p.armL.obj.rotation.x = -1.3 * ease), (p.armL.obj.rotation.z = beat)
-              if (p.armR) (p.armR.obj.rotation.x = -1.3 * ease), (p.armR.obj.rotation.z = -beat)
+              if (p.armL) ((p.armL.obj.rotation.x = -1.3 * ease), (p.armL.obj.rotation.z = beat))
+              if (p.armR) ((p.armR.obj.rotation.x = -1.3 * ease), (p.armR.obj.rotation.z = -beat))
             }
             if (act.name === 'nod' && p.head) p.head.obj.rotation.x = Math.sin(f * Math.PI * 4) * 0.22 * ease
             if (act.name === 'sad') {

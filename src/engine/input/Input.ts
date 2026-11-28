@@ -3,9 +3,20 @@ import type { Dispose } from '../util/disposables'
 import { isPadCode, keyName, shownKey, type Device } from './keyNames'
 
 const KEY_TO_CODE: Record<string, string> = {
-  '`': 'Backquote', '~': 'Backquote', 'ё': 'Backquote', 'Ё': 'Backquote',
-  ' ': 'Space', Enter: 'Enter', Escape: 'Escape', Tab: 'Tab', Shift: 'ShiftLeft', Control: 'ControlLeft',
-  ArrowUp: 'ArrowUp', ArrowDown: 'ArrowDown', ArrowLeft: 'ArrowLeft', ArrowRight: 'ArrowRight',
+  '`': 'Backquote',
+  '~': 'Backquote',
+  ё: 'Backquote',
+  Ё: 'Backquote',
+  ' ': 'Space',
+  Enter: 'Enter',
+  Escape: 'Escape',
+  Tab: 'Tab',
+  Shift: 'ShiftLeft',
+  Control: 'ControlLeft',
+  ArrowUp: 'ArrowUp',
+  ArrowDown: 'ArrowDown',
+  ArrowLeft: 'ArrowLeft',
+  ArrowRight: 'ArrowRight',
 }
 
 /** Physical key code; falls back to `key` for synthetic/virtual keyboards that leave `code` empty. */
