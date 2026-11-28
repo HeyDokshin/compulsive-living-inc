@@ -211,6 +211,26 @@
       { kind: 'noise', colors: ['#b0b0b0', '#d6d6d6'], scale: 2, octaves: 3, blend: 'overlay', opacity: 0.4, seed: 55 },
     ],
   },
+  {
+    // brushed metal: fine streaks and a soft sheen (lamp posts, tools, fittings)
+    id: 'core:metal',
+    shading: 0.5,
+    occlusion: 0.2,
+    layers: [
+      { kind: 'noise', colors: ['#b8bcc4', '#e4e7ec'], scale: 2, octaves: 3, seed: 90 },
+      { kind: 'fibers', colors: ['#c4c8cf', '#ffffff'], scale: 24, octaves: 2, blend: 'overlay', opacity: 0.55, params: { stretch: 14 }, seed: 91 },
+    ],
+  },
+  {
+    // glazed ceramic: smooth, a faint crackle (teapots, vases, pots)
+    id: 'core:ceramic',
+    shading: 0.4,
+    occlusion: 0.15,
+    layers: [
+      { kind: 'noise', colors: ['#eeeeee', '#fbfbfb'], scale: 2, octaves: 3, seed: 92 },
+      { kind: 'cracks', colors: ['#d9d9d9', '#ffffff'], scale: 6, blend: 'multiply', opacity: 0.35, seed: 93 },
+    ],
+  },
   // --- motifs for rare patterns (decor:patterns): white = the motif, black = the thing's own color ---
   { id: 'core:motif_stars', shading: 0, occlusion: 0, layers: [{ kind: 'stars', colors: ['#000000', '#ffffff'], scale: 3, params: { size: 0.3 }, seed: 60 }] },
   { id: 'core:motif_dots', shading: 0, occlusion: 0, layers: [{ kind: 'dots', colors: ['#000000', '#ffffff'], scale: 4, params: { size: 0.22, vary: 0 }, seed: 61 }] },
