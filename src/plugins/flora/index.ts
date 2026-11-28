@@ -86,6 +86,7 @@ export default definePlugin({
     let dirty = false
     api.systems.add({
       id: 'rebuild',
+      outdoors: true, // the island waits while you're in a room
       phase: 'render',
       run: () => {
         if (!dirty) return

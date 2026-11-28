@@ -27,6 +27,7 @@ import { MaterialService } from './materials/MaterialService'
 import { AtlasDetail } from './render/AtlasDetail'
 import { FabricTextures } from './render/fabric'
 import { TerrainDetail } from './render/terrainDetail'
+import { MaterialTextures } from './render/materialTextures'
 import { WorldService } from './world/WorldService'
 import type { WorldGenStep } from './world/WorldGen'
 import { ModelDefSchema, RigDefSchema, type ModelDef, type RigDef } from './models/defs'
@@ -46,12 +47,13 @@ import { Audio } from './audio/Audio'
 import { SoundDefSchema, type SoundDef } from './audio/defs'
 import { Particles } from './fx/Particles'
 import { ParticleDefSchema, type ParticleDef } from './fx/defs'
-import { BlockSchema, PrefabSchema, type BlockDef, type CommandDef, type GameEvents, type GameHooks, type PrefabDef } from './types'
+import { BlockSchema, PrefabSchema, type BlockDef, type CommandDef, type Entity, type GameEvents, type GameHooks, type PrefabDef } from './types'
 import { createLogger } from './util/log'
 import { TimeService, type SavedTime } from './time/TimeService'
 import { Clock } from './time/Clock'
 import { Blockers } from './world/Blockers'
-import { Interiors, type Place, type SavedInteriors } from './world/Interiors'
+import { fromCorner, Interiors, legacyCorners, ROOM_CHUNKS, type Place, type SavedInteriorsV1 } from './world/Interiors'
+import { VoxelWorld } from './world/VoxelWorld'
 import { isPlainObject, type PlainObject } from './util/objects'
 
 export type GamePlugin = PluginDefinition<PluginApi>
@@ -98,6 +100,8 @@ export class Game {
   readonly materialDefs: Registry<MaterialDef>
   /** Procedural materials rendered at any size (off the main thread). */
   readonly materials: MaterialService
+  /** Procedural materials as textures for plugins (`api.render.material`). */
+  readonly materialTextures: MaterialTextures
   /** Close-up detail of the rounded island (from materials). */
   private terrainDetail!: TerrainDetail
   readonly worldgen: Registry<WorldGenStep>
@@ -164,10 +168,11 @@ export class Game {
     this.world = new WorldService(this.worldConfig, this.blocks, this.worldgen, this.events, this.hooks)
     this.loop = new GameLoop(this.scheduler, { tickRate: this.engineConfig.loop.tickRate, onTickEnd: () => this.input.endTick() })
     this.modelLibrary = new ModelLibrary(this.models, this.rigs)
-    this.renderer = new Renderer(container, this.engineConfig, this.entities, this.world.voxels, this.modelLibrary)
+    this.renderer = new Renderer(container, this.engineConfig, this.entities, this.world.island, this.modelLibrary)
     this.input.attach(this.renderer.renderer.domElement)
     this.modelLibrary.fabrics = new FabricTextures(this.materials)
     this.terrainDetail = new TerrainDetail(this.materials)
+    this.materialTextures = new MaterialTextures(this.materials, () => this.renderer.maxAnisotropy)
     this.renderer.detail = new AtlasDetail(this.renderer.atlas, this.materials, (id) => this.textures.get(id))
     this.camera = new CameraController(this.renderer.iso, this.engineConfig.camera, this.input, this.entities, this.world)
     this.interactions = new Interactions(this.interactionDefs, this.items, this.blocks, this.hooks, this.events)
@@ -210,14 +215,12 @@ export class Game {
     this.applyEngineConfig()
   }
 
-  /** Rooms in reserved world corners: what is drawn, light inside, and the saved state. */
+  /** Rooms: light inside, outdoor systems paused, and the saved state (who is in which room). */
   private createInteriors(): Interiors {
-    const interiors = new Interiors(() => ({ x: this.worldConfig.chunksX, z: this.worldConfig.chunksZ }))
-    interiors.onChange = (id) => {
-      this.events.emit('interior:changed', { id })
-    }
-    this.renderer.chunks.isVisible = (cx, cz) => interiors.chunkVisible(cx, cz)
-    this.renderer.entityRenderer.visibleAt = (x, z) => interiors.pointVisible(x, z)
+    const interiors = new Interiors()
+    this.scheduler.indoors = () => interiors.current !== null
+    // inside a room only its things are drawn; outside, nothing of any room
+    this.renderer.entityRenderer.visibleAt = (x, z) => interiors.roomAt(x, z) === interiors.current
     this.hooks.tap(
       'light:adjust',
       (st) => {
@@ -232,33 +235,117 @@ export class Game {
     )
     this.sessions.saves.register(
       'engine:interiors',
-      { version: 1, save: () => interiors.save(), load: (d) => interiors.load(d as SavedInteriors) },
+      {
+        version: 2,
+        save: () => interiors.save(),
+        load: (d) => {
+          const data = d as SavedInteriorsV1
+          interiors.load(data)
+          if (data.slots) this.leaveCorners(data)
+        },
+        // v1 → v2: the corner rooms move into worlds of their own when the data is loaded (above)
+        migrate: (d) => d as SavedInteriorsV1,
+      },
       'engine',
     )
     return interiors
   }
 
-  /** Give a room's corner back to the sea: every column becomes a copy of the column just outside it. */
-  restoreSea(box: { x: number; z: number; w: number; d: number }): void {
-    const v = this.world.voxels
+  /** Names and icons of rooms (for the loading veil). */
+  readonly rooms = new Map<string, { name: string; icon: string }>()
+  private moving = false
+
+  /** Is the player on the way into or out of a room (the veil is up)? */
+  get changingPlace(): boolean {
+    return this.moving
+  }
+
+  /**
+   * Go into a room (id) or back out to the island (null): the veil closes, the room's own world is
+   * made (its owner builds it on `interior:changed`) or thrown away, the actor moves, and the veil
+   * opens once the new place is meshed.
+   */
+  async changePlace(actor: Entity, id: string | null, at?: Place): Promise<void> {
+    if (this.moving || !actor.transform || id === this.interiors.current) return
+    this.moving = true
+    try {
+      const c = this.engineConfig.interior
+      const room = id ? this.rooms.get(id) : null
+      await this.ui.veil(id ? (room?.name ?? 'Помещение') : this.sessions.session.name || 'Остров', id ? (room?.icon ?? '🚪') : '🏝️', c.veilIn * 1000)
+      if (id) {
+        const t = actor.transform
+        this.interiors.enter(id, { x: t.x, y: t.y, z: t.z, rotY: t.rotY })
+        this.openSpace(id)
+        if (at) this.moveActor(actor, at)
+      } else {
+        const back = this.interiors.exit()
+        this.openSpace(null)
+        // out of the door, facing away from it
+        if (back) this.moveActor(actor, { ...back, rotY: back.rotY + Math.PI })
+      }
+      this.events.emit('interior:changed', { id })
+      const until = performance.now() + c.maxWait * 1000
+      const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()))
+      while (this.renderer.chunks.pending > 0 && performance.now() < until) await frame()
+      // a couple of frames drawn with the meshes (shaders compiled) before the veil opens
+      await frame()
+      await frame()
+      this.ui.unveil(c.veilOut * 1000)
+    } finally {
+      this.moving = false
+    }
+  }
+
+  /** Play in a room's own fresh world (id) or on the island again (null). */
+  openSpace(id: string | null): void {
+    if (id) {
+      const v = new VoxelWorld(this.world.island.palette)
+      v.reset(ROOM_CHUNKS, ROOM_CHUNKS, this.world.island.height)
+      const o = this.interiors.origin(id)
+      v.setOrigin(o.x, o.z)
+      this.world.use(v)
+    } else this.world.use(null)
+    this.renderer.useSpace(id ? this.world.voxels : null)
+  }
+
+  /**
+   * Version 1 rooms lived in corner chunks of the island: their furniture moves into the rooms' own
+   * worlds and the corners become sea again.
+   */
+  private leaveCorners(data: SavedInteriorsV1): void {
+    for (const { id, box } of legacyCorners(data, this.worldConfig.chunksX, this.worldConfig.chunksZ)) {
+      for (const e of this.entities.world.with('transform')) {
+        const t = e.transform
+        if (t.x < box.x || t.z < box.z || t.x >= box.x + box.w || t.z >= box.z + box.d) continue
+        const p = fromCorner(box, this.interiors.area(id), t.x, t.z)
+        t.x = p.x
+        t.z = p.z
+        this.blockers.update(e)
+      }
+      this.restoreSea(box)
+    }
+  }
+
+  /** Give a corner of the island back to the sea: every column becomes a copy of the column just outside it. */
+  private restoreSea(box: { x: number; z: number; w: number; d: number }): void {
+    const v = this.world.island
     const refX = box.x + box.w < v.sizeX ? box.x + box.w : box.x - 1
     for (let z = box.z; z < box.z + box.d; z++)
       for (let x = box.x; x < box.x + box.w; x++)
         for (let y = 0; y < v.height; y++) {
-          const id = this.world.getBlock(refX, y, z)
-          if (this.world.getBlock(x, y, z) !== id) this.world.setBlock(x, y, z, id)
+          const n = v.get(refX, y, z)
+          if (v.get(x, y, z) !== n) v.set(x, y, z, n)
         }
   }
 
-  /** Move an actor into a room (or back out): teleport, snap the camera, no interpolation sweep. */
+  /** Move an actor (teleport, snap the camera, no interpolation sweep). */
   moveActor(actor: { transform?: Place }, to: Place): void {
     if (!actor.transform) return
     Object.assign(actor.transform, to)
     this.renderer.entityRenderer.snapshot()
     this.camera.snap()
-    // no hard cut: the new place fades in
-    this.ui.flash()
   }
+
 
   async boot(opts: BootOptions): Promise<void> {
     this.files = { contentFiles: opts.contentFiles, configFiles: opts.configFiles, assetFiles: opts.assetFiles }
@@ -497,10 +584,10 @@ export class Game {
         this.renderer.applyConfig()
       }
       // Same size: old meshes stay visible until replaced. New size: start clean.
-      if (this.world.voxels.chunks.length !== chunkCount) this.renderer.chunks.reset()
-      chunkCount = this.world.voxels.chunks.length
+      if (this.world.island.chunks.length !== chunkCount) this.renderer.island.reset()
+      chunkCount = this.world.island.chunks.length
       if (!this.camera.placed) this.camera.center()
-      this.renderer.chunks.update(this.renderer.iso.target.x, this.renderer.iso.target.z)
+      this.renderer.island.update(this.renderer.iso.target.x, this.renderer.iso.target.z)
     })
   }
 

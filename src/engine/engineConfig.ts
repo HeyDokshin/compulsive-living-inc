@@ -17,6 +17,19 @@ export const EngineConfigSchema = z.object({
       minAmbient: z.number().min(0).max(3).default(0.95).meta({ label: 'min ambient', step: 0.05 }),
       /** Sun inside, as a share of outside (walls and roof keep most of it out). */
       sun: z.number().min(0).max(2).default(0.55).meta({ step: 0.05 }),
+      /** Room walls: soft-edged but crisp (less rounding than the island). */
+      mesh: z
+        .object({
+          subdiv: z.number().int().min(1).max(5).default(3).meta({ step: 2 }),
+          smoothAcross: z.number().int().min(0).max(6).default(1).meta({ label: 'round edges', step: 1 }),
+          keep: z.number().min(0).max(1).default(0.9).meta({ label: 'keep thin blocks', step: 0.01 }),
+          ao: z.number().min(0).max(1).default(0.5).meta({ label: 'crease shade', step: 0.05 }),
+        })
+        .prefault({}),
+      /** The loading veil: seconds to cover the screen and to uncover it, and the longest wait for the room. */
+      veilIn: z.number().min(0).max(2).default(0.35).meta({ label: 'veil in (s)', step: 0.05 }),
+      veilOut: z.number().min(0).max(2).default(0.5).meta({ label: 'veil out (s)', step: 0.05 }),
+      maxWait: z.number().min(0.2).max(10).default(3).meta({ label: 'max wait (s)', step: 0.1 }),
     })
     .prefault({}),
   camera: z

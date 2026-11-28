@@ -54,11 +54,12 @@ export default definePlugin({
   id: 'museum',
   version: '0.1.0',
   description: 'Музей: залы рыб, насекомых и окаменелостей, пожертвования, оценка окаменелостей',
-  dependsOn: ['items', 'collection'],
+  dependsOn: ['items', 'collection', 'rooms'],
   // load after the plugins that put things on a new island, so the museum can clear its plot
   optionalDependsOn: ['nature', 'garden', 'terrain', 'tutorial', 'daily', 'cutscene'],
 
   setup(api) {
+    api.interiors.define(HALL_ID, { name: 'Музей острова', icon: '🏛️' })
     const cfg = api.config.define(Config)
     const catalog = () => api.services.get('collection:catalog')
     const inventory = () => api.services.get('items:inventory')

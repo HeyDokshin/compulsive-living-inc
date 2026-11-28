@@ -105,6 +105,9 @@ export interface PluginApi {
     add<T extends THREE.Object3D>(object: T): T
     /** Give a custom material the game's look: world curvature, optional sway (plants) or flowing UVs. */
     stylize<T extends THREE.Material>(material: T, opts?: StyleOptions): T
+    /** A procedural material (`materials` registry) as a tiling sRGB texture, `size` texels across
+     * (default 256). Shared: don't dispose it. Grey until rendered, then fills in by itself. */
+    material(id: string, size?: number): THREE.Texture
     /** A voxel model from the `models` registry as a three.js object (appears when loaded). Not added to the scene. */
     voxelModel(id: string, opts?: { scale?: number; palette?: Record<string, string> }): THREE.Object3D
     /** A rig from the `rigs` registry as a three.js object; its parts are child groups named after them
@@ -239,18 +242,27 @@ export interface PluginApi {
   }
 
   /** Put this plugin's own state into saves (entities and voxels are saved by the engine). */
-  /** Rooms built in reserved corners of the world (one 16 × 16 chunk each, always open sea). */
+  /**
+   * Rooms: worlds of their own, loaded when you go in, lying far off the island (things placed in a
+   * room are simply at its coordinates). While the player is in one, `api.world` is that room's
+   * world, only that room's things are drawn, and systems marked `outdoors` wait; the island stays as
+   * it was until you come back out.
+   */
   interiors: {
-    /** The area of a room: first cell and size. Build its voxels there with `world.setBlock` when the
-     * player goes in (`interior:changed`); on the way out the engine turns it back into sea. */
+    /** Name and icon shown on the loading veil. */
+    define(id: string, look: { name: string; icon: string }): void
+    /** Where a room is built (world coordinates, far off the island): build its voxels there with
+     * `world.setBlock` on `interior:changed` (the room's world starts empty each time). */
     area(id: string): { x: number; z: number; w: number; d: number }
     /** Room the player is in, or null outside. */
     readonly current: string | null
-    /** The room a world point belongs to (furniture placed inside), or null. */
+    /** True while the veil is up (going in or out). */
+    readonly changing: boolean
+    /** The room a point lies in (rooms are far off the island), or null on the island. */
     roomAt(x: number, z: number): string | null
-    /** Put the actor inside at `at`; remembers where it stood to come back. Only that room is drawn. */
+    /** Go in: the veil closes, the room loads, the actor appears at `at` (the room's coordinates). */
     enter(id: string, actor: Entity, at: { x: number; y: number; z: number; rotY: number }): void
-    /** Back outside where the actor entered. */
+    /** Back out where the actor came in, facing away from the door. */
     exit(actor: Entity): void
   }
   /** Settings a plugin adds (registry `options`), as the player chose them on this device. */

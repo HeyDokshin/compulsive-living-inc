@@ -61,7 +61,7 @@ export class ChunkRenderer {
   inView: (x: number, y: number, z: number, r: number) => boolean = () => true
 
   constructor(
-    private world: VoxelWorld,
+    readonly world: VoxelWorld,
     private atlas: BlockAtlas,
     private pool: MesherPool,
   ) {
@@ -222,7 +222,7 @@ export class ChunkRenderer {
     for (const [ci, m] of this.meshes) {
       const c = this.world.chunks[ci]
       if (!c) continue
-      const v = this.isVisible(c.cx, c.cz) && this.inView(c.cx * 16 + 8, half, c.cz * 16 + 8, r)
+      const v = this.isVisible(c.cx, c.cz) && this.inView(this.world.originX + c.cx * 16 + 8, half, this.world.originZ + c.cz * 16 + 8, r)
       if (m.opaque) m.opaque.visible = v
       if (m.fading) m.fading.visible = v
       if (m.transparent) m.transparent.visible = v
@@ -289,7 +289,7 @@ export class ChunkRenderer {
     geo.setIndex(new BufferAttribute(buf.index, 1))
     geo.computeBoundingSphere()
     const mesh = new Mesh(geo, mat)
-    mesh.position.set(cx * 16, 0, cz * 16)
+    mesh.position.set(this.world.originX + cx * 16, 0, this.world.originZ + cz * 16)
     mesh.visible = this.isVisible(cx, cz)
     mesh.frustumCulled = false // see cull()
     mesh.castShadow = mat === this.opaqueMaterial || mat === this.roundMaterial
@@ -321,5 +321,5 @@ function setDissolve(this: Mesh, _r: unknown, _s: unknown, _c: unknown, _g: unkn
 function dist(world: VoxelWorld, ci: number, x: number, z: number): number {
   const c = world.chunks[ci]
   if (!c) return Infinity
-  return Math.hypot(c.cx * 16 + 8 - x, c.cz * 16 + 8 - z)
+  return Math.hypot(world.originX + c.cx * 16 + 8 - x, world.originZ + c.cz * 16 + 8 - z)
 }

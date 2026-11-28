@@ -96,6 +96,8 @@ const Config = z.object({
   cursor: z.boolean().default(true),
   /** Show the marker on the cell under the mouse too (off: only the cell in front and where a click walks). */
   cursorOnHover: z.boolean().default(false).meta({ label: 'cursor on hover' }),
+  /** The marker hides on cells this much higher than the feet (walls). */
+  markerMaxRise: z.number().min(0.5).max(10).default(1.6).meta({ label: 'marker max rise', step: 0.1 }),
   cursorColor: z.string().default('#ffffff').meta({ color: true }),
   hint: z.boolean().default(true),
 })
@@ -475,6 +477,8 @@ class Cursor {
   private last = ''
   private pos = { x: 0, y: 0, z: 0 }
   private time = 0
+  /** The marked cell is a wall's top (the marker fades out). */
+  private high = false
   /** Cell (column) in front of the player — what the use key acts on. */
   front = { x: 0, z: 0 }
   /** Cell the marker shows (front, or the mouse-hovered / clicked one). */
@@ -501,7 +505,7 @@ class Cursor {
     const show = this.cfg.cursor && !this.api.ui.modalOpen.value && !!t && !!view
     // the marker fades out and in instead of blinking
     const mat = this.mesh.material as InstanceType<Three['MeshBasicMaterial']>
-    const goal = show && !(pointed && quiet) ? 1 : 0
+    const goal = show && !(pointed && quiet) && !this.high ? 1 : 0
     mat.opacity += (goal - mat.opacity) * Math.min(1, dt * 12)
     this.mesh.visible = mat.opacity > 0.01
     if (!show) return
@@ -525,6 +529,8 @@ class Cursor {
     this.cell.z = cz
     const ctx = this.api.interactions.at(e, cx, cz)
     const top = ctx.y + 1
+    // a wall in front (its top far above the feet): no marker floating up there, the hint stays
+    this.high = top > t.y + this.cfg.markerMaxRise
     const k = Math.min(1, dt * 18)
     this.pos.x += (cx + 0.5 - this.pos.x) * k
     this.pos.z += (cz + 0.5 - this.pos.z) * k

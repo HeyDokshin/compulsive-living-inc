@@ -297,6 +297,7 @@ export default definePlugin({
     let glintIn = 0
     api.systems.add({
       id: 'glints',
+      outdoors: true, // the island waits while you're in a room
       phase: 'render',
       run: ({ dt }) => {
         if ((glintIn -= dt) > 0) return

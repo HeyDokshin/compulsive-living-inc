@@ -497,6 +497,7 @@ export default definePlugin({
     })
     api.systems.add({
       id: 'answers',
+      outdoors: true, // the island waits while you're in a room
       phase: 'update',
       run: ({ dt }) => {
         for (let i = answers.length - 1; i >= 0; i--) {
@@ -513,6 +514,7 @@ export default definePlugin({
     }
     api.systems.add({
       id: 'brains',
+      outdoors: true, // the island waits while you're in a room
       phase: 'update',
       run: ({ dt }) => {
         searchesThisTick = 0

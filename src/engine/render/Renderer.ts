@@ -56,7 +56,9 @@ export class Renderer {
   get maxAnisotropy(): number {
     return Math.min(8, this.renderer.capabilities.getMaxAnisotropy())
   }
-  readonly chunks: ChunkRenderer
+  /** The island's chunks (kept, hidden, while a room is shown). */
+  readonly island: ChunkRenderer
+  private active: ChunkRenderer
   readonly mesher = new MesherPool()
   readonly postfx: PostFX
   private surfaces = new Set<{ mesh: Mesh; blockId: string; transparent: boolean; cull?: { x: number; y: number; z: number; r: number } }>()
@@ -89,18 +91,52 @@ export class Renderer {
     this.scene.add(this.sun, this.sun.target, this.ambient)
 
     this.atlas = new BlockAtlas()
-    this.chunks = new ChunkRenderer(world, this.atlas, this.mesher)
-    this.scene.add(this.chunks.group)
+    this.island = new ChunkRenderer(world, this.atlas, this.mesher)
+    this.active = this.island
+    this.scene.add(this.island.group)
     this.palette = world.palette
     this.postfx = new PostFX(this.renderer, this.scene, this.iso.camera)
 
     this.entityRenderer = new EntityRenderer(this.scene, entities, library, world)
-    this.entityRenderer.inView = this.chunks.inView = (x, y, z, r) => inView(this.cull, x, y, z, r)
+    this.entityRenderer.inView = this.island.inView = this.inViewFn
 
     this.resizeObserver = new ResizeObserver(() => this.resize())
     this.resizeObserver.observe(container)
     this.resize()
     this.applyConfig()
+  }
+
+  private inViewFn = (x: number, y: number, z: number, r: number) => inView(this.cull, x, y, z, r)
+
+  /** The chunks being drawn: a room's while inside one, else the island's. */
+  get chunks(): ChunkRenderer {
+    return this.active
+  }
+
+  /**
+   * Draw a room's own world instead of the island (null: back to the island). The island's meshes
+   * stay, hidden; a room's are made fresh each time and thrown away when you leave.
+   */
+  useSpace(world: VoxelWorld | null): void {
+    if (this.active !== this.island) {
+      this.active.dispose()
+      this.active.group.removeFromParent()
+    }
+    this.world = world ?? this.island.world
+    this.entityRenderer.world = this.world
+    this.island.group.visible = !world
+    if (!world) {
+      this.active = this.island
+      return
+    }
+    const room = new ChunkRenderer(world, this.atlas, this.mesher)
+    const m = this.cfg.interior.mesh
+    room.round = { subdiv: m.subdiv, smoothAcross: m.smoothAcross, smoothUp: 0, keep: m.keep, ao: m.ao }
+    room.aoCurve = this.island.aoCurve
+    room.editFade = this.island.editFade
+    room.inView = this.inViewFn
+    this.scene.add(room.group)
+    this.active = room
   }
 
   /** Re-apply config values that are not read every frame. */
@@ -144,15 +180,15 @@ export class Renderer {
     const round = tr.style === 'round' ? { subdiv: tr.subdiv, smoothAcross: tr.smoothAcross, smoothUp: tr.smoothUp, keep: tr.keep, ao: tr.ao } : null
     const meshKey = JSON.stringify([curve, tint, maxMerge, round])
     if (meshKey !== this.last.mesh) {
-      const styleChanged = !!round !== !!this.chunks.round
+      const styleChanged = !!round !== !!this.island.round
       this.last.mesh = meshKey
-      this.chunks.aoCurve = curve
-      this.chunks.tint = tint
-      this.chunks.maxMerge = maxMerge
-      this.chunks.round = round
+      this.island.aoCurve = curve
+      this.island.tint = tint
+      this.island.maxMerge = maxMerge
+      this.island.round = round
       // another style: the old meshes have other attributes, start over
-      if (styleChanged) this.chunks.reset()
-      else this.chunks.remeshAll()
+      if (styleChanged) this.island.reset()
+      else this.island.remeshAll()
       this.refreshSurfaces()
     }
     terrainUniforms.uDetailStrength.value = tr.detail
@@ -161,13 +197,13 @@ export class Renderer {
     terrainUniforms.uDetailFineScale.value = tr.detailFineScale
     terrainUniforms.uDetailSharp.value = tr.detailSharp
     terrainUniforms.uDetailContrast.value = tr.detailContrast
-    this.chunks.editFade = tr.editFade
+    this.island.editFade = tr.editFade
     terrainUniforms.uVarietyScale.value = tr.varietyScale
     terrainUniforms.uVarietyTint.value = tr.varietyTint
-    this.chunks.waterOpacity = render.waterOpacity
+    this.island.waterOpacity = render.waterOpacity
     if (debug.showChunks !== this.last.borders) {
       this.last.borders = debug.showChunks
-      this.chunks.setBorders(debug.showChunks)
+      this.island.setBorders(debug.showChunks)
     }
 
     this.renderer.toneMapping = { neutral: NeutralToneMapping, agx: AgXToneMapping, aces: ACESFilmicToneMapping, none: NoToneMapping }[style.toneMapping]
@@ -229,7 +265,7 @@ export class Renderer {
   render(ctx: TickContext): void {
     this.updateCull()
     this.entityRenderer.render(ctx)
-    this.chunks.cull()
+    this.active.cull()
     // layers, not `visible`: the owner decides whether a surface is shown at all
     for (const s of this.surfaces) if (s.cull) s.mesh.layers.mask = inView(this.cull, s.cull.x, s.cull.y, s.cull.z, s.cull.r) ? 1 : 0
 
@@ -240,13 +276,13 @@ export class Renderer {
     this.pixelsPerBlock = ppb
     // characters are 12 voxels per block
     this.library.updateFur(ppb / 12)
-    if (this.detail && !this.chunks.round) {
+    if (this.detail && !this.active.round) {
       this.detailSettings.bias = d.bias
       this.detailSettings.max = d.enabled ? 2 ** Math.floor(Math.log2(d.max)) : 16
       this.detailSettings.fade = d.fade
       this.detail.update(ppb, this.detailSettings, ctx.dt)
     }
-    this.chunks.update(this.iso.target.x, this.iso.target.z)
+    this.active.update(this.iso.target.x, this.iso.target.z)
     this.updateLight(ctx.dt)
     if (this.grid) this.grid.position.set(Math.round(this.iso.target.x), Math.round(this.iso.target.y) + 0.01, Math.round(this.iso.target.z))
 
@@ -329,7 +365,7 @@ export class Renderer {
     geo.setAttribute('tile', new BufferAttribute(new Float32Array(n * 4), 4))
     geo.setAttribute('detail', new BufferAttribute(new Float32Array(n).fill(-1), 1))
     geo.setIndex(idx)
-    const mesh = new Mesh(geo, transparent ? this.chunks.water : this.chunks.ground)
+    const mesh = new Mesh(geo, transparent ? this.island.water : this.island.ground)
     mesh.receiveShadow = true
     mesh.frustumCulled = false
     const entry: { mesh: Mesh; blockId: string; transparent: boolean; cull?: { x: number; y: number; z: number; r: number } } = { mesh, blockId, transparent }
@@ -358,8 +394,8 @@ export class Renderer {
     for (let i = 0; i < attr.count; i++) attr.setXYZW(i, t[base]!, t[base + 1]!, t[base + 2]!, t[base + 3]!)
     attr.needsUpdate = true
     // the rounded island: the block's own color and detail instead of the pixel tile (water is white: the shader colors it)
-    const round = !!this.chunks.round
-    s.mesh.material = s.transparent ? this.chunks.water : this.chunks.ground
+    const round = !!this.island.round
+    s.mesh.material = s.transparent ? this.island.water : this.island.ground
     const col = s.mesh.geometry.getAttribute('color') as BufferAttribute
     const det = s.mesh.geometry.getAttribute('detail') as BufferAttribute
     const ok = round && !s.transparent && num !== undefined && table.topColor && num * 3 + 2 < table.topColor.length
@@ -374,7 +410,8 @@ export class Renderer {
 
   dispose(): void {
     this.postfx.dispose()
-    this.chunks.dispose()
+    if (this.active !== this.island) this.active.dispose()
+    this.island.dispose()
     this.mesher.dispose()
     this.resizeObserver.disconnect()
     this.renderer.dispose()

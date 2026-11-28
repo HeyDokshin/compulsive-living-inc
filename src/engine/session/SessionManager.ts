@@ -109,6 +109,7 @@ export class SessionManager {
       g.camera.follow = null
       this.saves.reset()
       g.interiors.reset()
+      g.openSpace(null)
       g.ui.close()
       if (save) {
         const m = save.meta
@@ -136,7 +137,7 @@ export class SessionManager {
         g.reloadContent()
         await g.world.regenerate()
         if (save) {
-          decodeWorld(save.world, g.world.voxels)
+          decodeWorld(save.world, g.world.island)
           this.saves.keepEntities(restoreEntities(save.entities, g.entities))
           this.saves.loadPlugins(save.plugins)
           g.renderer.chunks.update()
@@ -144,8 +145,8 @@ export class SessionManager {
         }
       })
       for (const id of g.plugins.loadedIds()) g.events.emit('plugin:loaded', { id })
-      // Rooms nobody is in are open sea (older saves may still hold one).
-      for (const id of g.interiors.ids()) if (id !== g.interiors.current) g.restoreSea(g.interiors.area(id))
+      // a save made in a room: load straight into it (its owner builds it on session:started)
+      g.openSpace(g.interiors.current)
       g.panel.sync()
       g.camera.placed = false
       if (!g.camera.follow) g.camera.center()
@@ -180,7 +181,7 @@ export class SessionManager {
       mods: g.mods.active(),
       gameVersion: GAME_VERSION,
     }
-    const data = this.saves.collect(meta, g.world.voxels, g.worldConfig, g.entities)
+    const data = this.saves.collect(meta, g.world.island, g.worldConfig, g.entities) // the island, also when saved in a room
     await this.storage.write(data)
     this.session.slot = slot
     this.sinceSave = 0

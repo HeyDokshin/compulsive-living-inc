@@ -1,7 +1,7 @@
 import { CanvasTexture, NearestFilter, SRGBColorSpace } from 'three'
 import type { BlockDef } from '../types'
 import type { BlockPalette } from '../world/BlockPalette'
-import { KIND_OPAQUE, KIND_TRANSPARENT, type BlockTable } from '../world/mesher/mesher'
+import { KIND_AIR, KIND_OPAQUE, KIND_TRANSPARENT, type BlockTable } from '../world/mesher/mesher'
 import {
   BUILTIN_PATTERNS,
   MISSING_PATTERN,
@@ -78,7 +78,7 @@ export function buildBlockTable(plan: AtlasPlan, blocks: BlockDef[], palette: Bl
   const byId = new Map(blocks.map((b) => [b.id, b]))
   for (let num = 1; num < n; num++) {
     const b = byId.get(palette.id(num))
-    kind[num] = b?.transparent ? KIND_TRANSPARENT : KIND_OPAQUE
+    kind[num] = b?.invisible ? KIND_AIR : b?.transparent ? KIND_TRANSPARENT : KIND_OPAQUE
     liquid[num] = b?.liquid && b.transparent ? 1 : 0
     tint[num] = b?.tint ? 1 : 0
     const faces = b ? faceTextures(b) : []

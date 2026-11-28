@@ -10,9 +10,15 @@ import { generateWorld, type GenerateReport, type WorldGenStep } from './WorldGe
 
 const log = createLogger('world')
 
-/** Owns the voxel world: generation, regeneration on changes, and the block edit API for plugins. */
+/**
+ * Owns the voxel worlds: the island (generation, regeneration on changes) and, while someone is in a
+ * room, that room's own world. `voxels` and the block API work on the world being played — the
+ * room inside one, the island otherwise.
+ */
 export class WorldService {
-  readonly voxels = new VoxelWorld()
+  /** The island (generated, saved). */
+  readonly island = new VoxelWorld()
+  private active: VoxelWorld = this.island
   lastReport?: GenerateReport
   private running: Promise<void> = Promise.resolve()
   /** solid flag per palette number (1 solid, 0 not, 255 unknown yet); reset when blocks change */
@@ -28,6 +34,21 @@ export class WorldService {
     private hooks: Hooks<GameHooks>,
   ) {
     blocks.onChange(() => (this.solid = new Uint8Array(0)))
+  }
+
+  /** The world being played: a room's while inside one, else the island. */
+  get voxels(): VoxelWorld {
+    return this.active
+  }
+
+  /** Play in another world (a room's, sharing the island's palette), or back on the island (null). */
+  use(world: VoxelWorld | null): void {
+    this.active = world ?? this.island
+  }
+
+  /** Is the island the world being played? */
+  get onIsland(): boolean {
+    return this.active === this.island
   }
 
   /** Generate now (queued after any running generation). */
@@ -134,12 +155,12 @@ export class WorldService {
     this.signature = this.stepSignature()
     const { seed, chunksX, chunksZ, height, ground, levels } = this.cfg
     const sea = this.sea
-    const report = await generateWorld(this.voxels, this.steps.all(), { seed, chunksX, chunksZ, height, ground, levels, sea }, (...a) =>
+    const report = await generateWorld(this.island, this.steps.all(), { seed, chunksX, chunksZ, height, ground, levels, sea }, (...a) =>
       log.warn(...a),
     )
     this.lastReport = report
     log.info(
-      `generated ${this.voxels.sizeX}×${height}×${this.voxels.sizeZ} seed=${seed} in ${report.ms.toFixed(0)} ms (${report.steps.length} steps)`,
+      `generated ${this.island.sizeX}×${height}×${this.island.sizeZ} seed=${seed} in ${report.ms.toFixed(0)} ms (${report.steps.length} steps)`,
     )
     if (!report.steps.length) log.warn('no worldgen steps registered — the world is empty')
     this.events.emit('world:generated', { seed, ms: report.ms })

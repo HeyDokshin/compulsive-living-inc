@@ -66,12 +66,14 @@ export class UiHost {
   readonly openId = signal<string | null>(null)
   /** Covers the whole screen (title): the HUD is hidden, windows don't open, game input is paused. */
   readonly cover = signal<{ component: ComponentType; onEscape?: () => void } | null>(null)
+  /** A place is loading (a room, the island): the screen is veiled and game input waits. */
+  readonly loading = signal<{ title: string; icon: string; key: number; leaving: boolean; ms: number } | null>(null)
   /** The settings are waiting for a key to bind: keys do nothing else. */
   readonly keyCapture = signal(false)
   readonly toasts = signal<ToastEntry[]>([])
   /** True while a modal window is open — gameplay input should pause. */
   readonly modalOpen = computed(() => {
-    if (this.cover.value) return true
+    if (this.cover.value || this.loading.value) return true
     const id = this.openId.value
     return !!id && (this.windows.value.get(id)?.modal ?? true)
   })
@@ -148,6 +150,26 @@ export class UiHost {
     veil.className = 'cl-veil'
     root.appendChild(veil)
     window.setTimeout(() => veil.remove(), 700)
+  }
+
+  /**
+   * Veil the screen for a loading (a soft circle closes over it, the place's name in the middle).
+   * Resolves once the screen is covered; call `unveil` when the new place is ready.
+   */
+  veil(title: string, icon: string, ms: number): Promise<void> {
+    this.close()
+    this.loading.value = { title, icon, key: ++this.counter, leaving: false, ms }
+    return new Promise((resolve) => window.setTimeout(resolve, ms))
+  }
+
+  /** The circle opens on the new place. */
+  unveil(ms: number): void {
+    const l = this.loading.value
+    if (!l || l.leaving) return
+    this.loading.value = { ...l, leaving: true, ms }
+    window.setTimeout(() => {
+      if (this.loading.value?.key === l.key) this.loading.value = null
+    }, ms)
   }
 
   /** Is a window with this id registered? */
@@ -337,6 +359,7 @@ function Root({ host }: { host: UiHost }) {
       ))}
       {gone && gone.def !== win && <WindowView key={`gone-${gone.key}`} host={host} win={gone.def} leaving />}
       {win && <WindowView key={win.id} host={host} win={win} />}
+      {host.loading.value && <Loading veil={host.loading.value} />}
       <div class="cl-toasts">
         {host.toasts.value.map((t) => (
           <div key={t.key} class={`cl-toast${t.leaving ? ' leaving' : ''}`}>
@@ -346,5 +369,22 @@ function Root({ host }: { host: UiHost }) {
         ))}
       </div>
     </>
+  )
+}
+
+/** The loading veil: a circle closes over the screen, the place's name bobs in the middle, dots go round. */
+function Loading({ veil }: { veil: { title: string; icon: string; key: number; leaving: boolean; ms: number } }) {
+  return (
+    <div key={veil.key} class={`cl-loading${veil.leaving ? ' leaving' : ''}`} style={{ '--cl-veil-ms': `${veil.ms}ms` }} aria-live="polite">
+      <div class="cl-loading-card">
+        <div class="cl-loading-icon">{veil.icon}</div>
+        <div class="cl-loading-title">{veil.title}</div>
+        <div class="cl-loading-dots" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </div>
+      </div>
+    </div>
   )
 }

@@ -1,0 +1,54 @@
+// Surfaces of the museum hall (rooms kit): light colors — the layout tints them (museum.layouts.json5).
+[
+  {
+    // damask: a big soft flower print on a fine ground
+    id: 'museum:damask',
+    shading: 0.5,
+    occlusion: 0.2,
+    layers: [
+      { kind: 'noise', colors: ['#eeebe4', '#fbfaf6'], scale: 3, octaves: 4, relief: 0.15, seed: 301 },
+      { kind: 'flowers', colors: ['#ffffff', '#d9d4c8'], scale: 3, blend: 'multiply', opacity: 0.8, params: { size: 0.3, vary: 0, tilt: 0 }, seed: 302 },
+      { kind: 'dots', colors: ['#ffffff', '#e2ddd2'], scale: 6, blend: 'multiply', opacity: 0.6, params: { size: 0.06, vary: 0 }, seed: 303 },
+    ],
+  },
+  {
+    // dark panelling: upright boards with a groove
+    id: 'museum:panel',
+    shading: 0.9,
+    occlusion: 0.6,
+    layers: [
+      { kind: 'boards', colors: ['#cfc4b7', '#eee5da', '#faf4ec'], scale: 2, octaves: 4, relief: 0.8, params: { rows: 4, lengths: 1, gap: 0.05, across: 1 }, seed: 304 },
+      { kind: 'wood', colors: ['#ddd3c6', '#ffffff'], scale: 2, blend: 'multiply', opacity: 0.35, params: { rings: 10, aspect: 6, wobble: 1.4, across: 1 }, seed: 305 },
+    ],
+  },
+  {
+    // parquet: herringbone with a fine grain
+    id: 'museum:parquet',
+    shading: 0.9,
+    occlusion: 0.5,
+    layers: [
+      { kind: 'herringbone', colors: ['#cdbfae', '#efe3d4', '#fbf3e8'], scale: 4, relief: 0.7, seed: 306 },
+      { kind: 'fibers', colors: ['#dccfbf', '#ffffff'], scale: 8, blend: 'overlay', opacity: 0.35, params: { stretch: 6 }, seed: 307 },
+    ],
+  },
+  {
+    // a runner carpet: a soft weave with a bordered pattern
+    id: 'museum:carpet',
+    shading: 0.8,
+    occlusion: 0.5,
+    layers: [
+      { kind: 'weave', colors: ['#e6e1d9', '#fbf9f5'], scale: 28, relief: 0.4, seed: 308 },
+      { kind: 'scales', colors: ['#ffffff', '#dcd6cb'], scale: 4, blend: 'multiply', opacity: 0.45, seed: 309 },
+    ],
+  },
+  {
+    // marble for trims and plinths
+    id: 'museum:marble',
+    shading: 0.5,
+    occlusion: 0.2,
+    layers: [
+      { kind: 'noise', colors: ['#ecebe8', '#fbfbfa'], scale: 2, octaves: 4, seed: 310 },
+      { kind: 'marble', colors: ['#d9d7d2', '#ffffff'], scale: 2, blend: 'multiply', opacity: 0.8, params: { swirl: 3, warp: 4 }, seed: 311 },
+    ],
+  },
+]

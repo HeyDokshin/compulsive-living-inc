@@ -279,6 +279,7 @@ export default definePlugin({
     let spawnIn = 0
     api.systems.add({
       id: 'bugs',
+      outdoors: true, // the island waits while you're in a room
       phase: 'render',
       run: ({ dt }) => {
         const p = player()

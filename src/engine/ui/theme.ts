@@ -102,6 +102,23 @@ ${patternCss('rgba(176, 124, 72, .09)', 'rgba(255, 255, 255, .2)')}
 @keyframes cl-pop { from { transform: scale(.85); opacity: 0 } to { transform: scale(1); opacity: 1 } }
 @keyframes cl-fade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes cl-fade-out { to { opacity: 0 } }
+.cl-loading { position: absolute; inset: 0; z-index: 50; pointer-events: auto; display: grid; place-items: center;
+  background: var(--ui-pat-stars), radial-gradient(circle at 50% 45%, #fffaf0, #f4e6cf);
+  animation: cl-iris-in var(--cl-veil-ms) cubic-bezier(.5, 0, .3, 1) both; }
+.cl-loading.leaving { animation: cl-iris-out var(--cl-veil-ms) cubic-bezier(.6, 0, .4, 1) both; pointer-events: none; }
+.cl-loading-card { display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--ui-text);
+  animation: cl-rise .4s .1s ease-out both; }
+.cl-loading.leaving .cl-loading-card { animation: cl-fade-out calc(var(--cl-veil-ms) * .5) ease-in forwards; }
+.cl-loading-icon { font-size: 54px; line-height: 1; animation: cl-bob 1.6s ease-in-out infinite; filter: drop-shadow(0 6px 8px rgba(110, 80, 70, .18)); }
+.cl-loading-title { font-size: 22px; font-weight: 800; letter-spacing: .01em; }
+.cl-loading-dots { display: flex; gap: 7px; }
+.cl-loading-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--ui-accent); animation: cl-dot 1s ease-in-out infinite; }
+.cl-loading-dots i:nth-child(2) { animation-delay: .15s; }
+.cl-loading-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes cl-dot { 0%, 100% { transform: translateY(0); opacity: .5 } 40% { transform: translateY(-6px); opacity: 1 } }
+@keyframes cl-iris-in { from { clip-path: circle(0% at 50% 50%) } to { clip-path: circle(75% at 50% 50%) } }
+@keyframes cl-iris-out { from { clip-path: circle(75% at 50% 50%) } to { clip-path: circle(0% at 50% 50%) } }
+@media (prefers-reduced-motion: reduce) { .cl-loading, .cl-loading.leaving { animation-name: cl-fade; } .cl-loading.leaving { animation-name: cl-fade-out; } }
 .cl-veil { position: absolute; inset: 0; background: #fff8ec; pointer-events: none; animation: cl-fade-out .65s ease-out forwards; }
 @keyframes cl-pop-out { to { transform: scale(.9); opacity: 0 } }
 @keyframes cl-rise { from { transform: translateY(8px); opacity: 0 } to { transform: none; opacity: 1 } }

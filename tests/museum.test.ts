@@ -41,47 +41,22 @@ describe('museum hall plan', () => {
 })
 
 describe('interiors', () => {
-  const make = () => new Interiors(() => ({ x: 8, z: 8 }))
-
-  it('allocates world corners and keeps them', () => {
-    const i = make()
-    expect(i.area('museum')).toEqual({ x: 0, z: 0, w: 16, d: 16 })
-    expect(i.area('house')).toEqual({ x: 112, z: 0, w: 16, d: 16 })
-    expect(i.area('museum')).toEqual({ x: 0, z: 0, w: 16, d: 16 })
-    const saved = i.save()
-    const j = make()
-    j.load(saved)
-    expect(j.area('house')).toEqual({ x: 112, z: 0, w: 16, d: 16 })
-    expect(j.area('third')).toEqual({ x: 0, z: 112, w: 16, d: 16 })
-  })
-
-  it('shows only the room inside, everything outside', () => {
-    const i = make()
-    const changes: Array<string | null> = []
-    i.onChange = (id) => changes.push(id)
-    i.area('museum')
-    expect(i.chunkVisible(0, 0)).toBe(true) // outside, a room's corner is just sea…
-    expect(i.pointVisible(5, 5)).toBe(false) // …and its furniture is not drawn
-    expect(i.roomAt(5, 5)).toBe('museum')
-    expect(i.chunkVisible(3, 3)).toBe(true)
-    i.enter('museum', { x: 60, y: 9, z: 61, rotY: 1 })
-    expect(i.current).toBe('museum')
-    expect(i.chunkVisible(0, 0)).toBe(true)
-    expect(i.chunkVisible(3, 3)).toBe(false)
-    expect(i.pointVisible(5.5, 9.5)).toBe(true)
-    expect(i.pointVisible(60, 61)).toBe(false)
-    expect(i.exit()).toEqual({ x: 60, y: 9, z: 61, rotY: 1 })
-    expect(i.current).toBeNull()
-    expect(i.exit()).toBeNull()
-    expect(changes).toEqual(['museum', null])
-  })
-
   it('remembers being inside across a save', () => {
-    const i = make()
+    const i = new Interiors()
     i.enter('museum', { x: 1, y: 2, z: 3, rotY: 0 })
-    const j = make()
+    const area = i.area('museum')
+    const j = new Interiors()
     j.load(i.save())
     expect(j.current).toBe('museum')
+    expect(j.area('museum')).toEqual(area)
     expect(j.exit()).toEqual({ x: 1, y: 2, z: 3, rotY: 0 })
+    expect(j.current).toBeNull()
+    expect(j.exit()).toBeNull()
+  })
+
+  it('fits the museum plan in a room', () => {
+    const area = new Interiors().area('museum')
+    expect(area.w).toBeGreaterThanOrEqual(16)
+    expect(area.d).toBeGreaterThanOrEqual(16)
   })
 })

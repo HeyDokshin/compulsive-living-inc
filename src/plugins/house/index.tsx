@@ -5,10 +5,23 @@
  * it to grow the house (the builders finish overnight), pay it back whenever you like.
  * Levels and finishes are data: content/house/house.levels.json5, house.finishes.json5.
  */
-import { definePlugin, signal, ui, z, type Entity, type PluginApi, type ReadonlySignal, type RegistryEntry } from '@sdk'
-import { moveToWall, nearWall, payment, planRoom, type RoomPlan } from './room'
+import {
+  definePlugin,
+  signal,
+  ui,
+  z,
+  type Entity,
+  type PluginApi,
+  type ReadonlySignal,
+  type RegistryEntry,
+  type Services,
+} from '@sdk'
+import { moveToWall, payment, planRoom, windowsOf, type RoomPlan } from './room'
 
 export const HOME = 'house:home'
+
+type Shell = ReturnType<Services['rooms:kit']['build']>
+type Surface = Parameters<Services['rooms:kit']['build']>[0]['look']['wall']
 
 export interface LevelDef extends RegistryEntry {
   level: number
@@ -23,6 +36,10 @@ export interface FinishDef extends RegistryEntry {
   name: string
   block: string
   price: number
+  /** The surface you see (rooms kit). */
+  look: Surface
+  /** Panelling under a wallpaper. */
+  wainscot?: Surface & { height: number }
 }
 
 interface HouseState {
@@ -33,6 +50,8 @@ interface HouseState {
   wall: string
   floor: string
   lights: boolean
+  /** Curtains drawn. */
+  curtains: boolean
   furnished: boolean
 }
 
@@ -60,15 +79,29 @@ const Config = z.object({
   /** Starting finishes. */
   wall: z.string().default('house:wall_cream'),
   floor: z.string().default('house:floor_planks'),
-  baseboard: z.string().default('house:baseboard'),
+  /** Trims, the door and the mat (rooms kit surfaces). */
+  trim: z
+    .object({ material: z.string(), color: z.string() })
+    .default({ material: 'house:painted_wood', color: '#fbf6ee' }),
+  door: z
+    .object({ material: z.string(), color: z.string() })
+    .default({ material: 'core:wood', color: '#e9c9a3' }),
+  curtain: z
+    .object({ material: z.string(), color: z.string() })
+    .default({ material: 'house:curtain', color: '#fffaf2' }),
+  mat: z
+    .object({ material: z.string(), color: z.string() })
+    .default({ material: 'house:doormat', color: '#e8d2ae' }),
   /** With the lights off: share of the room light left. */
   dark: z.number().min(0).max(1).default(0.4).meta({ label: 'lights off', step: 0.05 }),
   /** Furniture put in the room the first time you come home. */
-  starter: z.array(z.object({ piece: z.string(), variant: z.string(), dx: z.number(), dz: z.number() })).default([
-    { piece: 'decor:bed', variant: 'mint', dx: -2, dz: -2 },
-    { piece: 'decor:rug_round', variant: 'pink', dx: 0, dz: 0 },
-    { piece: 'decor:table', variant: 'natural', dx: 2, dz: -2 },
-  ]),
+  starter: z
+    .array(z.object({ piece: z.string(), variant: z.string(), dx: z.number(), dz: z.number() }))
+    .default([
+      { piece: 'decor:bed', variant: 'mint', dx: -2, dz: -2 },
+      { piece: 'decor:rug_round', variant: 'pink', dx: 0, dz: 0 },
+      { piece: 'decor:table', variant: 'natural', dx: 2, dz: -2 },
+    ]),
 })
 type Config = z.infer<typeof Config>
 
@@ -76,7 +109,7 @@ export default definePlugin({
   id: 'house',
   version: '0.1.0',
   description: 'Дом: интерьер, мебель, обои и полы, кредит и расширение',
-  dependsOn: ['items', 'decor', 'economy'],
+  dependsOn: ['items', 'decor', 'economy', 'rooms'],
   // placed after the museum, the shop and the sell box: the house takes the next free plot
   optionalDependsOn: ['museum', 'shop', 'nature', 'garden', 'tutorial', 'daily'],
 
@@ -84,22 +117,58 @@ export default definePlugin({
     const cfg = api.config.define(Config)
     const levels = api.createRegistry<LevelDef>(
       'house:levels',
-      z.looseObject({ id: z.string(), level: z.number().int(), name: z.string(), model: z.string(), room: z.object({ w: z.number().int(), d: z.number().int() }), cost: z.number().int().min(0) }) as never,
+      z.looseObject({
+        id: z.string(),
+        level: z.number().int(),
+        name: z.string(),
+        model: z.string(),
+        room: z.object({ w: z.number().int(), d: z.number().int() }),
+        cost: z.number().int().min(0),
+      }) as never,
     )
     const finishes = api.createRegistry<FinishDef>(
       'house:finishes',
-      z.looseObject({ id: z.string(), kind: z.enum(['wall', 'floor']), name: z.string(), block: z.string(), price: z.number().int().min(0).default(500) }) as never,
+      z.looseObject({
+        id: z.string(),
+        kind: z.enum(['wall', 'floor']),
+        name: z.string(),
+        block: z.string(),
+        price: z.number().int().min(0).default(500),
+        look: z.object({ material: z.string(), color: z.string() }),
+        wainscot: z
+          .object({ material: z.string(), color: z.string(), height: z.number().min(0.1).max(3) })
+          .optional(),
+      }) as never,
     )
+    api.interiors.define(HOME, { name: 'Мой дом', icon: '🏠' })
     api.components.define('home', z.object({}))
     api.components.define('mailbox', z.object({}))
     const area = api.interiors.area(HOME)
     const inventory = () => api.services.get('items:inventory')
     const decor = () => api.services.get('decor:pieces')
 
-    const fresh = (): HouseState => ({ level: 1, debt: 0, readyDay: -1, wall: cfg.wall, floor: cfg.floor, lights: true, furnished: false })
+    const fresh = (): HouseState => ({
+      level: 1,
+      debt: 0,
+      readyDay: -1,
+      wall: cfg.wall,
+      floor: cfg.floor,
+      lights: true,
+      curtains: false,
+      furnished: false,
+    })
     const state = signal<HouseState>(fresh())
-    const set = (patch: Partial<HouseState>) => (state.value = { ...state.value, ...patch })
-    api.save.register<HouseState>({ version: 1, save: () => state.value, load: (d) => (state.value = { ...fresh(), ...d }) })
+    const set = (patch: Partial<HouseState>) => {
+      state.value = { ...state.value, ...patch }
+      shell?.setLights(state.value.lights)
+      shell?.setCurtains(state.value.curtains)
+    }
+    let shell: Shell | null = null
+    api.save.register<HouseState>({
+      version: 1,
+      save: () => state.value,
+      load: (d) => (state.value = { ...fresh(), ...d }),
+    })
     api.services.provide('house:info', { level: () => state.value.level, debt: () => state.value.debt })
 
     const levelDef = (n = state.value.level) => levels.all().find((l) => l.level === n)
@@ -116,7 +185,8 @@ export default definePlugin({
         items.register({
           id: f.id,
           name: f.name,
-          description: f.kind === 'wall' ? 'Используйте дома, чтобы поклеить.' : 'Используйте дома, чтобы постелить.',
+          description:
+            f.kind === 'wall' ? 'Используйте дома, чтобы поклеить.' : 'Используйте дома, чтобы постелить.',
           stack: 1,
           price: f.price,
           icon: { block: f.block },
@@ -130,21 +200,48 @@ export default definePlugin({
 
     // --- the room -------------------------------------------------------------------------------
     const inside = () => api.interiors.current === HOME
-    let wallsYaw = NaN
+    // Invisible blocks to walk on and into; the rooms kit draws the walls and the floor over them.
     const columnId = (p: RoomPlan, lx: number, lz: number, y: number): string => {
       const F = cfg.floorY
       const kind = p.kindAt(lx, lz)
       if (kind === 'outside' || y < F) return api.world.AIR
       if (y === F) return blockOf(state.value.floor, 'core:planks')
-      if (kind !== 'wall') return api.world.AIR
-      const h = y - F
-      if (h > cfg.wallHeight) return api.world.AIR
-      if (h === 1) return cfg.baseboard
-      return nearWall(p.outward(lx, lz), api.render.camera.targetYaw) ? api.world.AIR : blockOf(state.value.wall, 'core:planks')
+      if (kind !== 'wall' || y - F > cfg.wallHeight) return api.world.AIR
+      return blockOf(state.value.wall, 'core:planks')
+    }
+    const surface = (finish: string, kind: 'wall' | 'floor'): FinishDef | undefined => {
+      const f = finishes.get(finish)
+      return f?.kind === kind ? f : finishes.all().find((x) => x.kind === kind)
+    }
+    const showShell = () => {
+      shell?.dispose()
+      shell = null
+      if (!inside()) return
+      const p = plan()
+      const wall = surface(state.value.wall, 'wall')
+      const floor = surface(state.value.floor, 'floor')
+      const cell = (c: { x: number; z: number }) => ({ x: area.x + c.x, z: area.z + c.z })
+      shell = api.services.get('rooms:kit').build({
+        box: { x0: area.x + p.x0, z0: area.z + p.z0, w: p.w, d: p.d },
+        floorY: cfg.floorY + 1,
+        height: cfg.wallHeight,
+        doors: [cell(p.door)],
+        windows: windowsOf(p).map(cell),
+        look: {
+          wall: wall?.look ?? { material: 'house:paper_dots', color: '#f7ecd6' },
+          wainscot: wall?.wainscot ?? null,
+          floor: floor?.look ?? { material: 'core:planks', color: '#ffffff' },
+          trim: cfg.trim,
+          door: cfg.door,
+          curtain: cfg.curtain,
+          mat: cfg.mat,
+        },
+      })
+      shell.setLights(state.value.lights)
+      shell.setCurtains(state.value.curtains)
     }
     const build = () => {
-      // Only the room: nothing around or under it (while you're in, only this corner is drawn; on
-      // the way out the engine gives it back to the sea).
+      // The room's own world starts empty each time you come in: only the room is built.
       const p = plan()
       const w = api.world
       for (let lz = 0; lz < area.d; lz++)
@@ -156,19 +253,7 @@ export default definePlugin({
             if (w.getBlock(X, y, Z) !== id) w.setBlock(X, y, Z, id)
           }
         }
-      wallsYaw = api.render.camera.targetYaw
-    }
-    const rebuildWalls = () => {
-      const p = plan()
-      for (let lz = 0; lz < area.d; lz++)
-        for (let lx = 0; lx < area.w; lx++) {
-          if (p.kindAt(lx, lz) !== 'wall') continue
-          for (let h = 1; h <= cfg.wallHeight; h++) {
-            const id = columnId(p, lx, lz, cfg.floorY + h)
-            if (api.world.getBlock(area.x + lx, cfg.floorY + h, area.z + lz) !== id) api.world.setBlock(area.x + lx, cfg.floorY + h, area.z + lz, id)
-          }
-        }
-      wallsYaw = api.render.camera.targetYaw
+      showShell()
     }
     const furnish = () => {
       if (state.value.furnished) return
@@ -179,18 +264,12 @@ export default definePlugin({
       for (const s of cfg.starter) decor().place(s.piece, s.variant, cx + s.dx, cz + s.dz, 0)
     }
     api.events.on('interior:changed', ({ id }) => {
-      if (id !== HOME) return
+      if (id !== HOME) return void showShell() // gone out: the shell goes too
       build()
       furnish()
     })
-    api.events.on('session:started', () => inside() && build())
-    api.systems.add({
-      id: 'room',
-      phase: 'render',
-      run: () => {
-        if (inside() && api.render.camera.targetYaw !== wallsYaw) rebuildWalls()
-      },
-    })
+    api.events.on('session:started', () => (inside() ? build() : showShell()))
+    api.onDispose(() => shell?.dispose())
     const entrance = () => {
       const p = plan()
       return { x: area.x + p.spawn.x, y: cfg.floorY + 1, z: area.z + p.spawn.z, rotY: Math.PI }
@@ -200,8 +279,8 @@ export default definePlugin({
       return undefined
     }
     const goOut = (actor: Entity) => {
-      api.interiors.exit(actor)
-      actor.transform!.rotY += Math.PI // face away from the door
+      if (api.interiors.changing) return
+      api.interiors.exit(actor) // out of the door, facing away from it
       api.audio.play('ui:close')
     }
     // Walking onto the door goes out.
@@ -213,7 +292,11 @@ export default definePlugin({
         const pl = player()
         if (!pl) return
         const p = plan()
-        if (Math.floor(pl.transform.x) - area.x === p.door.x && Math.floor(pl.transform.z) - area.z === p.door.z) goOut(pl)
+        if (
+          Math.floor(pl.transform.x) - area.x === p.door.x &&
+          Math.floor(pl.transform.z) - area.z === p.door.z
+        )
+          goOut(pl)
       },
     })
     // Lights: dim the room when they're off (after the engine's indoor light).
@@ -233,7 +316,11 @@ export default definePlugin({
     const homes = () => [...api.entities.world.with('home', 'transform')]
     const grass = (x: number, zz: number) => {
       const y = api.world.surfaceY(x, zz)
-      return y === api.world.ground && api.world.getBlock(x, y - 1, zz) === 'core:grass' && api.world.getBlock(x, y, zz) === api.world.AIR ? y : null
+      return y === api.world.ground &&
+        api.world.getBlock(x, y - 1, zz) === 'core:grass' &&
+        api.world.getBlock(x, y, zz) === api.world.AIR
+        ? y
+        : null
     }
     const plotAt = (x0: number, z0: number): number | null => {
       const base = grass(x0, z0)
@@ -245,10 +332,17 @@ export default definePlugin({
         }
       const r = cfg.clearance
       for (let dz = -r; dz < cfg.size + cfg.frontRows + r; dz++)
-        for (let dx = -r; dx < cfg.size + 1 + r; dx++) if ((api.world.blockerAt(x0 + dx, z0 + dz)?.blocker?.w ?? 1) > 1) return null
+        for (let dx = -r; dx < cfg.size + 1 + r; dx++)
+          if ((api.world.blockerAt(x0 + dx, z0 + dz)?.blocker?.w ?? 1) > 1) return null
       return base
     }
-    const houseModel = () => ({ shape: 'voxel' as const, ref: levelDef()?.model ?? 'house:house_1', size: [cfg.size, 3, cfg.size] as [number, number, number], color: '#f7ecd6', anchor: 'bottom' as const })
+    const houseModel = () => ({
+      shape: 'voxel' as const,
+      ref: levelDef()?.model ?? 'house:house_1',
+      size: [cfg.size, 3, cfg.size] as [number, number, number],
+      color: '#f7ecd6',
+      anchor: 'bottom' as const,
+    })
     const placeHouse = () => {
       const cx = Math.floor(api.world.sizeX / 2 - cfg.size / 2)
       const cz = Math.floor(api.world.sizeZ / 2 - cfg.size / 2)
@@ -263,7 +357,14 @@ export default definePlugin({
             for (const e of [...api.entities.world.with('transform')]) {
               const ex = Math.floor(e.transform.x)
               const ez = Math.floor(e.transform.z)
-              if (ex >= x0 && ex <= x0 + cfg.size && ez >= z0 && ez < z0 + cfg.size + cfg.frontRows && !e.inventory) api.entities.despawn(e)
+              if (
+                ex >= x0 &&
+                ex <= x0 + cfg.size &&
+                ez >= z0 &&
+                ez < z0 + cfg.size + cfg.frontRows &&
+                !e.inventory
+              )
+                api.entities.despawn(e)
             }
             const home = api.entities.spawn({
               name: 'Мой дом',
@@ -275,7 +376,13 @@ export default definePlugin({
             api.entities.spawn({
               name: 'Почтовый ящик',
               transform: { x: x0 + cfg.size + 0.5, y, z: z0 + cfg.size + 0.5, rotY: 0 },
-              model: { shape: 'voxel', ref: 'house:mailbox', size: [1, 1, 1], color: '#6aa0d8', anchor: 'bottom' },
+              model: {
+                shape: 'voxel',
+                ref: 'house:mailbox',
+                size: [1, 1, 1],
+                color: '#6aa0d8',
+                anchor: 'bottom',
+              },
               blocker: { w: 1, d: 1, h: 2 },
               blobShadow: { radius: 0.3, opacity: 0.2 },
               mailbox: {},
@@ -301,8 +408,17 @@ export default definePlugin({
       // pictures and shelves go out with the walls they hang on
       const after = plan()
       for (const e of api.entities.world.with('decor', 'transform')) {
-        if (api.interiors.roomAt(e.transform.x, e.transform.z) !== HOME || decor().get(e.decor.piece)?.layer !== 'wall') continue
-        const at = moveToWall(before, after, Math.floor(e.transform.x) - area.x, Math.floor(e.transform.z) - area.z)
+        if (
+          api.interiors.roomAt(e.transform.x, e.transform.z) !== HOME ||
+          decor().get(e.decor.piece)?.layer !== 'wall'
+        )
+          continue
+        const at = moveToWall(
+          before,
+          after,
+          Math.floor(e.transform.x) - area.x,
+          Math.floor(e.transform.z) - area.z,
+        )
         if (!at) continue
         e.transform.x = area.x + at.x + 0.5
         e.transform.z = area.z + at.z + 0.5
@@ -356,6 +472,16 @@ export default definePlugin({
       when: atDoor,
       run: () => void set({ lights: !state.value.lights }),
     })
+    // the curtains: use a window (the wall cell it is in)
+    interactions.register({
+      id: 'house:curtains',
+      priority: 55,
+      anim: 'none',
+      sound: 'ui:click',
+      label: () => (state.value.curtains ? 'Открыть шторы' : 'Задёрнуть шторы'),
+      when: (ctx) => inside() && windowsOf(plan()).some((c) => c.x === ctx.x - area.x && c.z === ctx.z - area.z),
+      run: () => void set({ curtains: !state.value.curtains }),
+    })
     interactions.register({
       id: 'house:finish',
       tool: '#house:finishes',
@@ -378,7 +504,11 @@ export default definePlugin({
       },
     })
 
-    api.ui.window({ id: 'house:mailbox', title: 'Почтовый ящик', component: () => <Mailbox api={api} state={state} set={set} levelDef={levelDef} /> })
+    api.ui.window({
+      id: 'house:mailbox',
+      title: 'Почтовый ящик',
+      component: () => <Mailbox api={api} state={state} set={set} levelDef={levelDef} />,
+    })
 
     try {
       api.registry('daily:sections').register({
@@ -386,9 +516,16 @@ export default definePlugin({
         order: 42,
         line: () => {
           const s = state.value
-          if (s.readyDay >= 0) return { icon: '🏗', text: 'Строители заканчивают дом — к утру он станет больше.' }
-          if (s.debt > 0) return { icon: '🏠', text: `Кредит за дом: ${s.debt.toLocaleString('ru-RU')} 🔔. Платить можно у почтового ящика.` }
-          return levelDef(s.level + 1) ? null : { icon: '🏠', text: 'Дом построен полностью. Самое время его обставить!' }
+          if (s.readyDay >= 0)
+            return { icon: '🏗', text: 'Строители заканчивают дом — к утру он станет больше.' }
+          if (s.debt > 0)
+            return {
+              icon: '🏠',
+              text: `Кредит за дом: ${s.debt.toLocaleString('ru-RU')} 🔔. Платить можно у почтового ящика.`,
+            }
+          return levelDef(s.level + 1)
+            ? null
+            : { icon: '🏠', text: 'Дом построен полностью. Самое время его обставить!' }
         },
       })
     } catch {
@@ -444,7 +581,12 @@ export default definePlugin({
 
 // --- the mailbox: the loan ----------------------------------------------------------------------
 
-function Mailbox(props: { api: PluginApi; state: ReadonlySignal<HouseState>; set: (p: Partial<HouseState>) => void; levelDef: (n?: number) => LevelDef | undefined }) {
+function Mailbox(props: {
+  api: PluginApi
+  state: ReadonlySignal<HouseState>
+  set: (p: Partial<HouseState>) => void
+  levelDef: (n?: number) => LevelDef | undefined
+}) {
   const { api } = props
   const s = props.state.value
   const wallet = api.services.get('economy:wallet')
@@ -490,19 +632,25 @@ function Mailbox(props: { api: PluginApi; state: ReadonlySignal<HouseState>; set
         </div>
       ) : null}
       {s.readyDay >= 0 ? (
-        <div style={{ color: 'var(--ui-accent)', fontWeight: 700 }}>🏗 Строители работают — к утру будет {next?.name.toLowerCase()}.</div>
+        <div style={{ color: 'var(--ui-accent)', fontWeight: 700 }}>
+          🏗 Строители работают — к утру будет {next?.name.toLowerCase()}.
+        </div>
       ) : next ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
           <div style={{ fontSize: '13px' }}>
             Следующий: <b>{next.name}</b>, комната {next.room.w}×{next.room.d}. Кредит {fmt(next.cost)} 🔔.
-            {s.debt > 0 && <div style={{ color: 'var(--ui-text-soft)' }}>Сначала выплатите текущий кредит.</div>}
+            {s.debt > 0 && (
+              <div style={{ color: 'var(--ui-text-soft)' }}>Сначала выплатите текущий кредит.</div>
+            )}
           </div>
           <ui.Button disabled={s.debt > 0} onClick={build}>
             Расширить
           </ui.Button>
         </div>
       ) : (
-        <div style={{ fontSize: '13px', color: 'var(--ui-text-soft)' }}>Это самый большой дом. Обставляйте!</div>
+        <div style={{ fontSize: '13px', color: 'var(--ui-text-soft)' }}>
+          Это самый большой дом. Обставляйте!
+        </div>
       )}
     </div>
   )

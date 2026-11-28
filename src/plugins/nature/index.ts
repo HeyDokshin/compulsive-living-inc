@@ -141,6 +141,7 @@ export default definePlugin({
     let clock = 0
     api.systems.add({
       id: 'wobble',
+      outdoors: true, // the island waits while you're in a room
       phase: 'render',
       run: ({ dt }) => {
         clock += dt

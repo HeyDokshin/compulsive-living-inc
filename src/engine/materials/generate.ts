@@ -159,8 +159,11 @@ function fineness(features: number, res: number): number {
 }
 
 /** Pattern value in [0, 1] at tile coordinates (u, v); v grows downwards (texture rows). */
-export function pattern(a: PatternArgs, u: number, v: number, res: number): number {
+export function pattern(a: PatternArgs, u0: number, v0: number, res: number): number {
   const p = a.params
+  // `across: 1` turns any pattern a quarter (boards standing up, upright stripes)
+  const u = p.across ? v0 : u0
+  const v = p.across ? u0 : v0
   const n = Math.max(1, Math.round(a.scale))
   switch (a.kind) {
     case 'fill':
@@ -252,8 +255,8 @@ export function pattern(a: PatternArgs, u: number, v: number, res: number): numb
       return clamp01(bulge * 0.8 + slub * 0.2)
     }
     case 'stripes': {
-      // straight bands at an angle (whole turns per tile, so they tile)
-      const turns = Math.max(1, Math.round(p.turns ?? 0))
+      // straight bands: level (turns 0) or at an angle (whole turns per tile, so they tile)
+      const turns = Math.max(0, Math.round(p.turns ?? 0))
       const t = (u * turns + v) * n
       const band = 0.5 + 0.5 * Math.cos((t - Math.floor(t)) * Math.PI * 2)
       return motif(band - (1 - (p.width ?? 0.5)), n * Math.max(1, turns), res, 0.25)

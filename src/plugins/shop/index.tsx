@@ -210,6 +210,7 @@ export default definePlugin({
     const players = api.entities.world.with('player', 'transform')
     api.systems.add({
       id: 'keeper',
+      outdoors: true, // the island waits while you're in a room
       phase: 'render',
       run: ({ dt }) => {
         time += dt

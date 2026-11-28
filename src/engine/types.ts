@@ -95,6 +95,9 @@ export const BlockSchema = z.looseObject({
   color: z.string().default('#ff00ff'),
   /** Blocks movement. */
   solid: z.boolean().default(true),
+  /** Not drawn at all (still walked on and into if `solid`): for places that draw their own
+   * surfaces over the blocks, like rooms with real walls and floors. */
+  invisible: z.boolean().default(false),
   /** Rendered in the see-through pass (water, glass). */
   transparent: z.boolean().default(false),
   /** Liquid surface: drawn slightly below the block top and animated (needs `transparent`). */

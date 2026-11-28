@@ -170,6 +170,7 @@ export default definePlugin({
     const guestQuery = api.entities.world.with('guest', 'transform')
     api.systems.add({
       id: 'guest',
+      outdoors: true, // the island waits while you're in a room
       phase: 'render',
       run: () => {
         let pl: (typeof players.entities)[number] | undefined

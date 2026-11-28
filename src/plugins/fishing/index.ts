@@ -365,6 +365,7 @@ export default definePlugin({
     let time = 0
     api.systems.add({
       id: 'fishing',
+      outdoors: true, // the island waits while you're in a room
       phase: 'render',
       run: ({ dt }) => {
         time += dt
