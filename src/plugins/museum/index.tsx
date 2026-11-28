@@ -42,6 +42,8 @@ const Config = z.object({
   /** Curator's text: seconds per character, and the pitch of her babble (Hz). */
   typeSpeed: z.number().min(0.005).max(0.2).default(0.028).meta({ label: 'type speed (s)', step: 0.002 }),
   voicePitch: z.number().min(80).max(1200).default(330).meta({ label: 'voice pitch', step: 10 }),
+  /** The hall is tall and bare: steps ring in it. */
+  echo: z.number().min(0).max(1).default(0.5).meta({ step: 0.01 }),
 })
 
 const HALLS = [
@@ -59,8 +61,8 @@ export default definePlugin({
   optionalDependsOn: ['nature', 'garden', 'terrain', 'tutorial', 'daily', 'cutscene'],
 
   setup(api) {
-    api.interiors.define(HALL_ID, { name: 'Музей острова', icon: '🏛️' })
     const cfg = api.config.define(Config)
+    api.interiors.define(HALL_ID, { name: 'Музей острова', icon: '🏛️', echo: cfg.echo })
     const catalog = () => api.services.get('collection:catalog')
     const inventory = () => api.services.get('items:inventory')
     api.components.define('museum', z.object({}))

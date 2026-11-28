@@ -3,7 +3,7 @@
  * crickets at night. Everything follows the time of day (`engine → light.time`).
  */
 import { definePlugin, z, type LoopHandle, type PluginApi } from '@sdk'
-import { Composer, DAY, NIGHT, midiToHz, type MusicNote } from './music'
+import { Composer, DAY, MOODS, NIGHT, midiToHz, type Mood, type MusicNote } from './music'
 
 const Config = z.object({
   music: z.boolean().default(true),
@@ -12,6 +12,10 @@ const Config = z.object({
   surf: z.number().min(0).max(1).default(0.22).meta({ label: 'surf volume', step: 0.01 }),
   birds: z.boolean().default(true),
   crickets: z.boolean().default(true),
+  /** Music of its own in rooms: room id (or `prefix*`) → mood (home, museum, shop); other rooms play the day's. */
+  roomMusic: z
+    .record(z.string(), z.enum(['home', 'museum', 'shop']))
+    .default({ 'house:home': 'home', 'villagers:home_*': 'home', 'museum:hall': 'museum', 'shop:room': 'shop' }),
   /** How much of the outside is heard inside rooms. */
   indoors: z.number().min(0).max(1).default(0.12).meta({ step: 0.01 }),
 })
@@ -46,6 +50,9 @@ class MusicPlayer {
   private step = 0
   private next = 0
   private restUntil = 0
+  /** The room the music was chosen for (undefined: not yet), and its own mood (null: the hour's). */
+  private room: string | null | undefined = undefined
+  private roomMood: Mood | null = null
 
   constructor(
     private api: PluginApi,
@@ -56,11 +63,21 @@ class MusicPlayer {
     const a = this.api.audio
     if (!this.cfg.music) return
     const now = a.time
+    // a new place, a new piece: start from its first bar (and don't wait out a pause)
+    const room = this.api.interiors.current
+    if (room !== this.room) {
+      if (this.room !== undefined) {
+        this.step = 0
+        this.restUntil = 0
+      }
+      this.room = room
+      this.roomMood = this.moodOf(room)
+    }
+    const mood = this.roomMood ?? (isNight(hour(this.api)) ? NIGHT : DAY)
     if (now < this.restUntil) return
     if (this.next < now) this.next = now + 0.1
     // Schedule a little ahead of the audio clock for steady timing.
     while (this.next < now + 0.3) {
-      const mood = isNight(hour(this.api)) ? NIGHT : DAY
       const eighth = 30 / mood.bpm
       for (const n of this.composer.notesAt(this.step, mood)) this.play(n, this.next - now, eighth * 2)
       this.step++
@@ -72,6 +89,16 @@ class MusicPlayer {
         break
       }
     }
+  }
+
+  /** A room's own mood, or null (outside, or a room that plays the hour's music). */
+  private moodOf(room: string | null): Mood | null {
+    if (!room) return null
+    const rooms = this.cfg.roomMusic
+    const own = rooms[room]
+    if (own) return MOODS[own]
+    for (const key in rooms) if (key.endsWith('*') && room.startsWith(key.slice(0, -1))) return MOODS[rooms[key]!]
+    return null
   }
 
   private play(n: MusicNote, at: number, beat: number): void {

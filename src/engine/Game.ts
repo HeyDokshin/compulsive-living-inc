@@ -252,7 +252,7 @@ export class Game {
   }
 
   /** Names and icons of rooms (for the loading veil). */
-  readonly rooms = new Map<string, { name: string; icon: string }>()
+  readonly rooms = new Map<string, { name: string; icon: string; echo?: number }>()
   private moving = false
 
   /** Is the player on the way into or out of a room (the veil is up)? */
@@ -307,6 +307,7 @@ export class Game {
       this.world.use(v)
     } else this.world.use(null)
     this.renderer.useSpace(id ? this.world.voxels : null)
+    this.audio.setEcho(id ? (this.rooms.get(id)?.echo ?? this.engineConfig.interior.echo) : 0)
   }
 
   /**

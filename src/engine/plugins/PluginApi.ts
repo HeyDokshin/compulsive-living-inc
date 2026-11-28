@@ -250,8 +250,8 @@ export interface PluginApi {
    */
   interiors: {
     /** Name and icon shown on the loading veil; `size` (cells, walls included) for a room bigger than
-     * the usual 16 × 16 — up to 48 × 48. */
-    define(id: string, look: { name: string; icon: string; size?: { w: number; d: number } }): void
+     * the usual 16 × 16 — up to 48 × 48; `echo` (0…1) how much steps and sounds ring in it. */
+    define(id: string, look: { name: string; icon: string; size?: { w: number; d: number }; echo?: number }): void
     /** Where a room is built (world coordinates, far off the island): build its voxels there with
      * `world.setBlock` on `interior:changed` (the room's world starts empty each time). */
     area(id: string): { x: number; z: number; w: number; d: number }

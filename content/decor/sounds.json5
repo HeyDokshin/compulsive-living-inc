@@ -1,0 +1,14 @@
+// Sounds pieces make by themselves (decor.pieces.json5 → sound).
+[
+  // a wall clock: tick, and a softer tock
+  { id: 'decor:tick', volume: 0.5, pitchJitter: 0.03, cooldown: 0.2, layers: [
+    { wave: 'noise', duration: 0.012, gain: 0.12, filter: { type: 'bandpass', freq: 4200, q: 4 } },
+    { wave: 'sine', freq: 2400, freqEnd: 1900, duration: 0.018, gain: 0.03 },
+  ] },
+  // a fire: a crackle and a pop
+  { id: 'decor:crackle', volume: 0.55, pitchJitter: 0.35, cooldown: 0.05, layers: [
+    { wave: 'noise', duration: 0.025, gain: 0.18, filter: { type: 'bandpass', freq: 2600, q: 1.5 } },
+    { wave: 'noise', delay: 0.04, duration: 0.015, gain: 0.1, filter: { type: 'highpass', freq: 3500 } },
+    { wave: 'noise', duration: 0.18, gain: 0.05, filter: { type: 'lowpass', freq: 500 } },
+  ] },
+]

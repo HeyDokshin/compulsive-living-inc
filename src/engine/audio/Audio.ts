@@ -15,6 +15,9 @@ export interface AudioSettings {
   music: number
   /** World sounds fade out over this many blocks from the camera focus. */
   hearingRange: number
+  /** Room echo: seconds between reflections, and how much of each comes back (0…0.9). */
+  echoDelay: number
+  echoTail: number
 }
 
 /** One scheduled note (generative music, chimes…). */
@@ -55,6 +58,9 @@ export class Audio {
   private buses?: Record<Bus, GainNode>
   private master?: GainNode
   private noise?: AudioBuffer
+  /** Room echo on world sounds: the send into it and its feedback. */
+  private echo?: { send: GainNode; delay: DelayNode; feedback: GainNode }
+  private echoAmount = 0
   private files = new Map<string, Promise<AudioBuffer | null>>()
   private lastPlayed = new Map<string, number>()
   listener = { x: 0, z: 0 }
@@ -84,6 +90,17 @@ export class Audio {
     this.buses.ui.gain.setTargetAtTime(s.ui, t, 0.02)
     this.buses.ambient.gain.setTargetAtTime(s.ambient, t, 0.02)
     this.buses.music.gain.setTargetAtTime(s.music, t, 0.05)
+    if (this.echo) {
+      this.echo.delay.delayTime.setTargetAtTime(s.echoDelay, t, 0.05)
+      this.echo.feedback.gain.setTargetAtTime(Math.min(0.9, s.echoTail), t, 0.05)
+      this.echo.send.gain.setTargetAtTime(this.echoAmount * 0.6, t, 0.25)
+    }
+  }
+
+  /** How much world sounds (steps, tools) echo: 0 outdoors, more in bigger, barer rooms. */
+  setEcho(amount: number): void {
+    this.echoAmount = Math.max(0, Math.min(1, amount))
+    this.applySettings()
   }
 
   play(id: string, opts: PlayOptions = {}): void {
@@ -233,6 +250,17 @@ export class Audio {
         return g
       }
       this.buses = { sfx: bus(), ui: bus(), ambient: bus(), music: bus() }
+      // echo: world sounds feed a delay that feeds itself back, darker each time round
+      const send = ctx.createGain()
+      send.gain.value = 0
+      const delay = ctx.createDelay(1)
+      const feedback = ctx.createGain()
+      const dark = ctx.createBiquadFilter()
+      dark.type = 'lowpass'
+      dark.frequency.value = 2200
+      this.buses.sfx.connect(send).connect(delay).connect(dark).connect(feedback).connect(delay)
+      dark.connect(this.master)
+      this.echo = { send, delay, feedback }
       // 1 s of white noise, reused by all noise layers
       const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate)
       const data = buf.getChannelData(0)
