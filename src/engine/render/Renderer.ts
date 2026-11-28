@@ -162,8 +162,9 @@ export class Renderer {
 
     // Character look: rebuild every view when it changes.
     const look = render.characters
-    const lookKey = JSON.stringify([look.round, look.fur, look.faces, look.fabric, look.maxShells])
+    const lookKey = JSON.stringify([look.round, look.fur, look.faces, look.fabric, look.maxShells, render.models])
     Object.assign(this.library.look, look)
+    Object.assign(this.library.build, render.models)
     if (this.last.look && lookKey !== this.last.look) this.entityRenderer.rebuildAll()
     this.last.look = lookKey
 

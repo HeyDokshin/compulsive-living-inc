@@ -24,6 +24,7 @@ import type { ModelSpec } from '../types'
 import { fabricUniforms, type FabricTextures } from '../render/fabric'
 import { stylize } from '../render/style'
 import type { ModelDef, RigDef } from './defs'
+import { buildThing, surfaceFor, type ModelBuild } from './thingMesh'
 import { buildSmoothGeometry } from './smoothMesh'
 import { buildVoxelGeometry, defaultPivot, parseLayers, parseVox, type GeometryData, type VoxelModel } from './voxelModel'
 import { createLogger } from '../util/log'
@@ -41,6 +42,8 @@ export class ModelLibrary {
   readonly material: Material = stylize(new MeshLambertMaterial({ vertexColors: true }))
   /** Round characters (`round` rigs): smooth parts, fur and drawn faces. Set from the engine config. */
   look: CharacterLook = { round: true, fur: true, faces: true, fabric: true, maxShells: 12, furFrom: 2.4, furFull: 6 }
+  /** How things are built from voxels (`render.models`). Set from the engine config. */
+  build: ModelBuild = { style: 'auto', bevel: 0.45, maxBoxes: 36, merge: 70 }
   private characterMaterial = createCharacterMaterial()
   /** Fabric detail textures (set by the game once materials exist). */
   fabrics: FabricTextures | null = null
@@ -438,10 +441,18 @@ export class ModelLibrary {
   ) {
     // soft and round (low-poly: a sample per voxel) where the model or its rig asks for it
     const round = this.look.round ? (def.round ?? rigRound) : undefined
-    const key = `${id}|${pivot.join(',')}|${palette ? JSON.stringify(palette) : ''}|${round ? JSON.stringify(round) : ''}`
+    const b = this.build
+    const style = round ? 'round' : b.style === 'blocks' ? 'blocks' : def.style
+    const key = `${id}|${pivot.join(',')}|${palette ? JSON.stringify(palette) : ''}|${round ? JSON.stringify(round) : `${style},${b.bevel},${b.maxBoxes},${b.merge}`}`
     let geo = this.geometries.get(key)
     if (!geo && round) {
       const data = buildSmoothGeometry(model, pivot, { ...round, keep: round.keep ?? 0.62 })
+      geo = toGeometry(data, resolveColors(model, def, palette))
+      this.setFabric(geo, data.colorIndex, model, def)
+      this.geometries.set(key, geo)
+    }
+    if (!geo && (style === 'auto' || style === 'bevel')) {
+      const data = buildThing(model, pivot, { style, scale: def.scale, parts: def.parts, palette: def.palette }, b)
       geo = toGeometry(data, resolveColors(model, def, palette))
       this.setFabric(geo, data.colorIndex, model, def)
       this.geometries.set(key, geo)
@@ -510,30 +521,6 @@ const smoothstep = (a: number, b: number, v: number) => {
   return t * t * (3 - 2 * t)
 }
 
-/** The generated surface a painted color suggests (by hue, saturation and lightness). */
-export function surfaceFor(hex: string): string {
-  const n = parseInt(hex.replace('#', '').slice(0, 6), 16)
-  const r = ((n >> 16) & 255) / 255
-  const g = ((n >> 8) & 255) / 255
-  const b = (n & 255) / 255
-  const max = Math.max(r, g, b)
-  const min = Math.min(r, g, b)
-  const l = (max + min) / 2
-  const s = max === min ? 0 : (max - min) / (1 - Math.abs(2 * l - 1))
-  let h = 0
-  if (max !== min) {
-    if (max === r) h = ((g - b) / (max - min) + 6) % 6
-    else if (max === g) h = (b - r) / (max - min) + 2
-    else h = (r - g) / (max - min) + 4
-    h *= 60
-  }
-  if (l > 0.86) return 'core:plaster'
-  if (s < 0.14) return 'core:stone'
-  if (h >= 15 && h <= 48 && s < 0.75 && l < 0.72) return 'core:wood'
-  if (h >= 70 && h <= 170) return 'core:leaves'
-  return 'core:painted'
-}
-
 /** Still part of a scene (not removed with its entity)? */
 function inScene(o: Object3D): boolean {
   let p: Object3D | null = o
@@ -563,3 +550,5 @@ function toGeometry(data: GeometryData, colors: string[]): BufferGeometry {
   geo.computeBoundingSphere()
   return geo
 }
+
+export { surfaceFor } from './thingMesh'

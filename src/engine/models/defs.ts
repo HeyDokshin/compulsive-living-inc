@@ -36,6 +36,17 @@ export const ModelDefSchema = z.looseObject({
   /** Draw smooth and rounded instead of blocky (trees, rocks, bushes). */
   round: RoundSchema.optional(),
   /**
+   * How the model is built (when it isn't `round`): 'auto' — bevelled boxes for angular things
+   * (furniture, crates, buildings), softly rounded for round ones with many small boxes (pots, vases,
+   * lamps); 'bevel' / 'blocks' force one. `render.models` in the engine config sets the defaults.
+   */
+  style: z.enum(['auto', 'bevel', 'blocks']).default('auto'),
+  /**
+   * Parts: palette characters drawn as one piece (merged boxes, the first character's color), e.g.
+   * `{ seat: 'pP' }`. Without it neighbouring shades of one material merge by themselves.
+   */
+  parts: z.record(z.string(), z.string()).optional(),
+  /**
    * Fur or hair on round rigs: how much grows on each palette character (0…1), how long and how
    * dense. Far away it fades out; close up it is drawn strand by strand (shells).
    */

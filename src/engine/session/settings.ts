@@ -48,7 +48,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
 }
 
 /** Engine config values per quality level (paths in config · engine). */
-export const QUALITY_PRESETS: Record<Quality, Record<string, number | boolean>> = {
+export const QUALITY_PRESETS: Record<Quality, Record<string, number | boolean | string>> = {
   high: {
     'render.maxPixelRatio': 2,
     'render.shadows': true,
@@ -58,6 +58,7 @@ export const QUALITY_PRESETS: Record<Quality, Record<string, number | boolean>> 
     'style.tiltShift': 0.9,
     'style.curvature': 0.0025,
     'render.terrain.detailSize': 512,
+    'render.models.style': 'auto',
     'render.characters.fur': true,
     'render.characters.maxShells': 14,
     'render.characters.fabric': true,
@@ -73,6 +74,7 @@ export const QUALITY_PRESETS: Record<Quality, Record<string, number | boolean>> 
     'style.tiltShift': 0.9,
     'style.curvature': 0.0025,
     'render.terrain.detailSize': 256,
+    'render.models.style': 'auto',
     'render.characters.fur': true,
     'render.characters.maxShells': 8,
     'render.characters.fabric': true,
@@ -88,6 +90,8 @@ export const QUALITY_PRESETS: Record<Quality, Record<string, number | boolean>> 
     'style.tiltShift': 0,
     'style.curvature': 0,
     'render.terrain.detailSize': 128,
+    // things as plain voxel faces: a few times fewer triangles
+    'render.models.style': 'blocks',
     // characters stay round with drawn faces; no fur shells or weave, block close-ups up to 64 texels
     'render.characters.fur': false,
     'render.characters.maxShells': 6,
