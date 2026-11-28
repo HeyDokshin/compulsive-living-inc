@@ -42,6 +42,17 @@ export interface ShellSpec {
   look: ShellLook
   /** A floor surface per cell (e.g. carpets of a museum hall), default `look.floor`. */
   floorAt?: (x: number, z: number) => Surface | null
+  /** Built-in furniture standing on cells: plinths and pedestals, counters — a body with a moulded
+   * base and a top that overhangs a little (neighbouring cells join into one piece). */
+  builtIns?: ReadonlyArray<BuiltIn>
+}
+
+export interface BuiltIn {
+  cells: ReadonlyArray<{ x: number; z: number }>
+  body: Surface
+  top: Surface
+  /** Top height above the floor. */
+  height: number
 }
 
 export interface Shell {
@@ -268,6 +279,39 @@ function buildShell(api: PluginApi, cfg: Config, T: Three, tex: Textures, spec: 
       )
     }
   for (const { s, b } of floors.values()) toMesh(b, surfaceMaterial(s, { vertexColors: true }), root)
+  // built-ins: a moulded base, an inset body, an overhanging top; sides between neighbours are left out
+  for (const bi of spec.builtIns ?? []) {
+    const body = new MeshBuilder(tiles)
+    const top = new MeshBuilder(tiles)
+    const at = new Set(bi.cells.map((c) => `${c.x},${c.z}`))
+    const has = (x: number, z: number) => at.has(`${x},${z}`)
+    const h = bi.height
+    for (const c of bi.cells) {
+      const open = { nx: !has(c.x - 1, c.z), px: !has(c.x + 1, c.z), nz: !has(c.x, c.z - 1), pz: !has(c.x, c.z + 1) }
+      const skip = (Object.keys(open) as Array<keyof typeof open>).filter((k) => !open[k])
+      // inset on open sides only, so a row of cells reads as one long plinth
+      const ins = (side: keyof typeof open, d: number) => (open[side] ? d : 0)
+      const x0 = c.x + ins('nx', 0.06)
+      const x1 = c.x + 1 - ins('px', 0.06)
+      const z0 = c.z + ins('nz', 0.06)
+      const z1 = c.z + 1 - ins('pz', 0.06)
+      body.box([x0, Y, z0], [x1, Y + h - 0.08, z1], [...skip, 'bottom', 'top'])
+      // base moulding and top slab stand out a little past the body
+      const bx0 = c.x + ins('nx', 0.02)
+      const bx1 = c.x + 1 - ins('px', 0.02)
+      const bz0 = c.z + ins('nz', 0.02)
+      const bz1 = c.z + 1 - ins('pz', 0.02)
+      top.box([bx0, Y, bz0], [bx1, Y + 0.12, bz1], [...skip, 'bottom'])
+      top.box(
+        [c.x - (open.nx ? 0.01 : 0), Y + h - 0.08, c.z - (open.nz ? 0.01 : 0)],
+        [c.x + 1 + (open.px ? 0.01 : 0), Y + h, c.z + 1 + (open.pz ? 0.01 : 0)],
+        skip,
+      )
+    }
+    toMesh(body, surfaceMaterial(bi.body), root)
+    toMesh(top, surfaceMaterial(bi.top), root)
+  }
+
   // the floor slab under the room, seen in cross-section past the low walls
   const slab = new MeshBuilder(tiles)
   slab.box([box.x0 + 1 - cfg.thick, Y - 0.45, box.z0 + 1 - cfg.thick], [box.x0 + box.w - 1 + cfg.thick, Y - 0.002, box.z0 + box.d - 1 + cfg.thick], ['top'])

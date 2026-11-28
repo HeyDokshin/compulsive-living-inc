@@ -1,5 +1,5 @@
 // Museum interior blocks. Walls and floors are invisible — the rooms kit draws them (see `look` in
-// museum.layouts.json5); pedestals and the desk are drawn as blocks.
+// museum.layouts.json5), pedestals and the desk too.
 {
   entries: [
     { id: 'museum:parquet', name: 'Паркет', color: '#d9a46c', invisible: true, textures: { all: 'museum:parquet' }, sounds: { step: 'core:step_wood' } },
@@ -9,8 +9,8 @@
     { id: 'museum:carpet_fish', name: 'Ковёр', color: '#9fcfe0', invisible: true, textures: { all: 'museum:carpet_fish' }, sounds: { step: 'core:step_carpet' } },
     { id: 'museum:carpet_bugs', name: 'Ковёр', color: '#b5d995', invisible: true, textures: { all: 'museum:carpet_bugs' }, sounds: { step: 'core:step_carpet' } },
     { id: 'museum:carpet_fossils', name: 'Ковёр', color: '#ead3a2', invisible: true, textures: { all: 'museum:carpet_fossils' }, sounds: { step: 'core:step_carpet' } },
-    { id: 'museum:pedestal', name: 'Витрина', color: '#efe8dc', textures: { all: 'museum:pedestal' }, sounds: { step: 'core:step_stone' }, tags: ['museum:displays'] },
-    { id: 'museum:desk', name: 'Стойка', color: '#b07a50', textures: { all: 'museum:desk' }, sounds: { step: 'core:step_wood' }, tags: ['museum:desks'] },
+    { id: 'museum:pedestal', name: 'Витрина', color: '#efe8dc', invisible: true, textures: { all: 'museum:pedestal' }, sounds: { step: 'core:step_stone' }, tags: ['museum:displays'] },
+    { id: 'museum:desk', name: 'Стойка', color: '#b07a50', invisible: true, textures: { all: 'museum:desk' }, sounds: { step: 'core:step_wood' }, tags: ['museum:desks'] },
     { id: 'museum:mat', name: 'Коврик у двери', color: '#c8795a', invisible: true, textures: { all: 'museum:mat' }, sounds: { step: 'core:step_carpet' } },
   ],
 }

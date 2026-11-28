@@ -68,6 +68,11 @@ export const LayoutSchema = z.looseObject({
       door: Surface.default({ material: 'core:wood', color: '#c58e5e' }),
       curtain: Surface.default({ material: 'museum:carpet', color: '#d47a86' }),
       mat: Surface.default({ material: 'museum:carpet', color: '#d08a66' }),
+      /** Pedestals under the exhibits and the reception desk. */
+      pedestal: Surface.default({ material: 'museum:marble', color: '#f1ece3' }),
+      pedestalTop: Surface.default({ material: 'museum:marble', color: '#fbf8f2' }),
+      desk: Surface.default({ material: 'museum:panel', color: '#b98258' }),
+      deskTop: Surface.default({ material: 'core:wood', color: '#e2b47e' }),
       floors: z.record(z.string(), Surface).default({
         '.': { material: 'museum:parquet', color: '#d9a46c' },
         a: { material: 'museum:carpet', color: '#a6d3e4' },
@@ -218,6 +223,10 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
         mat: l.look.mat,
       },
       floorAt: (x, z) => floors[p.at(x - area.x, z - area.z)] ?? null,
+      builtIns: [
+        { cells: cells((ch) => ch === 'F' || ch === 'B' || ch === 'O'), body: l.look.pedestal, top: l.look.pedestalTop, height: 1 },
+        { cells: cells((ch) => ch === 'R'), body: l.look.desk, top: l.look.deskTop, height: 1 },
+      ],
     })
   }
   api.onDispose(() => shell?.dispose())
