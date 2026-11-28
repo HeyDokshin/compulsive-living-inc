@@ -1,11 +1,13 @@
 import {
   BufferGeometry,
+  CanvasTexture,
   Color,
   Float32BufferAttribute,
   Group,
   InstancedMesh,
   Mesh,
   MeshLambertMaterial,
+  SRGBColorSpace,
   type Material,
   type Object3D,
   type Texture,
@@ -24,6 +26,7 @@ import type { ModelSpec } from '../types'
 import { fabricUniforms, type FabricTextures } from '../render/fabric'
 import { stylize } from '../render/style'
 import type { ModelDef, RigDef } from './defs'
+import { buildThing, flatAxis, flatPicture, surfaceFor, type FlatPicture, type ModelBuild } from './thingMesh'
 import { buildSmoothGeometry } from './smoothMesh'
 import { buildVoxelGeometry, defaultPivot, parseLayers, parseVox, type GeometryData, type VoxelModel } from './voxelModel'
 import { createLogger } from '../util/log'
@@ -41,6 +44,8 @@ export class ModelLibrary {
   readonly material: Material = stylize(new MeshLambertMaterial({ vertexColors: true }))
   /** Round characters (`round` rigs): smooth parts, fur and drawn faces. Set from the engine config. */
   look: CharacterLook = { round: true, fur: true, faces: true, fabric: true, maxShells: 12, furFrom: 2.4, furFull: 6 }
+  /** How things are built from voxels (`render.models`). Set from the engine config. */
+  build: ModelBuild = { style: 'auto', bevel: 0.45, maxBoxes: 36, merge: 70 }
   private characterMaterial = createCharacterMaterial()
   /** Fabric detail textures (set by the game once materials exist). */
   fabrics: FabricTextures | null = null
@@ -119,7 +124,8 @@ export class ModelLibrary {
       const modelId = opts.parts?.[part.name] ?? part.model
       this.withModel(modelId, (model, def) => {
         if (round) {
-          for (const o of this.roundPart(modelId, model, part.pivot, opts.palette, def, round)) g.add(o)
+          // a part's own model can be rounder or crisper than the rig (a soft body under a round head)
+          for (const o of this.roundPart(modelId, model, part.pivot, opts.palette, def, def.round ?? round)) g.add(o)
           return
         }
         const mesh = this.mesh(modelId, model, part.pivot, opts.palette, def)
@@ -416,10 +422,19 @@ export class ModelLibrary {
   private materialOf(id: string, def: ModelDef, geo: BufferGeometry, pattern?: Pattern): Material {
     const fabric = this.fabricSlots(def, geo)
     const pat = pattern && this.fabrics ? this.patternUniforms(pattern) : undefined
-    if (!fabric && !pat) return this.material
-    const key = pat ? `${id}|${JSON.stringify(pattern)}` : id
+    const map = geo.userData.map as Texture | undefined
+    if (!fabric && !pat && !map) return this.material
+    // a flat thing's picture is its own (each palette has one): its material too
+    const key = `${id}${map ? `|${geo.uuid}` : ''}${pat ? `|${JSON.stringify(pattern)}` : ''}`
     let m = this.fabricMaterials.get(key)
-    if (!m) this.fabricMaterials.set(key, (m = createCharacterMaterial(undefined, fabric, pat)))
+    if (!m) {
+      const mat = createCharacterMaterial(undefined, fabric, pat)
+      if (map) {
+        mat.map = map
+        mat.alphaTest = 0.5
+      }
+      this.fabricMaterials.set(key, (m = mat))
+    }
     return m
   }
 
@@ -438,10 +453,37 @@ export class ModelLibrary {
   ) {
     // soft and round (low-poly: a sample per voxel) where the model or its rig asks for it
     const round = this.look.round ? (def.round ?? rigRound) : undefined
-    const key = `${id}|${pivot.join(',')}|${palette ? JSON.stringify(palette) : ''}|${round ? JSON.stringify(round) : ''}`
+    const b = this.build
+    const style = round ? 'round' : b.style === 'blocks' ? 'blocks' : def.style
+    const key = `${id}|${pivot.join(',')}|${palette ? JSON.stringify(palette) : ''}|${round ? JSON.stringify(round) : `${style},${b.bevel},${b.maxBoxes},${b.merge}`}`
     let geo = this.geometries.get(key)
     if (!geo && round) {
       const data = buildSmoothGeometry(model, pivot, { ...round, keep: round.keep ?? 0.62 })
+      geo = toGeometry(data, resolveColors(model, def, palette))
+      this.setFabric(geo, data.colorIndex, model, def)
+      this.geometries.set(key, geo)
+    }
+    if (!geo && style === 'auto') {
+      // flat things (rugs, pictures, wall clocks): one smooth picture with a soft outline
+      const axis = flatAxis(model)
+      if (axis) {
+        const pic = flatPicture(model, axis, resolveColors(model, def, palette))
+        geo = flatGeometry(model, pivot, axis)
+        geo.userData.map = pictureTexture(pic)
+        // knit on rugs, canvas on pictures, unless the model has its own
+        const chars = Object.keys(def.palette)
+        const fabric = def.fabric ?? {
+          keys: Object.fromEntries(chars.map((c) => [c, axis === 'y' ? 'core:knit' : 'core:linen'])),
+          tile: 4,
+          strength: 0.55,
+          always: true,
+        }
+        this.setFabric(geo, [pic.main, pic.main, pic.main, pic.main], model, { ...def, fabric })
+        this.geometries.set(key, geo)
+      }
+    }
+    if (!geo && (style === 'auto' || style === 'bevel')) {
+      const data = buildThing(model, pivot, { style, scale: def.scale, parts: def.parts, palette: def.palette }, b)
       geo = toGeometry(data, resolveColors(model, def, palette))
       this.setFabric(geo, data.colorIndex, model, def)
       this.geometries.set(key, geo)
@@ -469,7 +511,7 @@ export class ModelLibrary {
     const { geo } = this.geometry(id, model, pivot, palette, def)
     if (!geo.index!.count) return null
     const mesh = new Mesh(geo, this.materialOf(id, def, geo, pattern))
-    mesh.castShadow = true
+    mesh.castShadow = !geo.userData.map // a flat picture's shadow would be its square
     mesh.receiveShadow = true
     return mesh
   }
@@ -510,30 +552,6 @@ const smoothstep = (a: number, b: number, v: number) => {
   return t * t * (3 - 2 * t)
 }
 
-/** The generated surface a painted color suggests (by hue, saturation and lightness). */
-export function surfaceFor(hex: string): string {
-  const n = parseInt(hex.replace('#', '').slice(0, 6), 16)
-  const r = ((n >> 16) & 255) / 255
-  const g = ((n >> 8) & 255) / 255
-  const b = (n & 255) / 255
-  const max = Math.max(r, g, b)
-  const min = Math.min(r, g, b)
-  const l = (max + min) / 2
-  const s = max === min ? 0 : (max - min) / (1 - Math.abs(2 * l - 1))
-  let h = 0
-  if (max !== min) {
-    if (max === r) h = ((g - b) / (max - min) + 6) % 6
-    else if (max === g) h = (b - r) / (max - min) + 2
-    else h = (r - g) / (max - min) + 4
-    h *= 60
-  }
-  if (l > 0.86) return 'core:plaster'
-  if (s < 0.14) return 'core:stone'
-  if (h >= 15 && h <= 48 && s < 0.75 && l < 0.72) return 'core:wood'
-  if (h >= 70 && h <= 170) return 'core:leaves'
-  return 'core:painted'
-}
-
 /** Still part of a scene (not removed with its entity)? */
 function inScene(o: Object3D): boolean {
   let p: Object3D | null = o
@@ -546,6 +564,66 @@ function resolveColors(model: VoxelModel, def: ModelDef, overrides?: Record<stri
   if (!overrides || !def.layers) return model.colors
   const chars = Object.keys(def.palette)
   return model.colors.map((c, i) => (i === 0 ? c : (overrides[chars[i - 1]!] ?? c)))
+}
+
+/** One quad over a flat thing's face (voxel units, relative to the pivot), white: the picture colors it. */
+function flatGeometry(model: VoxelModel, pivot: [number, number, number], axis: 'y' | 'z'): BufferGeometry {
+  const [sx, sy, sz] = model.size
+  const [px, py, pz] = pivot
+  const geo = new BufferGeometry()
+  const pos =
+    axis === 'y'
+      ? [0, sy, sz, sx, sy, sz, sx, sy, 0, 0, sy, 0] // seen from above; the back edge (z = 0) is the picture's top
+      : [0, 0, sz, sx, 0, sz, sx, sy, sz, 0, sy, sz] // seen from the front
+  for (let i = 0; i < 12; i += 3) {
+    pos[i] = pos[i]! - px
+    pos[i + 1] = pos[i + 1]! - py
+    pos[i + 2] = pos[i + 2]! - pz
+  }
+  const n = axis === 'y' ? [0, 1, 0] : [0, 0, 1]
+  geo.setAttribute('position', new Float32BufferAttribute(pos, 3))
+  geo.setAttribute('normal', new Float32BufferAttribute([...n, ...n, ...n, ...n], 3))
+  geo.setAttribute('uv', new Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2))
+  geo.setAttribute(
+    'color',
+    new Float32BufferAttribute(
+      Array.from({ length: 12 }, () => 1),
+      3,
+    ),
+  )
+  geo.setIndex([0, 1, 2, 0, 2, 3])
+  geo.computeBoundingSphere()
+  return geo
+}
+
+/** A flat thing's picture, scaled up smoothly (soft colors, a smooth outline through the alpha test). */
+function pictureTexture(pic: FlatPicture): Texture {
+  const k = 8
+  const small = document.createElement('canvas')
+  small.width = pic.w
+  small.height = pic.h
+  small.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(pic.rgba), pic.w, pic.h), 0, 0)
+  const big = document.createElement('canvas')
+  big.width = pic.w * k
+  big.height = pic.h * k
+  const g = big.getContext('2d')!
+  g.imageSmoothingEnabled = true
+  g.imageSmoothingQuality = 'high'
+  g.drawImage(small, 0, 0, big.width, big.height)
+  // the outline from a blurred mask: round where the voxels make steps (the alpha test cuts at half)
+  const mask = document.createElement('canvas')
+  mask.width = big.width
+  mask.height = big.height
+  const mg = mask.getContext('2d')!
+  mg.filter = `blur(${k * 0.55}px)`
+  mg.drawImage(small, 0, 0, big.width, big.height)
+  g.globalCompositeOperation = 'destination-in'
+  g.drawImage(mask, 0, 0)
+  g.globalCompositeOperation = 'source-over'
+  const tex = new CanvasTexture(big)
+  tex.colorSpace = SRGBColorSpace
+  tex.anisotropy = 4
+  return tex
 }
 
 function toGeometry(data: GeometryData, colors: string[]): BufferGeometry {
@@ -563,3 +641,5 @@ function toGeometry(data: GeometryData, colors: string[]): BufferGeometry {
   geo.computeBoundingSphere()
   return geo
 }
+
+export { surfaceFor } from './thingMesh'

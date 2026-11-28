@@ -10,6 +10,8 @@ import { paintBlockIcon, paintDotIcon, paintSpriteIcon, paintVoxelIcon, prefersS
 /** Item icons (data URLs), drawn once from the item's voxel model or block and cached. */
 export class IconService {
   private cache = new Map<string, Promise<string>>()
+  /** Draws a model as the game shows it (set by the game once there is a renderer); null: paint voxels instead. */
+  render: ((modelId: string, palette: Record<string, string> | undefined, style: 'iso' | 'sprite') => Promise<string | null>) | null = null
 
   constructor(
     private items: Registry<ItemDef>,
@@ -38,6 +40,8 @@ export class IconService {
       const m = await this.library.getModel(def.model, def.palette)
       if (m) {
         const style = def.icon?.style ?? (prefersSprite(m.model) ? 'sprite' : 'iso')
+        const drawn = this.render ? await this.render(def.model, def.palette, style).catch(() => null) : null
+        if (drawn) return drawn
         return style === 'sprite' ? paintSpriteIcon(m.model, m.colors) : paintVoxelIcon(m.model, m.colors)
       }
     }

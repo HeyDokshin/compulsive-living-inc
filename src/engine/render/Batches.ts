@@ -159,7 +159,7 @@ export class ModelBatches {
       let batch = this.byKey.get(key)
       if (!batch) {
         batch = new Instances(this.parent, geo, material, (mesh) => {
-          mesh.castShadow = true
+          mesh.castShadow = !geo.userData.map // a flat picture's shadow would be its square
           mesh.receiveShadow = true
         })
         this.byKey.set(key, batch)

@@ -108,6 +108,19 @@ export const EngineConfigSchema = z.object({
           editFade: z.number().min(0).max(2).default(0.4).meta({ label: 'edit fade (s)', step: 0.05 }),
         })
         .prefault({}),
+      /** How things are built from their voxel models (furniture, tools, exhibits, buildings). */
+      models: z
+        .object({
+          /** 'auto': soft-edged boxes or softly rounded, per model; 'blocks': plain voxel faces (cheapest). */
+          style: z.enum(['auto', 'blocks']).default('auto'),
+          /** Bevel on the edges of boxes (voxels). */
+          bevel: z.number().min(0).max(2).default(0.45).meta({ step: 0.05 }),
+          /** More boxes than this and a small thing is rounded instead (it is round, not angular). */
+          maxBoxes: z.number().int().min(1).max(500).default(36).meta({ label: 'max boxes', step: 1 }),
+          /** Shades of one material closer than this merge into one piece (sum of RGB differences). */
+          merge: z.number().min(0).max(255).default(70).meta({ label: 'merge shades', step: 1 }),
+        })
+        .prefault({}),
       /** Round, plush characters: smooth parts, fur and hair, drawn faces. */
       characters: z
         .object({

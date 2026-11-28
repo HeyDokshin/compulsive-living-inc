@@ -83,6 +83,7 @@
     id: 'decor:lamp',
     scale: 0.0625,
     palette: {"p": "#4a4a52", "q": "#3a3a40", "g": "#ffe9a8"},
+    fabric: { keys: { p: 'core:metal', q: 'core:metal' }, tile: 6, strength: 0.6, always: true },
     layers: [
       ['........', '.qqqqqq.', '.qqqqqq.', '.qqqqqq.', '.qqqqqq.', '.qqqqqq.', '.qqqqqq.', '........'],
       ['........', '.qqqqqq.', '.qqqqqq.', '.qqqqqq.', '.qqqqqq.', '.qqqqqq.', '.qqqqqq.', '........'],
@@ -165,6 +166,7 @@
     id: 'decor:flower_pot',
     scale: 0.0625,
     palette: {"p": "#e08a5a", "e": "#7a5232", "l": "#7cc45e", "r": "#ff8fa8", "y": "#ffe08a"},
+    fabric: { keys: { p: 'core:ceramic', e: 'core:dirt', l: 'core:leaves' }, tile: 6, strength: 0.6, always: true },
     layers: [
       ['..........', '..........', '...pppp...', '..pppppp..', '..pppppp..', '..pppppp..', '..pppppp..', '...pppp...', '..........', '..........'],
       ['..........', '..........', '...pppp...', '..pppppp..', '..pppppp..', '..pppppp..', '..pppppp..', '...pppp...', '..........', '..........'],
@@ -381,6 +383,7 @@
     id: 'decor:vase',
     scale: 0.0625,
     palette: {"p": "#6aa0d8", "l": "#7cc45e", "r": "#ff8fa8", "y": "#ffe08a", "w": "#fffaf0"},
+    fabric: { keys: { p: 'core:ceramic', w: 'core:ceramic', l: 'core:leaves' }, tile: 6, strength: 0.6, always: true },
     layers: [
       ['....', '.pp.', '.pp.', '....'],
       ['.pp.', 'pppp', 'pppp', '.pp.'],
@@ -427,6 +430,7 @@
     id: 'decor:teapot',
     scale: 0.0625,
     palette: {"p": "#fffaf0", "k": "#6aa0d8"},
+    fabric: { keys: { p: 'core:ceramic', k: 'core:ceramic' }, tile: 6, strength: 0.6, always: true },
     layers: [
       ['..........', '...pp.....', '..pppp....', '..pppp....', '...pp.....', '..........'],
       ['..........', '..pppp....', '..pppp....', '.ppppp....', '..pppp....', '..........'],
