@@ -8,12 +8,13 @@ import { resolve } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 
 /**
- * What a frame may cost (all passes, 1100 × 700, default zoom) — about 1.5 × what it cost when set
- * (0.19: island 129 calls / 523 k triangles, house 72 / 74 k). Raise on purpose, with a reason.
+ * What a frame may cost (all passes, 1100 × 700, default zoom) — about 1.5 × what it cost when set,
+ * per browser (0.19, Chromium: island 136 calls / 535 k triangles, house 72 / 74 k; WebKit: island 203
+ * calls). Raise on purpose, with a reason.
  */
-const BUDGET = {
-  island: { calls: 200, triangles: 800_000 },
-  room: { calls: 120, triangles: 150_000 },
+const BUDGETS: Record<string, { island: { calls: number; triangles: number }; room: { calls: number; triangles: number } }> = {
+  chromium: { island: { calls: 210, triangles: 800_000 }, room: { calls: 120, triangles: 150_000 } },
+  webkit: { island: { calls: 310, triangles: 800_000 }, room: { calls: 180, triangles: 150_000 } },
 }
 
 const HOUSE = 'house:home'
@@ -45,12 +46,31 @@ async function settled(page: Page, place: string | null): Promise<void> {
   await page.evaluate(() => game.ui.close())
 }
 
-async function frame(page: Page): Promise<{ calls: number; triangles: number }> {
-  await page.waitForTimeout(500)
-  return page.evaluate(() => game.renderer.frameStats())
+/** The frame's cost once the scene has settled (models finish loading after the meshes). */
+async function frame(page: Page, label: string): Promise<{ calls: number; triangles: number }> {
+  await page.waitForTimeout(3000)
+  const f = await page.evaluate(() => game.renderer.frameStats())
+  // what is drawn, by kind — to see where a browser's extra draw calls come from
+  const parts = await page.evaluate(() => {
+    type O = { visible: boolean; children: O[]; type: string; name: string; castShadow?: boolean; isMesh?: boolean; isPoints?: boolean; isSprite?: boolean }
+    const out: Record<string, number> = {}
+    const walk = (o: O, group: string) => {
+      if (!o.visible) return
+      if (o.isMesh || o.isPoints || o.isSprite) {
+        out[group] = (out[group] ?? 0) + 1
+        if (o.castShadow) out[`${group} (shadow)`] = (out[`${group} (shadow)`] ?? 0) + 1
+      }
+      for (const c of o.children) walk(c, group)
+    }
+    for (const c of (game.renderer.scene as unknown as O).children) walk(c, c.name || c.type)
+    return out
+  })
+  console.log(`[frame] ${label}: ${JSON.stringify(f)} ${JSON.stringify(parts)}`)
+  return f
 }
 
-test('into the house and the museum and back, saved and loaded in a room', async ({ page }, info) => {
+test('into the house and the museum and back, saved and loaded in a room', async ({ page, browserName }, info) => {
+  const BUDGET = BUDGETS[browserName] ?? BUDGETS.chromium!
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`))
   page.on('console', (m) => {
@@ -64,7 +84,7 @@ test('into the house and the museum and back, saved and loaded in a room', async
   await settled(page, null)
   await run(page, 'time 11:00')
 
-  const island = await frame(page)
+  const island = await frame(page, `${browserName} island`)
   info.annotations.push({ type: 'island frame', description: JSON.stringify(island) })
   expect(island.calls).toBeLessThan(BUDGET.island.calls)
   expect(island.triangles).toBeLessThan(BUDGET.island.triangles)
@@ -75,7 +95,7 @@ test('into the house and the museum and back, saved and loaded in a room', async
   await settled(page, HOUSE)
   expect(await page.evaluate(() => game.world.onIsland)).toBe(false)
   expect(await page.evaluate(() => !!game.renderer.scene.getObjectByName('room-shell'))).toBe(true)
-  const room = await frame(page)
+  const room = await frame(page, `${browserName} house`)
   info.annotations.push({ type: 'room frame', description: JSON.stringify(room) })
   expect(room.calls).toBeLessThan(BUDGET.room.calls)
   expect(room.triangles).toBeLessThan(BUDGET.room.triangles)
