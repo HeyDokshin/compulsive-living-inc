@@ -419,7 +419,7 @@ export class Game {
       const ok = await this.renderer.atlas.rebuild(this.blocks.all(), (id) => this.textures.get(id), this.world.voxels.palette)
       if (!ok) return
       this.renderer.detail?.invalidate()
-      void this.terrainDetail.build(this.renderer.atlas.detail)
+      void this.terrainDetail.build(this.renderer.atlas.detail, this.engineConfig.render.terrain.detailSize, this.renderer.maxAnisotropy)
       this.icons.clear()
       this.renderer.refreshSurfaces()
       this.renderer.chunks.remeshAll()
@@ -461,6 +461,7 @@ export class Game {
     this.loop.opts.tickRate = c.loop.tickRate
     this.loop.timeScale = c.loop.timeScale
     this.renderer.applyConfig()
+    this.terrainDetail?.resize(c.render.terrain.detailSize, this.renderer.maxAnisotropy)
     this.audio.applySettings()
     this.panel.visible = c.debug.showPanel
   }

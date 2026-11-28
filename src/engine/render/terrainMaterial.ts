@@ -20,6 +20,11 @@ export const terrainUniforms = {
   uDetailStrength: { value: 0.75 },
   /** Material tiles per block. */
   uDetailScale: { value: 0.5 },
+  /** Finer second layer: amount and scale; gradient scale (sharper mips); contrast. */
+  uDetailFine: { value: 0.6 },
+  uDetailFineScale: { value: 3.3 },
+  uDetailSharp: { value: 0.6 },
+  uDetailContrast: { value: 1.35 },
   /** Linear colors of the water (deep and shallow parts of the swell). */
   uWaterDeep: { value: [0.09, 0.42, 0.62] as [number, number, number] },
   uWaterShallow: { value: [0.3, 0.75, 0.82] as [number, number, number] },
@@ -58,6 +63,10 @@ uniform sampler2D uDetailAtlas;
 uniform vec2 uDetailGrid;
 uniform float uDetailStrength;
 uniform float uDetailScale;
+uniform float uDetailFine;
+uniform float uDetailFineScale;
+uniform float uDetailSharp;
+uniform float uDetailContrast;
 varying float vDetail;
 varying vec3 vWPos;
 varying vec3 vWNormal;
@@ -65,11 +74,19 @@ vec3 detailTap(vec2 p, vec2 tile) {
   // inside one atlas tile, with gradients of the continuous coordinate (no seams where it wraps)
   vec2 cell = 1.0 / uDetailGrid;
   vec2 uv = (tile + 0.02 + fract(p) * 0.96) * cell;
-  return textureGrad(uDetailAtlas, uv, dFdx(p) * cell * 0.96, dFdy(p) * cell * 0.96).rgb;
+  vec2 g = cell * 0.96 * uDetailSharp;
+  return textureGrad(uDetailAtlas, uv, dFdx(p) * g, dFdy(p) * g).rgb;
 }
 vec3 detailTri(float slot, vec3 p, vec3 w) {
   vec2 tile = vec2(mod(slot, uDetailGrid.x), floor(slot / uDetailGrid.x));
-  return detailTap(p.zy, tile) * w.x + detailTap(p.xz, tile) * w.y + detailTap(p.xy, tile) * w.z;
+  vec3 d = detailTap(p.zy, tile) * w.x + detailTap(p.xz, tile) * w.y + detailTap(p.xy, tile) * w.z;
+  if (uDetailFine > 0.0) {
+    // the same material again, finer and shifted: small blades and grains over the big tufts
+    vec3 q = p * uDetailFineScale + vec3(0.37, 0.11, 0.73);
+    vec3 f = detailTap(q.zy, tile) * w.x + detailTap(q.xz, tile) * w.y + detailTap(q.xy, tile) * w.z;
+    d *= 1.0 + (f - 0.5) * 2.0 * uDetailFine;
+  }
+  return 0.5 + (d - 0.5) * uDetailContrast;
 }
 `
 
@@ -112,7 +129,7 @@ export function createTerrainMaterial(dissolve?: Dissolve): MeshLambertMaterial 
           diffuseColor.rgb *= mix(vec3(1.0), look.rgb, m * uVarietyTint);
           if (uDetailStrength > 0.0) d = mix(d, detailTri(vs, p, w), m);
         }
-        diffuseColor.rgb *= mix(vec3(1.0), d * 2.0, uDetailStrength);
+        diffuseColor.rgb *= mix(vec3(1.0), max(d, 0.0) * 2.0, uDetailStrength);
       }`,
     )
   }

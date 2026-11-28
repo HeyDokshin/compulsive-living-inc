@@ -76,7 +76,16 @@ export const EngineConfigSchema = z.object({
           /** Shade in creases. */
           ao: z.number().min(0).max(1).default(0.45).meta({ label: 'crease shade', step: 0.05 }),
           /** Material detail close up (grass blades, rock…). */
-          detail: z.number().min(0).max(1).default(0.7).meta({ label: 'material detail', step: 0.05 }),
+          detail: z.number().min(0).max(1).default(0.9).meta({ label: 'material detail', step: 0.05 }),
+          /** A second, finer layer of the same material over the first (blades over tufts), and how much finer. */
+          detailFine: z.number().min(0).max(1).default(0.6).meta({ label: 'fine detail', step: 0.05 }),
+          detailFineScale: z.number().min(1.5).max(8).default(3.3).meta({ label: 'fine detail scale', step: 0.1 }),
+          /** Below 1 keeps detail sharp further away (sharper mip level; too low shimmers). */
+          detailSharp: z.number().min(0.25).max(1).default(0.6).meta({ label: 'detail sharpness', step: 0.05 }),
+          /** Light and shade of the detail, stronger (>1) or softer. */
+          detailContrast: z.number().min(0.5).max(3).default(1.35).meta({ label: 'detail contrast', step: 0.05 }),
+          /** Texels of one material tile in the detail atlas (more = crisper close up, more memory). */
+          detailSize: z.number().int().min(64).max(1024).default(512).meta({ label: 'detail tile size', step: 64 }),
           /** Material tiles per block. */
           detailScale: z.number().min(0.05).max(4).default(0.5).meta({ label: 'detail tiles per block', step: 0.05 }),
           /** Patches of other ground materials (texture `variants`): their size (per block, smaller = larger) and tint. */
@@ -165,7 +174,7 @@ export const EngineConfigSchema = z.object({
       warmth: z.number().min(-1).max(1).default(0.42).meta({ step: 0.01 }),
       lift: z.number().min(0).max(0.2).default(0.025).meta({ label: 'lift (pastel)', step: 0.005 }),
       vignette: z.number().min(0).max(1).default(0.26).meta({ step: 0.01 }),
-      tiltShift: z.number().min(0).max(20).default(1.6).meta({ label: 'tilt-shift blur', step: 0.1 }),
+      tiltShift: z.number().min(0).max(20).default(0.9).meta({ label: 'tilt-shift blur', step: 0.1 }),
       /** Blur fades out as the camera zooms in past this zoom (a close-up shouldn't look smudged). */
       tiltShiftZoom: z.number().min(0.5).max(10).default(2.2).meta({ label: 'tilt-shift full until zoom', step: 0.1 }),
       tiltFocus: z.number().min(0).max(1).default(0.5).meta({ label: 'tilt-shift focus', step: 0.01 }),

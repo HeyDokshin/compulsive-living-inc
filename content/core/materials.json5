@@ -48,7 +48,7 @@
     occlusion: 0.45,
     layers: [
       { kind: 'noise', colors: ['#a7b878', '#cbd69a'], scale: 3, octaves: 5, relief: 0.4, seed: 78 },
-      { kind: 'fibers', colors: ['#93a564', '#e9eebc'], scale: 10, octaves: 3, blend: 'overlay', opacity: 0.75, relief: 0.7, params: { stretch: 6 }, warp: 0.2, seed: 79 },
+      { kind: 'fibers', colors: ['#9fb06e', '#e9eebc'], scale: 10, octaves: 3, blend: 'overlay', opacity: 0.5, relief: 0.45, params: { stretch: 6 }, warp: 0.2, seed: 79 },
     ],
   },
   {

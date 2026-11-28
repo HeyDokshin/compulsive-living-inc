@@ -51,6 +51,11 @@ export class Renderer {
   readonly atlas: BlockAtlas
   /** Finer block textures for close cameras (set up by the game once materials exist). */
   detail: AtlasDetail | null = null
+
+  /** The most anisotropic filtering the GPU offers (capped: more costs and adds little). */
+  get maxAnisotropy(): number {
+    return Math.min(8, this.renderer.capabilities.getMaxAnisotropy())
+  }
   readonly chunks: ChunkRenderer
   readonly mesher = new MesherPool()
   readonly postfx: PostFX
@@ -152,6 +157,10 @@ export class Renderer {
     }
     terrainUniforms.uDetailStrength.value = tr.detail
     terrainUniforms.uDetailScale.value = tr.detailScale
+    terrainUniforms.uDetailFine.value = tr.detailFine
+    terrainUniforms.uDetailFineScale.value = tr.detailFineScale
+    terrainUniforms.uDetailSharp.value = tr.detailSharp
+    terrainUniforms.uDetailContrast.value = tr.detailContrast
     this.chunks.editFade = tr.editFade
     terrainUniforms.uVarietyScale.value = tr.varietyScale
     terrainUniforms.uVarietyTint.value = tr.varietyTint

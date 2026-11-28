@@ -3,7 +3,6 @@ import type { MaterialService } from '../materials/MaterialService'
 import type { DetailPlan } from './BlockAtlas'
 import { terrainUniforms } from './terrainMaterial'
 
-const SIZE = 256
 const COLS = 4
 
 /**
@@ -14,10 +13,18 @@ const COLS = 4
 export class TerrainDetail {
   private token = 0
   private texture: DataTexture | null = null
+  private last: { plan: DetailPlan; size: number } | null = null
 
   constructor(private materials: MaterialService) {}
 
-  async build(plan: DetailPlan): Promise<void> {
+  /** Rebuild at another tile size (same materials). */
+  resize(size: number, anisotropy?: number): void {
+    if (this.last && this.last.size !== size) void this.build(this.last.plan, size, anisotropy)
+  }
+
+  /** Texels of one tile; `anisotropy` the most the GPU takes. */
+  async build(plan: DetailPlan, SIZE: number, anisotropy = 8): Promise<void> {
+    this.last = { plan, size: SIZE }
     const ids = plan.materials
     const token = ++this.token
     const rows = Math.max(1, Math.ceil(ids.length / COLS))
@@ -51,7 +58,7 @@ export class TerrainDetail {
     tex.magFilter = LinearFilter
     tex.minFilter = LinearMipmapLinearFilter
     tex.generateMipmaps = true
-    tex.anisotropy = 4
+    tex.anisotropy = anisotropy
     tex.needsUpdate = true
     this.texture?.dispose()
     this.texture = tex
