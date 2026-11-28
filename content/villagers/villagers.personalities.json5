@@ -22,5 +22,13 @@
       schedule: [[0, 7, 'sleep'], [7, 11, 'garden'], [11, 14, 'plaza'], [14, 18, 'garden'], [18, 22, 'home'], [22, 24, 'sleep']] },
     { id: 'villagers:bookish', name: 'Книжник', voice: 280, speed: 0.03, likes: ['#collection:fossils', '#crafting:cards'], dislikes: ['#core:fruits'], gives: ['#crafting:cards', '#decor:pieces'],
       schedule: [[0, 8, 'sleep'], [8, 12, 'visit'], [12, 15, 'home'], [15, 19, 'visit'], [19, 23, 'plaza'], [23, 24, 'sleep']] },
+    { id: 'villagers:shy', name: 'Скромница', voice: 400, speed: 0.034, likes: ['#garden:flowers', '#crafting:cards'], dislikes: ['#collection:bugs'], gives: ['#garden:flowers', '#crafting:cards'],
+      schedule: [[0, 8, 'sleep'], [8, 11, 'garden'], [11, 15, 'home'], [15, 18, 'wander'], [18, 22, 'home'], [22, 24, 'sleep']] },
+    { id: 'villagers:foodie', name: 'Гурман', voice: 260, speed: 0.026, likes: ['#core:fruits', '#collection:fish'], dislikes: ['#core:materials'], gives: ['#core:fruits', '#decor:pieces'],
+      schedule: [[0, 8, 'sleep'], [8, 10, 'garden'], [10, 13, 'visit'], [13, 17, 'plaza'], [17, 21, 'home'], [21, 24, 'sleep']] },
+    { id: 'villagers:adventurer', name: 'Путешественница', voice: 440, speed: 0.022, likes: ['#collection:fossils', '#core:beach_finds'], dislikes: ['#decor:pieces'], gives: ['#core:beach_finds', '#core:materials'],
+      schedule: [[0, 6, 'sleep'], [6, 10, 'shore'], [10, 14, 'wander'], [14, 18, 'shore'], [18, 21, 'home'], [21, 24, 'sleep']] },
+    { id: 'villagers:artsy', name: 'Художница', voice: 470, speed: 0.03, likes: ['#garden:flowers', '#collection:bugs'], dislikes: ['#core:materials'], gives: ['#decor:pieces', '#garden:flowers'],
+      schedule: [[0, 9, 'sleep'], [9, 12, 'garden'], [12, 15, 'plaza'], [15, 18, 'shore'], [18, 23, 'home'], [23, 24, 'sleep']] },
   ],
 }

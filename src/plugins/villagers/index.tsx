@@ -93,7 +93,7 @@ declare module '@sdk' {
 
 const Config = z.object({
   startResidents: z.number().int().min(0).max(8).default(3).meta({ label: 'start residents', step: 1 }),
-  maxResidents: z.number().int().min(0).max(12).default(6).meta({ label: 'max residents', step: 1 }),
+  maxResidents: z.number().int().min(0).max(16).default(8).meta({ label: 'max residents', step: 1 }),
   /** A newcomer every this many days while there is room. */
   arrivalEvery: z.number().int().min(1).max(30).default(2).meta({ label: 'arrival every (days)', step: 1 }),
   /** Daily chance that a villager with few hearts thinks about moving. */
