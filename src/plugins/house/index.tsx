@@ -267,6 +267,8 @@ export default definePlugin({
         hatch = hatchModel(api, h.x, cfg.floorY + 1, h.z, cfg)
       }
     }
+    /** Where walking takes you out of the room you are in (world cells), set when it is built. */
+    let ways: { room: Room; door: { x: number; z: number } | null; up: { x: number; z: number } | null; down: { x: number; z: number } | null } | null = null
     const build = () => {
       // The room's own world starts empty each time you come in: only the room is built.
       const room = here()
@@ -275,6 +277,8 @@ export default definePlugin({
       const a = areaOf(room)
       const up = room === HOME ? stairs() : null
       const down = room === ATTIC ? hatchOf(p) : null
+      const world = (c: { x: number; z: number } | null | undefined) => (c ? { x: a.x + c.x, z: a.z + c.z } : null)
+      ways = { room, door: room === HOME ? world(p.door) : null, up: world(up?.foot), down: world(down) }
       const stairCell = (lx: number, lz: number): 'foot' | 'step' | null => {
         if (down) return lx === down.x && lz === down.z ? 'foot' : null
         if (!up) return null
@@ -302,7 +306,10 @@ export default definePlugin({
       for (const s of cfg.starter) decor().place(s.piece, s.variant, cx + s.dx, cz + s.dz, 0)
     }
     api.events.on('interior:changed', ({ id }) => {
-      if (id !== HOME && id !== ATTIC) return void dropShell() // gone out: the shell goes too
+      if (id !== HOME && id !== ATTIC) {
+        ways = null
+        return void dropShell() // gone out: the shell goes too
+      }
       build()
       if (id === HOME) furnish()
     })
@@ -328,8 +335,9 @@ export default definePlugin({
     }
     /** Down the stairs: in front of the lowest step, facing away from them. */
     const downstairs = () => {
-      const f = stairs()?.foot ?? plan().spawn
-      return { x: area.x + Math.floor(f.x) + 0.5, y: cfg.floorY + 1, z: area.z + Math.floor(f.z) + 1.5, rotY: 0 }
+      const f = stairs()?.foot
+      // no stairs any more (the house was made smaller): in by the door
+      return f ? { x: area.x + f.x + 0.5, y: cfg.floorY + 1, z: area.z + f.z + 1.5, rotY: 0 } : entrance()
     }
     const climb = (actor: Entity, to: Room) => {
       if (api.interiors.changing) return
@@ -341,21 +349,14 @@ export default definePlugin({
       id: 'door',
       phase: 'update',
       run: () => {
-        const room = here()
-        if (!room) return
+        if (!ways || ways.room !== here()) return
         const pl = player()
         if (!pl) return
-        const x = Math.floor(pl.transform.x) - areaOf(room).x
-        const z = Math.floor(pl.transform.z) - areaOf(room).z
-        if (room === ATTIC) {
-          const h = hatchOf(plan(ATTIC))
-          if (x === h.x && z === h.z) climb(pl, HOME)
-          return
-        }
-        const p = plan()
-        if (x === p.door.x && z === p.door.z) goOut(pl)
-        const foot = stairs()?.foot
-        if (foot && x === foot.x && z === foot.z) climb(pl, ATTIC)
+        const x = Math.floor(pl.transform.x)
+        const z = Math.floor(pl.transform.z)
+        if (onCell(ways.door, x, z)) goOut(pl)
+        else if (onCell(ways.up, x, z)) climb(pl, ATTIC)
+        else if (onCell(ways.down, x, z)) climb(pl, HOME)
       },
     })
     // Lights: dim the room when they're off (after the engine's indoor light).
@@ -723,3 +724,5 @@ function hatchModel(api: PluginApi, x: number, y: number, z: number, cfg: Config
     },
   }
 }
+
+const onCell = (c: { x: number; z: number } | null, x: number, z: number) => !!c && c.x === x && c.z === z

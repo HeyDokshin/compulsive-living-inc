@@ -92,6 +92,8 @@ export function setupHomes(
 
   let shell: Shell | null = null
   let here: string | null = null
+  /** The door of the home we are in (worked out on the way in). */
+  let door: { x: number; z: number } | null = null
   const build = (room: string, villagerId: string) => {
     const p = plan(room)
     const w = api.world
@@ -131,6 +133,7 @@ export function setupHomes(
   api.events.on('interior:changed', ({ id }) => {
     const was = here
     here = id && owners.has(id) ? id : null
+    door = here ? plan(here).door : null
     if (was && was !== here) {
       shell?.dispose()
       shell = null
@@ -141,6 +144,7 @@ export function setupHomes(
   api.events.on('session:started', () => {
     const id = api.interiors.current
     here = id && owners.has(id) ? id : null
+    door = here ? plan(here).door : null
     if (here) build(here, owners.get(here)!)
   })
   api.onDispose(() => shell?.dispose())
@@ -154,11 +158,10 @@ export function setupHomes(
     id: 'homeDoor',
     phase: 'update',
     run: () => {
-      if (!here || api.interiors.changing) return
+      if (!door || api.interiors.changing) return
       const pl = player()
       if (!pl) return
-      const d = plan(here).door
-      if (Math.floor(pl.transform.x) === d.x && Math.floor(pl.transform.z) === d.z) {
+      if (Math.floor(pl.transform.x) === door.x && Math.floor(pl.transform.z) === door.z) {
         api.interiors.exit(pl)
         api.audio.play('ui:close')
       }

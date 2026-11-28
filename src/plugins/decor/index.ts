@@ -465,6 +465,10 @@ function setupGlow(
     at: [number, number, number]
   }
   const lit = new Map<Entity, Lit>()
+  // the walls around may have changed (a room built, the house grown): lay the pools out again
+  let stale = false
+  api.events.on('world:blockChanged', () => void (stale = true))
+  api.events.on('interior:changed', () => void (stale = true))
   const drop = (l: Lit) => {
     l.halo.removeFromParent()
     l.halo.material.dispose()
@@ -559,6 +563,10 @@ function setupGlow(
       const yaw = (cam.targetYaw * Math.PI) / 180
       const sy = Math.sin(yaw)
       const cy = Math.cos(yaw)
+      if (stale) {
+        stale = false
+        for (const l of lit.values()) l.at[0] = NaN
+      }
       for (const [e, l] of lit) {
         if (!api.entities.world.has(e) || !e.decor) {
           drop(l)

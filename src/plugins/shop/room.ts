@@ -26,12 +26,19 @@ export interface ShopRoom {
 
 export function setupShopRoom(
   api: PluginApi,
-  opts: { shop: Services['shop:counter']; version: ReadonlySignal<number>; keeperScale: number; onCounter: () => void },
+  opts: {
+    shop: Services['shop:counter']
+    version: ReadonlySignal<number>
+    keeperScale: number
+    onCounter: () => void
+    /** Тоша is talking (she nods). */
+    talking: () => boolean
+  },
 ): ShopRoom {
   const T = api.render.three
   api.interiors.define(SHOP_ROOM, { name: 'Лавка Тоши', icon: '🛍️' })
   const inside = () => api.interiors.current === SHOP_ROOM
-  const plan = () => {
+  const makePlan = () => {
     const a = api.interiors.area(SHOP_ROOM)
     const x0 = a.x + Math.floor((a.w - W) / 2)
     const z0 = a.z + Math.floor((a.d - D) / 2)
@@ -43,6 +50,11 @@ export function setupShopRoom(
     const counter = [x0 + 4, x0 + 5, x0 + 6, x0 + 7].map((x) => ({ x, z: z0 + 2 }))
     return { x0, z0, door: { x: x0 + W / 2, z: z0 + D - 1 }, shelves: cells, tables, counter, keeper: { x: x0 + W / 2, z: z0 + 1.5 } }
   }
+  // the room lies where its number puts it: worked out again for each visit and each island, kept in between
+  let planned: ReturnType<typeof makePlan> | null = null
+  const plan = () => (planned ??= makePlan())
+  api.events.on('interior:changed', () => void (planned = null))
+  api.events.on('session:started', () => void (planned = null))
 
   // --- the room: invisible blocks, the shell, the shelves and the counter ---------------------------
   let shell: Shell | null = null
@@ -91,9 +103,22 @@ export function setupShopRoom(
   /** What stands in each display cell (`x,z` → item id). */
   const shown = new Map<string, string>()
   let shownVersion = -1
-  const display = () => {
+  /** Icon sprites of things without a model (their materials and textures are ours to free). */
+  const icons: Array<InstanceType<Three['SpriteMaterial']>> = []
+  /** Bumped each time the display is rebuilt: an icon that comes in late for an old one is dropped. */
+  let generation = 0
+  const clearDisplay = () => {
+    generation++
     group.clear()
     shown.clear()
+    for (const m of icons) {
+      m.map?.dispose()
+      m.dispose()
+    }
+    icons.length = 0
+  }
+  const display = () => {
+    clearDisplay()
     shownVersion = opts.version.value
     const p = plan()
     const slots = [...p.shelves, ...p.tables]
@@ -113,10 +138,14 @@ export function setupShopRoom(
       if (def?.model) holder.add(api.render.voxelModel(def.model, { palette: def.palette }))
       else {
         // no model (a wallpaper, a floor): its icon on a little stand
+        const gen = generation
         void api.ui.itemIcon(g.id).then((url) => {
+          if (gen !== generation) return
           const tex = new T.TextureLoader().load(url)
           tex.colorSpace = T.SRGBColorSpace
-          const sprite = new T.Sprite(new T.SpriteMaterial({ map: tex }))
+          const mat = new T.SpriteMaterial({ map: tex })
+          icons.push(mat)
+          const sprite = new T.Sprite(mat)
           sprite.scale.setScalar(0.6)
           sprite.position.y = 0.35
           holder.add(sprite)
@@ -157,15 +186,16 @@ export function setupShopRoom(
         break
       }
       const body = keeper.getObjectByName('body')
+      const head = keeper.getObjectByName('head')
       if (body) body.scale.y = 1 + Math.sin(time * 2.6) * 0.025
+      if (head) head.rotation.x = opts.talking() ? Math.sin(time * 10) * 0.09 + 0.04 : Math.sin(time * 0.8) * 0.03
     },
   })
   const leave = () => {
     shell?.dispose()
     shell = null
     group.visible = false
-    group.clear()
-    shown.clear()
+    clearDisplay()
     keeper?.removeFromParent()
     keeper = null
   }

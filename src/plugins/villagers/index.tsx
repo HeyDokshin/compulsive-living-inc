@@ -586,7 +586,11 @@ export default definePlugin({
             b.activity = activity
             b.path = []
             b.wait = 0
-            if (b.asleep || b.home) {
+            if ((b.asleep || b.home) && (activity === 'sleep' || activity === 'home')) {
+              // from one indoor time to the other (home → bed, awake in the morning): they stay in
+              b.asleep = activity === 'sleep'
+              b.home = activity === 'home'
+            } else if (b.asleep || b.home) {
               // wake up, or time to go out: step out of the door
               const d = door(home)
               t.x = d.x + 0.5

@@ -29,6 +29,7 @@ export default definePlugin({
   setup(api) {
     const cfg = api.config.define(Config)
     const music = new MusicPlayer(api, cfg)
+    api.config.onChange(() => music.retune())
     const nature = new Nature(api, cfg)
     api.systems.add({
       id: 'soundscape',
@@ -89,6 +90,11 @@ class MusicPlayer {
         break
       }
     }
+  }
+
+  /** The config changed: the room we are in may have another mood now (the piece goes on). */
+  retune(): void {
+    if (this.room !== undefined) this.roomMood = this.moodOf(this.room)
   }
 
   /** A room's own mood, or null (outside, or a room that plays the hour's music). */

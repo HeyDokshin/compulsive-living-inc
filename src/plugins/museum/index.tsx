@@ -62,7 +62,9 @@ export default definePlugin({
 
   setup(api) {
     const cfg = api.config.define(Config)
-    api.interiors.define(HALL_ID, { name: 'Музей острова', icon: '🏛️', echo: cfg.echo })
+    const defineHall = () => api.interiors.define(HALL_ID, { name: 'Музей острова', icon: '🏛️', echo: cfg.echo })
+    defineHall()
+    api.config.onChange(defineHall)
     const catalog = () => api.services.get('collection:catalog')
     const inventory = () => api.services.get('items:inventory')
     api.components.define('museum', z.object({}))

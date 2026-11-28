@@ -240,6 +240,8 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       define: (id, look) => {
         game.rooms.set(id, { name: look.name, icon: look.icon, ...(look.echo !== undefined ? { echo: look.echo } : {}) })
         if (look.size) game.interiors.setSize(id, look.size.w, look.size.d)
+        // defined again while you're in it (its config changed): it sounds the new way at once
+        if (game.interiors.current === id) game.audio.setEcho(look.echo ?? game.engineConfig.interior.echo)
         track(() => game.rooms.delete(id))
       },
       area: (id) => game.interiors.area(id),

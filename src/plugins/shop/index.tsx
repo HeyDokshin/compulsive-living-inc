@@ -254,7 +254,7 @@ export default definePlugin({
     })
 
     // inside the shop: goods on the shelves, Tosha behind the counter
-    const room = setupShopRoom(api, { shop, version, keeperScale: cfg.keeperScale, onCounter: () => void api.ui.open('shop:counter') })
+    const room = setupShopRoom(api, { shop, version, keeperScale: cfg.keeperScale, onCounter: () => void api.ui.open('shop:counter'), talking: () => talking })
     api.registry('interactions').register({
       id: 'shop:talk',
       entity: 'shopStall',
