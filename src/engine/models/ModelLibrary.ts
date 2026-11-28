@@ -583,7 +583,13 @@ function flatGeometry(model: VoxelModel, pivot: [number, number, number], axis: 
   geo.setAttribute('position', new Float32BufferAttribute(pos, 3))
   geo.setAttribute('normal', new Float32BufferAttribute([...n, ...n, ...n, ...n], 3))
   geo.setAttribute('uv', new Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2))
-  geo.setAttribute('color', new Float32BufferAttribute(new Array(12).fill(1), 3))
+  geo.setAttribute(
+    'color',
+    new Float32BufferAttribute(
+      Array.from({ length: 12 }, () => 1),
+      3,
+    ),
+  )
   geo.setIndex([0, 1, 2, 0, 2, 3])
   geo.computeBoundingSphere()
   return geo
