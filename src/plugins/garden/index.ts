@@ -72,10 +72,7 @@ export default definePlugin({
     const cfg = api.config.define(Config)
     const species = api.createRegistry<Species>('garden:species', SpeciesSchema as never)
     const items = () => api.services.get('items:inventory')
-    api.components.define(
-      'flower',
-      z.object({ species: z.string(), color: z.string(), watered: z.number().default(-1), planted: z.number().default(0) }),
-    )
+    api.components.define('flower', z.object({ species: z.string(), color: z.string(), watered: z.number().default(-1), planted: z.number().default(0) }))
 
     // Items for every species × color, plus seed bags — generated from the species data.
     const registerItems = () => {
@@ -97,7 +94,15 @@ export default definePlugin({
         }
         const seeds = seedsItem(s)
         if (!reg.has(seeds)) {
-          reg.register({ id: seeds, name: `Семена: ${s.name.toLowerCase()}`, stack: 10, model: 'garden:seeds', tags: ['garden:seeds'], price: 40, held: { tilt: 0, scale: 1 } })
+          reg.register({
+            id: seeds,
+            name: `Семена: ${s.name.toLowerCase()}`,
+            stack: 10,
+            model: 'garden:seeds',
+            tags: ['garden:seeds'],
+            price: 40,
+            held: { tilt: 0, scale: 1 },
+          })
         }
       }
     }
@@ -108,7 +113,15 @@ export default definePlugin({
       const f = e.flower!
       const s = species.get(f.species)
       if (!s) return
-      api.render.setModel(e, { shape: 'voxel', ref: s.model, palette: { p: s.colors[f.color] ?? '#ff00ff', ...s.palette?.[f.color] }, size: [1, 1, 1], color: '#ccc', anchor: 'bottom', instanced: true })
+      api.render.setModel(e, {
+        shape: 'voxel',
+        ref: s.model,
+        palette: { p: s.colors[f.color] ?? '#ff00ff', ...s.palette?.[f.color] },
+        size: [1, 1, 1],
+        color: '#ccc',
+        anchor: 'bottom',
+        instanced: true,
+      })
       e.name = `${s.name}, ${COLOR_NAMES[f.color] ?? f.color}`
     }
     const spawnFlower = (speciesId: string, color: string, x: number, y: number, z: number) => {
@@ -135,7 +148,7 @@ export default definePlugin({
     const spawnWild = () => {
       const w = api.world
       let seed = (w.seed ^ 0xf10e) >>> 0
-      const rand = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296)
+      const rand = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296
       const all = species.all()
       if (!all.length) return
       for (let p = 0, tries = 0; p < cfg.wildPatches && tries < 500; tries++) {
@@ -297,6 +310,7 @@ export default definePlugin({
     let glintIn = 0
     api.systems.add({
       id: 'glints',
+      outdoors: true, // the island waits while you're in a room
       phase: 'render',
       run: ({ dt }) => {
         if ((glintIn -= dt) > 0) return
@@ -320,9 +334,13 @@ export default definePlugin({
           const k = `${species.get(e.flower.species)?.name ?? e.flower.species}, ${COLOR_NAMES[e.flower.color] ?? e.flower.color}`
           by.set(k, (by.get(k) ?? 0) + 1)
         }
-        return [...by].sort().map(([k, n]) => `${String(n).padStart(4)}  ${k}`).join('\n') || 'цветов нет'
+        return (
+          [...by]
+            .sort()
+            .map(([k, n]) => `${String(n).padStart(4)}  ${k}`)
+            .join('\n') || 'цветов нет'
+        )
       },
     })
   },
 })
-

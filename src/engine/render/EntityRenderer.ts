@@ -43,7 +43,8 @@ export class EntityRenderer {
     private scene: Scene,
     private entities: Entities,
     private library: ModelLibrary,
-    private world: VoxelWorld,
+    /** The world being drawn (the ground under blob shadows). */
+    public world: VoxelWorld,
   ) {
     this.models = modelQuery(entities)
     this.placed = placedQuery(entities)
@@ -74,7 +75,7 @@ export class EntityRenderer {
   private arriving = new Map<Object3D, number>()
   private leaving: Array<{ view: Object3D; t: number; scale: number }> = []
   private born: Object3D[] = []
-  /** Is an entity at (x, z) drawn? (inside an interior only its room is) */
+  /** Is an entity at (x, z) drawn? (inside a room only that room's things are) */
   visibleAt: (x: number, z: number) => boolean = () => true
   /** Can a ball show up in the picture? (set by the Renderer from the camera) */
   inView: (x: number, y: number, z: number, r: number) => boolean = () => true

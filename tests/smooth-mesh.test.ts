@@ -47,7 +47,15 @@ describe('smooth meshes for round characters', () => {
   })
 
   it('keeps thin parts such as ears', () => {
-    const ear = parseLayers([['aaa', 'aaa', 'aaa'], ['.a.', '...', '...'], ['.a.', '...', '...'], ['.a.', '...', '...']], { a: '#fff' })
+    const ear = parseLayers(
+      [
+        ['aaa', 'aaa', 'aaa'],
+        ['.a.', '...', '...'],
+        ['.a.', '...', '...'],
+        ['.a.', '...', '...'],
+      ],
+      { a: '#fff' },
+    )
     const e = buildSmoothGeometry(ear, [0, 0, 0], opts)
     expect(e.max[1]).toBeGreaterThan(3)
   })

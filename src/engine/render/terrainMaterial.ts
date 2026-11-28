@@ -1,6 +1,9 @@
 import { DoubleSide, MeshLambertMaterial, type Texture } from 'three'
 import { stylize, styleUniforms } from './style'
 
+/** Detail slots the shader knows (same as BlockAtlas.MAX_DETAIL_SLOTS). */
+const MAX_SLOTS = 16
+
 /**
  * Materials of the rounded island (no pixel textures):
  * - ground: vertex colors (block colors, lawn patches, crease shade) and, close up, the light and
@@ -17,11 +20,23 @@ export const terrainUniforms = {
   uDetailStrength: { value: 0.75 },
   /** Material tiles per block. */
   uDetailScale: { value: 0.5 },
+  /** Finer second layer: amount and scale; gradient scale (sharper mips); contrast. */
+  uDetailFine: { value: 0.6 },
+  uDetailFineScale: { value: 3.3 },
+  uDetailSharp: { value: 0.6 },
+  uDetailContrast: { value: 1.35 },
   /** Linear colors of the water (deep and shallow parts of the swell). */
   uWaterDeep: { value: [0.09, 0.42, 0.62] as [number, number, number] },
   uWaterShallow: { value: [0.3, 0.75, 0.82] as [number, number, number] },
   /** Progress (0…1) of the dissolve being drawn; set per mesh just before it is drawn. */
   uDissolve: { value: 0 },
+  /** Per detail slot: first variant slot and how many (see DetailPlan). */
+  uVariants: { value: new Float32Array(MAX_SLOTS * 2) as Float32Array<ArrayBufferLike> },
+  /** Per variant slot: tint (linear rgb) and share of the ground. */
+  uVariantLooks: { value: new Float32Array(MAX_SLOTS * 4) as Float32Array<ArrayBufferLike> },
+  /** Patches across a block (smaller = larger patches), and how strongly their tint shows. */
+  uVarietyScale: { value: 0.06 },
+  uVarietyTint: { value: 1 },
 }
 
 /**
@@ -32,10 +47,26 @@ export const terrainUniforms = {
 export type Dissolve = 'in' | 'out'
 
 const DECLS = `
+#define MAX_SLOTS ${MAX_SLOTS}
+uniform vec2 uVariants[MAX_SLOTS];
+uniform vec4 uVariantLooks[MAX_SLOTS];
+uniform float uVarietyScale;
+uniform float uVarietyTint;
+float vHash(vec2 p) { p = fract(p * vec2(0.1031, 0.1030)); p += dot(p, p.yx + 33.33); return fract((p.x + p.y) * p.x); }
+float vNoise(vec2 p) {
+  vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(vHash(i), vHash(i + vec2(1.0, 0.0)), f.x), mix(vHash(i + vec2(0.0, 1.0)), vHash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+/** Soft patches: two octaves of value noise, roughly even between 0 and 1. */
+float vPatch(vec2 p) { return smoothstep(0.15, 0.85, vNoise(p) * 0.7 + vNoise(p * 2.3 + 7.1) * 0.3); }
 uniform sampler2D uDetailAtlas;
 uniform vec2 uDetailGrid;
 uniform float uDetailStrength;
 uniform float uDetailScale;
+uniform float uDetailFine;
+uniform float uDetailFineScale;
+uniform float uDetailSharp;
+uniform float uDetailContrast;
 varying float vDetail;
 varying vec3 vWPos;
 varying vec3 vWNormal;
@@ -43,7 +74,19 @@ vec3 detailTap(vec2 p, vec2 tile) {
   // inside one atlas tile, with gradients of the continuous coordinate (no seams where it wraps)
   vec2 cell = 1.0 / uDetailGrid;
   vec2 uv = (tile + 0.02 + fract(p) * 0.96) * cell;
-  return textureGrad(uDetailAtlas, uv, dFdx(p) * cell * 0.96, dFdy(p) * cell * 0.96).rgb;
+  vec2 g = cell * 0.96 * uDetailSharp;
+  return textureGrad(uDetailAtlas, uv, dFdx(p) * g, dFdy(p) * g).rgb;
+}
+vec3 detailTri(float slot, vec3 p, vec3 w) {
+  vec2 tile = vec2(mod(slot, uDetailGrid.x), floor(slot / uDetailGrid.x));
+  vec3 d = detailTap(p.zy, tile) * w.x + detailTap(p.xz, tile) * w.y + detailTap(p.xy, tile) * w.z;
+  if (uDetailFine > 0.0) {
+    // the same material again, finer and shifted: small blades and grains over the big tufts
+    vec3 q = p * uDetailFineScale + vec3(0.37, 0.11, 0.73);
+    vec3 f = detailTap(q.zy, tile) * w.x + detailTap(q.xz, tile) * w.y + detailTap(q.xy, tile) * w.z;
+    d *= 1.0 + (f - 0.5) * 2.0 * uDetailFine;
+  }
+  return 0.5 + (d - 0.5) * uDetailContrast;
 }
 `
 
@@ -51,7 +94,8 @@ export function createTerrainMaterial(dissolve?: Dissolve): MeshLambertMaterial 
   const mat = new MeshLambertMaterial({ vertexColors: true })
   const cut = dissolve
     ? `{
-        float h = fract(sin(dot(floor(gl_FragCoord.xy), vec2(12.9898, 78.233))) * 43758.5453);
+        // interleaved gradient noise: even, and exact on every GPU (no sin() precision games)
+        float h = fract(52.9829189 * fract(dot(floor(gl_FragCoord.xy), vec2(0.06711056, 0.00583715))));
         if (${dissolve === 'in' ? 'h >= uDissolve' : 'h < uDissolve'}) discard;
       }
 `
@@ -60,21 +104,29 @@ export function createTerrainMaterial(dissolve?: Dissolve): MeshLambertMaterial 
     Object.assign(shader.uniforms, terrainUniforms)
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nattribute float detail;\nvarying float vDetail;\nvarying vec3 vWPos;\nvarying vec3 vWNormal;')
-      .replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nvDetail = detail;\nvWPos = (modelMatrix * vec4(position, 1.0)).xyz;\nvWNormal = normal;',
-      )
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvDetail = detail;\nvWPos = (modelMatrix * vec4(position, 1.0)).xyz;\nvWNormal = normal;')
     shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uDissolve;\n' + DECLS).replace(
       '#include <color_fragment>',
       `${cut}#include <color_fragment>
-      if (vDetail > -0.5 && uDetailStrength > 0.0) {
+      if (vDetail > -0.5) {
         float slot = floor(vDetail + 0.5);
-        vec2 tile = vec2(mod(slot, uDetailGrid.x), floor(slot / uDetailGrid.x));
         vec3 w = pow(abs(normalize(vWNormal)), vec3(4.0));
         w /= (w.x + w.y + w.z + 1e-5);
         vec3 p = vWPos * uDetailScale;
-        vec3 d = detailTap(p.zy, tile) * w.x + detailTap(p.xz, tile) * w.y + detailTap(p.xy, tile) * w.z;
-        diffuseColor.rgb *= mix(vec3(1.0), d * 2.0, uDetailStrength);
+        vec3 d = uDetailStrength > 0.0 ? detailTri(slot, p, w) : vec3(0.5);
+        // patches of other materials over this one (clover, a meadow, dry grass…), each its own tint
+        vec2 vr = uVariants[int(slot)];
+        for (int k = 0; k < 3; k++) {
+          if (float(k) >= vr.y) break;
+          float vs = vr.x + float(k);
+          vec4 look = uVariantLooks[int(vs)];
+          vec2 q = vWPos.xz * uVarietyScale * (1.0 + 0.31 * float(k)) + float(k) * 17.3;
+          float m = smoothstep(1.0 - look.w - 0.07, 1.0 - look.w + 0.07, vPatch(q));
+          if (m <= 0.0) continue;
+          diffuseColor.rgb *= mix(vec3(1.0), look.rgb, m * uVarietyTint);
+          if (uDetailStrength > 0.0) d = mix(d, detailTri(vs, p, w), m);
+        }
+        diffuseColor.rgb *= mix(vec3(1.0), max(d, 0.0) * 2.0, uDetailStrength);
       }`,
     )
   }

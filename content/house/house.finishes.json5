@@ -1,17 +1,19 @@
 // Wallpapers and floors. Each is an item (same id) that changes your room when used inside.
-// `block` is what the walls or the floor are built of (content/house/blocks.json5).
+// `block` is what the walls or the floor are built of (content/house/blocks.json5; invisible — the
+// rooms kit draws them): `look` is the surface you see (a material and its tint), `wainscot` the
+// panelling under a wallpaper.
 {
   entries: [
-    { id: 'house:wall_cream', kind: 'wall', name: 'Обои «Сливки»', block: 'house:wall_cream', price: 400 },
-    { id: 'house:wall_mint', kind: 'wall', name: 'Обои «Мята»', block: 'house:wall_mint', price: 600 },
-    { id: 'house:wall_rose', kind: 'wall', name: 'Обои «Роза»', block: 'house:wall_rose', price: 600 },
-    { id: 'house:wall_sky', kind: 'wall', name: 'Обои «Небо»', block: 'house:wall_sky', price: 600 },
-    { id: 'house:wall_logs', kind: 'wall', name: 'Бревенчатые стены', block: 'house:wall_logs', price: 800 },
-    { id: 'house:wall_brick', kind: 'wall', name: 'Кирпичная стена', block: 'house:wall_brick', price: 900 },
-    { id: 'house:floor_planks', kind: 'floor', name: 'Пол «Светлые доски»', block: 'house:floor_planks', price: 400 },
-    { id: 'house:floor_dark', kind: 'floor', name: 'Пол «Тёмный паркет»', block: 'house:floor_dark', price: 700 },
-    { id: 'house:floor_tiles', kind: 'floor', name: 'Пол «Плитка»', block: 'house:floor_tiles', price: 700 },
-    { id: 'house:floor_carpet', kind: 'floor', name: 'Ковролин «Персик»', block: 'house:floor_carpet', price: 600 },
-    { id: 'house:floor_grass', kind: 'floor', name: 'Пол «Лужайка»', block: 'house:floor_grass', price: 900 },
+    { id: 'house:wall_cream', kind: 'wall', name: 'Обои «Сливки»', block: 'house:wall_cream', price: 400, look: { material: 'house:paper_dots', color: '#f7ecd6' }, wainscot: { material: 'house:panel', color: '#f4ead8', height: 0.95 } },
+    { id: 'house:wall_mint', kind: 'wall', name: 'Обои «Мята»', block: 'house:wall_mint', price: 600, look: { material: 'house:paper_stripes', color: '#cdeee0' }, wainscot: { material: 'house:panel', color: '#f6f7f2', height: 0.95 } },
+    { id: 'house:wall_rose', kind: 'wall', name: 'Обои «Роза»', block: 'house:wall_rose', price: 600, look: { material: 'house:paper_flowers', color: '#f8d6df' }, wainscot: { material: 'house:panel', color: '#fbf1f2', height: 0.95 } },
+    { id: 'house:wall_sky', kind: 'wall', name: 'Обои «Небо»', block: 'house:wall_sky', price: 600, look: { material: 'house:paper_stripes', color: '#d2e6f8' }, wainscot: { material: 'house:panel', color: '#f3f7fb', height: 0.95 } },
+    { id: 'house:wall_logs', kind: 'wall', name: 'Бревенчатые стены', block: 'house:wall_logs', price: 800, look: { material: 'house:logs', color: '#c99560' } },
+    { id: 'house:wall_brick', kind: 'wall', name: 'Кирпичная стена', block: 'house:wall_brick', price: 900, look: { material: 'house:brick', color: '#d88a70' } },
+    { id: 'house:floor_planks', kind: 'floor', name: 'Пол «Светлые доски»', block: 'house:floor_planks', price: 400, look: { material: 'core:planks', color: '#ffffff' } },
+    { id: 'house:floor_dark', kind: 'floor', name: 'Пол «Тёмный паркет»', block: 'house:floor_dark', price: 700, look: { material: 'house:parquet', color: '#9a6a48' } },
+    { id: 'house:floor_tiles', kind: 'floor', name: 'Пол «Плитка»', block: 'house:floor_tiles', price: 700, look: { material: 'house:tiles', color: '#f4f6f8' } },
+    { id: 'house:floor_carpet', kind: 'floor', name: 'Ковролин «Персик»', block: 'house:floor_carpet', price: 600, look: { material: 'house:carpet', color: '#f6c8a8' } },
+    { id: 'house:floor_grass', kind: 'floor', name: 'Пол «Лужайка»', block: 'house:floor_grass', price: 900, look: { material: 'core:grass', color: '#ffffff' } },
   ],
 }

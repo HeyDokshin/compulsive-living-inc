@@ -25,9 +25,21 @@ export class VoxelWorld {
   readonly dirty = new Set<number>()
   /** Blocks from a chunk's edge that still change how its neighbours look (rounded meshing reads them). */
   neighbourReach = 1
+  /**
+   * World coordinates of the first cell (0 for the island). Rooms sit far off the island, so things
+   * in a room never share cells with things outside. Chunks keep local indices.
+   */
+  originX = 0
+  originZ = 0
 
   constructor(palette = new BlockPalette()) {
     this.palette = palette
+  }
+
+  /** Move the world's first cell to (x, z) in world coordinates. */
+  setOrigin(x: number, z: number): void {
+    this.originX = x
+    this.originZ = z
   }
 
   get sizeX(): number {
@@ -51,7 +63,12 @@ export class VoxelWorld {
     this.markAllDirty()
   }
 
+  /** World coordinates. */
   inBounds(x: number, y: number, z: number): boolean {
+    return this.inLocal(x - this.originX, y, z - this.originZ)
+  }
+
+  private inLocal(x: number, y: number, z: number): boolean {
     return x >= 0 && z >= 0 && y >= 0 && x < this.sizeX && z < this.sizeZ && y < this.height
   }
 
@@ -66,14 +83,20 @@ export class VoxelWorld {
 
   /** Block number at world coords (0 = air, also outside the world). */
   get(x: number, y: number, z: number): number {
-    if (!this.inBounds(x, y, z)) return 0
+    return this.getLocal(x - this.originX, y, z - this.originZ)
+  }
+
+  private getLocal(x: number, y: number, z: number): number {
+    if (!this.inLocal(x, y, z)) return 0
     const c = this.chunks[(x >> 4) + (z >> 4) * this.chunksX]!
     return c.data[(x & 15) + (z & 15) * 16 + y * 256]!
   }
 
   /** Set a block number. Returns false if out of bounds or unchanged. */
-  set(x: number, y: number, z: number, num: number): boolean {
-    if (!this.inBounds(x, y, z)) return false
+  set(wx: number, y: number, wz: number, num: number): boolean {
+    const x = wx - this.originX
+    const z = wz - this.originZ
+    if (!this.inLocal(x, y, z)) return false
     const cx = x >> 4
     const cz = z >> 4
     const ci = cx + cz * this.chunksX
@@ -108,7 +131,9 @@ export class VoxelWorld {
   }
 
   /** Fill a vertical run of a column [y0, y1) — fast path for generators (no neighbour marking). */
-  fillColumn(x: number, z: number, y0: number, y1: number, num: number): void {
+  fillColumn(wx: number, wz: number, y0: number, y1: number, num: number): void {
+    const x = wx - this.originX
+    const z = wz - this.originZ
     if (x < 0 || z < 0 || x >= this.sizeX || z >= this.sizeZ) return
     const c = this.chunks[(x >> 4) + (z >> 4) * this.chunksX]!
     const base = (x & 15) + (z & 15) * 16
@@ -143,9 +168,7 @@ export class VoxelWorld {
       for (let z = -pad; z < 16 + pad; z++) {
         for (let x = -pad; x < 16 + pad; x++) {
           const inside = x >= 0 && x < 16 && z >= 0 && z < 16
-          const v = inside
-            ? c.data[x + z * 16 + y * 256]!
-            : this.get(clamp(ox + x, 0, this.sizeX - 1), y, clamp(oz + z, 0, this.sizeZ - 1))
+          const v = inside ? c.data[x + z * 16 + y * 256]! : this.getLocal(clamp(ox + x, 0, this.sizeX - 1), y, clamp(oz + z, 0, this.sizeZ - 1))
           if (v) vol[x + pad + (z + pad) * P + (y + 1) * P * P] = v
         }
       }

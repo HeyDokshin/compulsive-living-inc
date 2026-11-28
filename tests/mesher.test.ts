@@ -90,7 +90,14 @@ describe('greedy mesher', () => {
     for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) w.set(x, 0, z, 1)
     const t = table([0, KIND_OPAQUE])
     t.tint = new Uint8Array([0, 1])
-    const tint = { origin: [32, 48] as [number, number], seed: 7, scale: 0.2, strength: 1, a: [1, 1, 0.5] as [number, number, number], b: [0.6, 0.9, 0.7] as [number, number, number] }
+    const tint = {
+      origin: [32, 48] as [number, number],
+      seed: 7,
+      scale: 0.2,
+      strength: 1,
+      a: [1, 1, 0.5] as [number, number, number],
+      b: [0.6, 0.9, 0.7] as [number, number, number],
+    }
     const out = meshChunk({ vol: w.paddedVolume(0), sx: 16, sy: 4, sz: 16, table: t, aoCurve: [1, 1, 1, 1], maxMerge: 1, tint })
     const blues = [...out.opaque.color].filter((_, i) => i % 3 === 2)
     expect(new Set(blues.map((v) => v.toFixed(3))).size).toBeGreaterThan(10) // varied

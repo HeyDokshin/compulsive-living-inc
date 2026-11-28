@@ -80,8 +80,15 @@ const Config = z.object({
 })
 
 /** How the player's face answers what they hear. */
-const ECHO: Partial<Record<Expression, Expression>> = { joy: 'happy', love: 'shy', happy: 'happy', sad: 'worried', surprised: 'surprised', angry: 'worried', worried: 'worried' }
-
+const ECHO: Partial<Record<Expression, Expression>> = {
+  joy: 'happy',
+  love: 'shy',
+  happy: 'happy',
+  sad: 'worried',
+  surprised: 'surprised',
+  angry: 'worried',
+  worried: 'worried',
+}
 
 export default definePlugin({
   id: 'cutscene',
@@ -247,7 +254,11 @@ export default definePlugin({
           const cx = Math.floor(nx)
           const cz = Math.floor(nz)
           // only onto free, level ground
-          if (Math.abs(api.world.surfaceY(cx, cz) - pt.y) < 0.01 && !api.world.blockerAt(cx, cz) && !api.hooks.run('movement:blocked', false, { x: cx, y: Math.round(pt.y), z: cz })) {
+          if (
+            Math.abs(api.world.surfaceY(cx, cz) - pt.y) < 0.01 &&
+            !api.world.blockerAt(cx, cz) &&
+            !api.hooks.run('movement:blocked', false, { x: cx, y: Math.round(pt.y), z: cz })
+          ) {
             pt.x = nx
             pt.z = nz
           }
@@ -285,7 +296,7 @@ export default definePlugin({
         s.target.x += (goal.x - s.target.x) * f
         s.target.y += (goal.y - s.target.y) * f
         s.target.z += (goal.z - s.target.z) * f
-        s.yaw += ((((goal.yaw - s.yaw) % 360) + 540) % 360 - 180) * f
+        s.yaw += (((((goal.yaw - s.yaw) % 360) + 540) % 360) - 180) * f
         s.pitch += (goal.pitch - s.pitch) * f
         s.zoom *= Math.pow(goal.zoom / s.zoom, f)
         s.clip = cfg.clip
@@ -301,7 +312,9 @@ export default definePlugin({
       const tall = (b: Entity | undefined) => !!b && y < ground + (b.blocker?.h ?? 3)
       if (tall(api.world.blockerAt(x, z))) return true
       if (y < ground + 1.2) return false
-      return tall(api.world.blockerAt(x + 1, z)) || tall(api.world.blockerAt(x - 1, z)) || tall(api.world.blockerAt(x, z + 1)) || tall(api.world.blockerAt(x, z - 1))
+      return (
+        tall(api.world.blockerAt(x + 1, z)) || tall(api.world.blockerAt(x - 1, z)) || tall(api.world.blockerAt(x, z + 1)) || tall(api.world.blockerAt(x, z - 1))
+      )
     }
 
     /** How much blocks or things standing there hide the faces from this shot (0 = a clear view). */

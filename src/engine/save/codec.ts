@@ -69,7 +69,12 @@ export function decodeWorld(saved: SavedWorld, w: VoxelWorld): void {
 
 /** Components worth saving: everything except runtime-only ones (three.js views…) and non-cloneables. */
 export function serializeEntities(entities: Entities): SavedEntity[] {
-  const runtime = new Set(entities.componentDefs().filter((d) => !d.persistent).map((d) => d.name))
+  const runtime = new Set(
+    entities
+      .componentDefs()
+      .filter((d) => !d.persistent)
+      .map((d) => d.name),
+  )
   const out: SavedEntity[] = []
   for (const e of entities.world.entities) {
     const components: Record<string, unknown> = {}

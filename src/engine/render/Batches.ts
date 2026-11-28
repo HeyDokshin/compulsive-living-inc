@@ -1,4 +1,14 @@
-import { type BufferAttribute, InstancedBufferAttribute, InstancedMesh, MeshBasicMaterial, PlaneGeometry, type BufferGeometry, type Material, type Object3D, type Texture } from 'three'
+import {
+  type BufferAttribute,
+  InstancedBufferAttribute,
+  InstancedMesh,
+  MeshBasicMaterial,
+  PlaneGeometry,
+  type BufferGeometry,
+  type Material,
+  type Object3D,
+  type Texture,
+} from 'three'
 import type { ModelLibrary } from '../models/ModelLibrary'
 import type { ModelSpec } from '../types'
 import { stylize } from './style'
@@ -32,7 +42,15 @@ class Instances {
     if (i >= this.mesh.instanceMatrix.count) this.grow()
     const s = this.slots
     const o = i * 6
-    if (s[o] === Math.fround(x) && s[o + 1] === Math.fround(y) && s[o + 2] === Math.fround(z) && s[o + 3] === Math.fround(rotY) && s[o + 4] === Math.fround(scale) && s[o + 5] === Math.fround(extra)) return
+    if (
+      s[o] === Math.fround(x) &&
+      s[o + 1] === Math.fround(y) &&
+      s[o + 2] === Math.fround(z) &&
+      s[o + 3] === Math.fround(rotY) &&
+      s[o + 4] === Math.fround(scale) &&
+      s[o + 5] === Math.fround(extra)
+    )
+      return
     s[o] = x
     s[o + 1] = y
     s[o + 2] = z

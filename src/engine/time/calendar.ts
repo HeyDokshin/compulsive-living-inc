@@ -32,7 +32,7 @@ export function seasonOf(month: number, hemisphere: Hemisphere): Season {
 
 /** Local day number: counts local midnights, so it is stable across DST changes. */
 export function localDayIndex(d: Date): number {
-  return Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY_MS))
+  return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY_MS)
 }
 
 export function toGameDate(ms: number, hemisphere: Hemisphere = 'north'): GameDate {

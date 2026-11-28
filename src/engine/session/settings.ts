@@ -31,7 +31,21 @@ export interface UserSettings {
 
 export const UI_SCALES = [0.85, 1, 1.15, 1.3, 1.5]
 
-export const DEFAULT_SETTINGS: UserSettings = { quality: 'high', master: 0.8, sfx: 0.9, ui: 0.7, ambient: 0.6, music: 0.5, muted: false, showFps: false, cameraShake: true, uiScale: 1, instantText: false, bindings: {}, options: {} }
+export const DEFAULT_SETTINGS: UserSettings = {
+  quality: 'high',
+  master: 0.8,
+  sfx: 0.9,
+  ui: 0.7,
+  ambient: 0.6,
+  music: 0.5,
+  muted: false,
+  showFps: false,
+  cameraShake: true,
+  uiScale: 1,
+  instantText: false,
+  bindings: {},
+  options: {},
+}
 
 /** Engine config values per quality level (paths in config · engine). */
 export const QUALITY_PRESETS: Record<Quality, Record<string, number | boolean>> = {
@@ -41,8 +55,9 @@ export const QUALITY_PRESETS: Record<Quality, Record<string, number | boolean>> 
     'render.shadowMapSize': 2048,
     'render.msaa': 4,
     'style.postfx': true,
-    'style.tiltShift': 1.6,
+    'style.tiltShift': 0.9,
     'style.curvature': 0.0025,
+    'render.terrain.detailSize': 512,
     'render.characters.fur': true,
     'render.characters.maxShells': 14,
     'render.characters.fabric': true,
@@ -55,8 +70,9 @@ export const QUALITY_PRESETS: Record<Quality, Record<string, number | boolean>> 
     'render.shadowMapSize': 1024,
     'render.msaa': 2,
     'style.postfx': true,
-    'style.tiltShift': 1.6,
+    'style.tiltShift': 0.9,
     'style.curvature': 0.0025,
+    'render.terrain.detailSize': 256,
     'render.characters.fur': true,
     'render.characters.maxShells': 8,
     'render.characters.fabric': true,
@@ -71,6 +87,7 @@ export const QUALITY_PRESETS: Record<Quality, Record<string, number | boolean>> 
     'style.postfx': false,
     'style.tiltShift': 0,
     'style.curvature': 0,
+    'render.terrain.detailSize': 128,
     // characters stay round with drawn faces; no fur shells or weave, block close-ups up to 64 texels
     'render.characters.fur': false,
     'render.characters.maxShells': 6,

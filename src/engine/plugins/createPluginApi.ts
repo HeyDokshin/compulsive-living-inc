@@ -124,6 +124,7 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
         })
         return mesh
       },
+      material: (id, size = 256) => game.materialTextures.get(id, size),
       add: (obj) => {
         game.renderer.scene.add(obj)
         track(() => {
@@ -168,7 +169,9 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       surfaceY: (x, z) => game.world.surfaceY(x, z),
       regenerate: (seed) => game.world.regenerate(seed),
       regenerateSoon: () => game.world.regenerateSoon(),
-      voxels: game.world.voxels,
+      get voxels() {
+        return game.world.voxels
+      },
     },
     textures: {
       pattern: (name: string, fn: PatternFn) => {
@@ -234,23 +237,20 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       at: (actor, x, z) => cellContext(game.world.voxels, game.entities, game.hooks, actor, x, z, (cx, cz) => game.blockers.at(cx, cz)),
     },
     interiors: {
+      define: (id, look) => {
+        game.rooms.set(id, { ...look })
+        track(() => game.rooms.delete(id))
+      },
       area: (id) => game.interiors.area(id),
-      roomAt: (x, z) => game.interiors.roomAt(x, z),
       get current() {
         return game.interiors.current
       },
-      enter: (id, actor, at) => {
-        const t = actor.transform
-        if (!t) return
-        game.interiors.enter(id, { x: t.x, y: t.y, z: t.z, rotY: t.rotY })
-        game.moveActor(actor, at)
+      get changing() {
+        return game.changingPlace
       },
-      exit: (actor) => {
-        const id = game.interiors.current
-        const back = game.interiors.exit()
-        if (back) game.moveActor(actor, back)
-        if (id) game.restoreSea(game.interiors.area(id))
-      },
+      roomAt: (x, z) => game.interiors.roomAt(x, z),
+      enter: (id, actor, at) => void game.changePlace(actor, id, at),
+      exit: (actor) => void game.changePlace(actor, null),
     },
     options: {
       get: (id) => game.options.get(id, game.optionDefs.get(id)?.default ?? false),

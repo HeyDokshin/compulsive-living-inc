@@ -82,22 +82,22 @@ const Config = z.object({
   /** Nodes one path search may look at (paths are found one per tick). */
   pathNodes: z.number().int().min(100).max(20000).default(2500).meta({ label: 'path nodes', step: 100 }),
   talkPoints: z.number().int().min(0).max(20).default(2).meta({ label: 'talk points', step: 1 }),
-  giftPoints: z.object({ love: z.number().default(8), like: z.number().default(4), neutral: z.number().default(2), dislike: z.number().default(-2) }).prefault({}),
+  giftPoints: z
+    .object({ love: z.number().default(8), like: z.number().default(4), neutral: z.number().default(2), dislike: z.number().default(-2) })
+    .prefault({}),
   giftsPerDay: z.number().int().min(1).max(10).default(2).meta({ label: 'gifts per day', step: 1 }),
   requestChance: z.number().min(0).max(1).default(0.6).meta({ label: 'request chance', step: 0.05 }),
   requestPoints: z.number().int().min(0).max(30).default(6).meta({ label: 'request points', step: 1 }),
   requestBells: z.tuple([z.number().int(), z.number().int()]).default([300, 1200]),
   /** Things a villager may ask for: a tag and how they say it. */
-  requests: z
-    .array(z.object({ tag: z.string(), label: z.string() }))
-    .default([
-      { tag: '#collection:fish', label: 'любую рыбу' },
-      { tag: '#collection:bugs', label: 'любое насекомое' },
-      { tag: '#core:fruits', label: 'какой-нибудь фрукт' },
-      { tag: '#garden:flowers', label: 'цветок' },
-      { tag: '#core:materials', label: 'немного материалов' },
-      { tag: '#core:beach_finds', label: 'что-нибудь с пляжа' },
-    ]),
+  requests: z.array(z.object({ tag: z.string(), label: z.string() })).default([
+    { tag: '#collection:fish', label: 'любую рыбу' },
+    { tag: '#collection:bugs', label: 'любое насекомое' },
+    { tag: '#core:fruits', label: 'какой-нибудь фрукт' },
+    { tag: '#garden:flowers', label: 'цветок' },
+    { tag: '#core:materials', label: 'немного материалов' },
+    { tag: '#core:beach_finds', label: 'что-нибудь с пляжа' },
+  ]),
   /** Neighbours come up to say hello once a day: from this close (cells), not more often than every so many seconds. */
   hailRadius: z.number().min(0).max(20).default(8).meta({ label: 'hail radius', step: 0.5 }),
   hailEvery: z.number().min(1).max(600).default(35).meta({ label: 'hail every (s)', step: 1 }),
@@ -251,7 +251,7 @@ export default definePlugin({
       const cx = Math.floor(api.world.sizeX / 2)
       const cz = Math.floor(api.world.sizeZ / 2)
       let seed = (api.world.seed ^ Math.imul(v.id.length * 977 + v.id.charCodeAt(v.id.length - 1), 0x9e3779b1)) >>> 0
-      const rand = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296)
+      const rand = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296
       for (let tries = 0; tries < 900; tries++) {
         const a = rand() * Math.PI * 2
         const d = 10 + rand() * 34
@@ -291,7 +291,18 @@ export default definePlugin({
       if (!home) return false
       spawnBody(v, home)
       const day = api.time.dayIndex
-      state.value.residents[v.id] = { points: 0, met: false, talkDay: -1, giftDay: -1, gifts: 0, request: null, requestDay: -1, photo: false, since: day, leaving: -1 }
+      state.value.residents[v.id] = {
+        points: 0,
+        met: false,
+        talkDay: -1,
+        giftDay: -1,
+        gifts: 0,
+        request: null,
+        requestDay: -1,
+        photo: false,
+        since: day,
+        leaving: -1,
+      }
       if (!quiet) {
         state.value.news = [...state.value.news, `К нам переехал${v.she ? 'а' : ''} ${v.name} (${v.animal})! Загляните познакомиться.`]
         api.ui.toast(`На остров переехал${v.she ? 'а' : ''} ${v.name}!`, { ms: 3500 })
@@ -318,7 +329,7 @@ export default definePlugin({
       if (!Object.keys(state.value.residents).length && !api.save.hasData) {
         // the same neighbours for the same island: a seeded shuffle
         let seed = (api.world.seed ^ 0x5eed) >>> 0
-        const rand = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296)
+        const rand = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296
         const pool = [...defs.all()].sort((a, b) => (a.id < b.id ? -1 : 1))
         for (let i = pool.length - 1; i > 0; i--) {
           const j = Math.floor(rand() * (i + 1))
@@ -416,7 +427,7 @@ export default definePlugin({
           let bestD = 14
           for (const f of api.entities.world.with('flower', 'transform')) {
             const dd = Math.hypot(f.transform.x - t.x, f.transform.z - t.z) + (f.flower.watered === api.time.dayIndex ? 8 : 0)
-            if (dd < bestD) (best = f), (bestD = dd)
+            if (dd < bestD) ((best = f), (bestD = dd))
           }
           if (best) {
             const fc = { x: Math.floor(best.transform!.x), z: Math.floor(best.transform!.z) }
@@ -452,7 +463,12 @@ export default definePlugin({
           for (let i = 0; i < 20; i++) {
             const c = randomNear(t.x, t.z, 14)
             if (!c) continue
-            const wet = [[1, 0], [-1, 0], [0, 1], [0, -1]].find(([dx, dz]) => water.kindAt(c.x + dx!, c.z + dz!))
+            const wet = [
+              [1, 0],
+              [-1, 0],
+              [0, 1],
+              [0, -1],
+            ].find(([dx, dz]) => water.kindAt(c.x + dx!, c.z + dz!))
             if (!wet) continue
             b.path = pathTo(npc, c) ?? []
             b.face = { x: c.x + wet[0]! + 0.5, z: c.z + wet[1]! + 0.5 }
@@ -471,7 +487,12 @@ export default definePlugin({
     const raining = () => (api.services.has('weather:forecast') ? api.services.get('weather:forecast').current()?.precipitation === 'rain' : false)
     /** A line for a moment outside a conversation. */
     const line = (v: VillagerDef, r: Resident, topic: string) => {
-      const text = pickLine(lines.all(), topic, { personality: v.personality, hour: api.time.hour, raining: raining(), hearts: hearts(r.points), season: api.time.season }, Math.random)
+      const text = pickLine(
+        lines.all(),
+        topic,
+        { personality: v.personality, hour: api.time.hour, raining: raining(), hearts: hearts(r.points), season: api.time.season },
+        Math.random,
+      )
       return fill(text ?? '', { name: v.name, phrase: v.phrase, animal: v.animal, player: api.session.player || cfg.playerName, a: v.she ? 'а' : '' })
     }
     const moodOf = (b: Brain): string => {
@@ -497,6 +518,7 @@ export default definePlugin({
     })
     api.systems.add({
       id: 'answers',
+      outdoors: true, // the island waits while you're in a room
       phase: 'update',
       run: ({ dt }) => {
         for (let i = answers.length - 1; i >= 0; i--) {
@@ -513,6 +535,7 @@ export default definePlugin({
     }
     api.systems.add({
       id: 'brains',
+      outdoors: true, // the island waits while you're in a room
       phase: 'update',
       run: ({ dt }) => {
         searchesThisTick = 0
@@ -529,7 +552,10 @@ export default definePlugin({
           if (!b) {
             // in the house (a save made at night): asleep there until the morning wakes them
             const asleep = Math.abs(t.x - home.transform.x) < 1.5 && Math.abs(t.z - home.transform.z) < 1.5
-            brains.set(npc, (b = { path: [], wait: Math.random() * 2, activity: asleep ? 'sleep' : '', asleep, emoteIn: Math.random() * cfg.emoteEvery, steps: 0 }))
+            brains.set(
+              npc,
+              (b = { path: [], wait: Math.random() * 2, activity: asleep ? 'sleep' : '', asleep, emoteIn: Math.random() * cfg.emoteEvery, steps: 0 }),
+            )
           }
           const activity = activityAt(pers?.schedule ?? [], hour)
           if (activity !== b.activity) {
@@ -697,7 +723,9 @@ export default definePlugin({
       title: 'Разговор',
       backdrop: 'clear',
       align: 'bottom',
-      component: () => <Talk api={api} cfg={cfg} who={talking} state={state} touch={touch} defs={defs} personalities={personalities} lines={lines} photoId={photoId} />,
+      component: () => (
+        <Talk api={api} cfg={cfg} who={talking} state={state} touch={touch} defs={defs} personalities={personalities} lines={lines} photoId={photoId} />
+      ),
     })
 
     // --- notes, tutorial, commands -----------------------------------------------------------------
@@ -710,7 +738,9 @@ export default definePlugin({
           const news = st.news
           st.news = []
           if (news.length) return { icon: '🏡', text: news.join(' ') }
-          const asks = Object.entries(st.residents).filter(([, r]) => r.request).map(([id]) => defs.get(id)?.name)
+          const asks = Object.entries(st.residents)
+            .filter(([, r]) => r.request)
+            .map(([id]) => defs.get(id)?.name)
           return asks.length ? { icon: '📝', text: `Ждут вашей помощи: ${asks.join(', ')}.` } : null
         },
       })

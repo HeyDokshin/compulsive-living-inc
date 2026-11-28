@@ -27,7 +27,10 @@ export function Counter(props: {
 
   const marketNews = () => {
     const m = api.services.get('economy:market')
-    const all = m.categories().map((c) => [c, m.demand(c)] as const).sort((a, b) => b[1] - a[1])
+    const all = m
+      .categories()
+      .map((c) => [c, m.demand(c)] as const)
+      .sort((a, b) => b[1] - a[1])
     const up = all.filter(([, d]) => d > 1.05).slice(0, 2)
     const down = all.filter(([, d]) => d < 0.95).slice(-1)
     const pct = (d: number) => `${d > 1 ? '+' : '−'}${Math.round(Math.abs(d - 1) * 100)}%`
@@ -40,13 +43,28 @@ export function Counter(props: {
   const buy = (id: string, price: number) => {
     const r = shop.buy(actor, id)
     const name = items.get(id)?.name ?? id
-    setText(r === 'ok' ? say('thanks', { name }) : r === 'poor' ? say('poor', { name, price, bells: wallet.bells.value }) : r === 'full' ? say('full') : say('sold_out'))
+    setText(
+      r === 'ok'
+        ? say('thanks', { name })
+        : r === 'poor'
+          ? say('poor', { name, price, bells: wallet.bells.value })
+          : r === 'full'
+            ? say('full')
+            : say('sold_out'),
+    )
   }
 
   const scene = api.services.has('cutscene:talk') ? api.services.get('cutscene:talk') : undefined
   return (
     <div style={{ width: 'min(620px, 90vw)' }}>
-      <ui.Dialogue speaker="Тоша, лавочница" text={text} typeSpeed={props.typeSpeed} onBlip={() => voiceBlip(api, props.voicePitch)} onTyping={(on) => (props.setTalking(on), scene?.typing(on))} onLine={(t) => scene?.line(t)}>
+      <ui.Dialogue
+        speaker="Тоша, лавочница"
+        text={text}
+        typeSpeed={props.typeSpeed}
+        onBlip={() => voiceBlip(api, props.voicePitch)}
+        onTyping={(on) => (props.setTalking(on), scene?.typing(on))}
+        onLine={(t) => scene?.line(t)}
+      >
         {mode === 'buy' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '46vh', overflowY: 'auto' }}>
             {shop.today().map(({ shelf, goods }) => (
@@ -54,7 +72,10 @@ export function Counter(props: {
                 <div style={{ fontWeight: 800, fontSize: '12px', color: 'var(--ui-text-soft)', marginBottom: '4px' }}>{shelf.name}</div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {goods.map((g) => (
-                    <div key={g.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', width: '76px', opacity: g.left > 0 ? 1 : 0.35 }}>
+                    <div
+                      key={g.id}
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', width: '76px', opacity: g.left > 0 ? 1 : 0.35 }}
+                    >
                       <ui.ItemSlot icon={api.ui.itemIcon(g.id)} title={items.get(g.id)?.name} onClick={() => buy(g.id, g.price)} />
                       <span style={{ fontSize: '11px', textAlign: 'center', lineHeight: 1.2 }}>{items.get(g.id)?.name}</span>
                       <span style={{ fontSize: '11px', fontWeight: 800, color: g.price <= wallet.bells.value ? 'var(--ui-text)' : '#d9774a' }}>

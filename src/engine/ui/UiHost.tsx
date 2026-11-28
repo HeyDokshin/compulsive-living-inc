@@ -39,9 +39,18 @@ export interface WindowDef {
 }
 
 const NAV: Record<string, Dir> = {
-  ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-  Pad12: 'up', Pad13: 'down', Pad14: 'left', Pad15: 'right',
-  StickUp: 'up', StickDown: 'down', StickLeft: 'left', StickRight: 'right',
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  Pad12: 'up',
+  Pad13: 'down',
+  Pad14: 'left',
+  Pad15: 'right',
+  StickUp: 'up',
+  StickDown: 'down',
+  StickLeft: 'left',
+  StickRight: 'right',
 }
 
 interface ToastEntry {
@@ -55,17 +64,6 @@ interface ToastEntry {
 /** Milliseconds things take to leave the screen (windows, toasts): nothing just vanishes. */
 const LEAVE_MS = 220
 
-/** SVG filter that makes panel backgrounds wavy (only backgrounds: text stays crisp). */
-const WAVE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true">
-<filter id="cl-wave" x="-6%" y="-12%" width="112%" height="124%" color-interpolation-filters="sRGB">
-<feTurbulence type="fractalNoise" baseFrequency="0.011 0.019" numOctaves="1" seed="7" result="n"/>
-<feDisplacementMap in="SourceGraphic" in2="n" scale="9" xChannelSelector="R" yChannelSelector="G"/>
-</filter>
-<filter id="cl-wave-small" x="-10%" y="-30%" width="120%" height="160%" color-interpolation-filters="sRGB">
-<feTurbulence type="fractalNoise" baseFrequency="0.035 0.05" numOctaves="1" seed="3" result="n"/>
-<feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/>
-</filter></svg>`
-
 /**
  * Preact UI overlay. Plugins add components to slots and register windows;
  * everything they add is removed automatically when they unload.
@@ -76,12 +74,14 @@ export class UiHost {
   readonly openId = signal<string | null>(null)
   /** Covers the whole screen (title): the HUD is hidden, windows don't open, game input is paused. */
   readonly cover = signal<{ component: ComponentType; onEscape?: () => void } | null>(null)
+  /** A place is loading (a room, the island): the screen is veiled and game input waits. */
+  readonly loading = signal<{ title: string; icon: string; key: number; leaving: boolean; ms: number } | null>(null)
   /** The settings are waiting for a key to bind: keys do nothing else. */
   readonly keyCapture = signal(false)
   readonly toasts = signal<ToastEntry[]>([])
   /** True while a modal window is open — gameplay input should pause. */
   readonly modalOpen = computed(() => {
-    if (this.cover.value) return true
+    if (this.cover.value || this.loading.value) return true
     const id = this.openId.value
     return !!id && (this.windows.value.get(id)?.modal ?? true)
   })
@@ -118,7 +118,8 @@ export class UiHost {
     if (code === 'Enter' || code === 'Space' || code === 'NumpadEnter' || code === 'Pad0') {
       if (typing && code !== 'Pad0') return false // types, or sends its form
       const text = area.querySelector<HTMLElement>('.cl-dialogue[data-typing]')
-      if (text) text.click() // the whole line at once
+      if (text)
+        text.click() // the whole line at once
       else if (inside && focusables(area).includes(now!)) now!.click()
       else focusFirst(area)
       return true
@@ -160,6 +161,26 @@ export class UiHost {
     window.setTimeout(() => veil.remove(), 700)
   }
 
+  /**
+   * Veil the screen for a loading (a soft circle closes over it, the place's name in the middle).
+   * Resolves once the screen is covered; call `unveil` when the new place is ready.
+   */
+  veil(title: string, icon: string, ms: number): Promise<void> {
+    this.close()
+    this.loading.value = { title, icon, key: ++this.counter, leaving: false, ms }
+    return new Promise((resolve) => window.setTimeout(resolve, ms))
+  }
+
+  /** The circle opens on the new place. */
+  unveil(ms: number): void {
+    const l = this.loading.value
+    if (!l || l.leaving) return
+    this.loading.value = { ...l, leaving: true, ms }
+    window.setTimeout(() => {
+      if (this.loading.value?.key === l.key) this.loading.value = null
+    }, ms)
+  }
+
   /** Is a window with this id registered? */
   hasWindow(id: string): boolean {
     return this.windows.value.has(id)
@@ -172,7 +193,6 @@ export class UiHost {
       style.textContent = UI_CSS
       document.head.appendChild(style)
     }
-    if (!document.getElementById('cl-wave')) document.body.insertAdjacentHTML('beforeend', WAVE_SVG)
     const root = document.createElement('div')
     root.className = 'cl-ui'
     this.root = root
@@ -236,9 +256,12 @@ export class UiHost {
     this.onSound?.('ui:pop')
     this.toasts.value = [...this.toasts.value, entry].slice(-4)
     const ms = opts.ms ?? 2200
-    setTimeout(() => {
-      this.toasts.value = this.toasts.value.map((t) => (t === entry ? { ...t, leaving: true } : t))
-    }, Math.max(0, ms - LEAVE_MS))
+    setTimeout(
+      () => {
+        this.toasts.value = this.toasts.value.map((t) => (t === entry ? { ...t, leaving: true } : t))
+      },
+      Math.max(0, ms - LEAVE_MS),
+    )
     setTimeout(() => {
       this.toasts.value = this.toasts.value.filter((t) => t.key !== entry.key)
     }, ms)
@@ -348,6 +371,7 @@ function Root({ host }: { host: UiHost }) {
       ))}
       {gone && gone.def !== win && <WindowView key={`gone-${gone.key}`} host={host} win={gone.def} leaving />}
       {win && <WindowView key={win.id} host={host} win={win} />}
+      {host.loading.value && <Loading veil={host.loading.value} />}
       <div class="cl-toasts">
         {host.toasts.value.map((t) => (
           <div key={t.key} class={`cl-toast${t.leaving ? ' leaving' : ''}`}>
@@ -357,5 +381,22 @@ function Root({ host }: { host: UiHost }) {
         ))}
       </div>
     </>
+  )
+}
+
+/** The loading veil: a circle closes over the screen, the place's name bobs in the middle, dots go round. */
+function Loading({ veil }: { veil: { title: string; icon: string; key: number; leaving: boolean; ms: number } }) {
+  return (
+    <div key={veil.key} class={`cl-loading${veil.leaving ? ' leaving' : ''}`} style={{ '--cl-veil-ms': `${veil.ms}ms` }} aria-live="polite">
+      <div class="cl-loading-card">
+        <div class="cl-loading-icon">{veil.icon}</div>
+        <div class="cl-loading-title">{veil.title}</div>
+        <div class="cl-loading-dots" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </div>
+      </div>
+    </div>
   )
 }

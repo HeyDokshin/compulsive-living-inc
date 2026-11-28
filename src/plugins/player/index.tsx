@@ -94,6 +94,10 @@ const Config = z.object({
   /** Seconds the mouse cursor keeps showing the hovered cell after it stops moving. */
   hoverTimeout: z.number().min(0).max(30).default(4).meta({ label: 'hover timeout (s)', step: 0.5 }),
   cursor: z.boolean().default(true),
+  /** Show the marker on the cell under the mouse too (off: only the cell in front and where a click walks). */
+  cursorOnHover: z.boolean().default(false).meta({ label: 'cursor on hover' }),
+  /** The marker hides on cells this much higher than the feet (walls). */
+  markerMaxRise: z.number().min(0.5).max(10).default(1.6).meta({ label: 'marker max rise', step: 0.1 }),
   cursorColor: z.string().default('#ffffff').meta({ color: true }),
   hint: z.boolean().default(true),
 })
@@ -170,7 +174,7 @@ export default definePlugin({
           let r = locked ? 0 : Number(api.input.isDown(keys.right)) - Number(api.input.isDown(keys.left)) + api.input.stick.x
           let u = locked ? 0 : Number(api.input.isDown(keys.up)) - Number(api.input.isDown(keys.down)) - api.input.stick.y
           const mag = Math.hypot(r, u)
-          if (mag > 1) (r /= mag), (u /= mag)
+          if (mag > 1) ((r /= mag), (u /= mag))
           // Gait: run on its key; sneak while the use key or the left button is held; walk otherwise.
           const dragging = st.clickHeld && api.input.isDown(keys.click) && performance.now() - st.clickAt > cfg.holdDelay * 1000
           const speed = api.input.isDown(keys.run) ? cfg.runSpeed : st.useHeld || dragging ? cfg.sneakSpeed : cfg.walkSpeed
@@ -327,7 +331,10 @@ export default definePlugin({
       id: 'cursor',
       phase: 'render',
       priority: 800,
-      run: ({ dt }) => cursor.update(player, dt, st.walk?.target ?? hovered()),
+      run: ({ dt }) => {
+        const walking = st.walk?.target
+        cursor.update(player, dt, walking ?? hovered(), !walking && !cfg.cursorOnHover)
+      },
     })
     api.ui.slot('hud.bottom', () => <Hint cursor={cursor} cfg={cfg} api={api} />)
 
@@ -470,6 +477,8 @@ class Cursor {
   private last = ''
   private pos = { x: 0, y: 0, z: 0 }
   private time = 0
+  /** The marked cell is a wall's top (the marker fades out). */
+  private high = false
   /** Cell (column) in front of the player — what the use key acts on. */
   front = { x: 0, z: 0 }
   /** Cell the marker shows (front, or the mouse-hovered / clicked one). */
@@ -488,14 +497,19 @@ class Cursor {
     this.mesh.renderOrder = 2
   }
 
-  update(e: Entity, dt: number, pointed: Cell | null = null): void {
+  /** `quiet`: a hovered cell is resolved (hint, target) but the marker is not drawn on it. */
+  update(e: Entity, dt: number, pointed: Cell | null = null, quiet = false): void {
     this.time += dt
     const t = e.transform
     const view = e.view
     const show = this.cfg.cursor && !this.api.ui.modalOpen.value && !!t && !!view
-    this.mesh.visible = show
+    // the marker fades out and in instead of blinking
+    const mat = this.mesh.material as InstanceType<Three['MeshBasicMaterial']>
+    const goal = show && !(pointed && quiet) && !this.high ? 1 : 0
+    mat.opacity += (goal - mat.opacity) * Math.min(1, dt * 12)
+    this.mesh.visible = mat.opacity > 0.01
     if (!show) return
-    ;(this.mesh.material as InstanceType<Three['MeshBasicMaterial']>).color.set(this.cfg.cursorColor)
+    mat.color.set(this.cfg.cursorColor)
     // The cell one step ahead in the facing direction.
     const fx = Math.sin(t.rotY)
     const fz = Math.cos(t.rotY)
@@ -515,6 +529,8 @@ class Cursor {
     this.cell.z = cz
     const ctx = this.api.interactions.at(e, cx, cz)
     const top = ctx.y + 1
+    // a wall in front (its top far above the feet): no marker floating up there, the hint stays
+    this.high = top > t.y + this.cfg.markerMaxRise
     const k = Math.min(1, dt * 18)
     this.pos.x += (cx + 0.5 - this.pos.x) * k
     this.pos.z += (cz + 0.5 - this.pos.z) * k
@@ -545,22 +561,22 @@ function Hint({ cursor, cfg, api }: { cursor: Cursor; cfg: Config; api: PluginAp
   // a new hint cross-fades in (keyed by what it says)
   return (
     <div key={`${h.action}|${h.name}|${h.alt}`} style={{ animation: 'cl-rise .25s ease-out' }}>
-    <ui.Pill>
-      {h.action ? (
-        <>
-          <ui.Key>{api.input.keyLabel(h.key)}</ui.Key>
-          <span>{h.action}</span>
-        </>
-      ) : (
-        !h.alt && <span style={{ opacity: 0.8 }}>{h.name}</span>
-      )}
-      {h.alt && (
-        <>
-          <ui.Key>{api.input.keyLabel('player:useAlt')}</ui.Key>
-          <span>{h.alt}</span>
-        </>
-      )}
-    </ui.Pill>
+      <ui.Pill>
+        {h.action ? (
+          <>
+            <ui.Key>{api.input.keyLabel(h.key)}</ui.Key>
+            <span>{h.action}</span>
+          </>
+        ) : (
+          !h.alt && <span style={{ opacity: 0.8 }}>{h.name}</span>
+        )}
+        {h.alt && (
+          <>
+            <ui.Key>{api.input.keyLabel('player:useAlt')}</ui.Key>
+            <span>{h.alt}</span>
+          </>
+        )}
+      </ui.Pill>
     </div>
   )
 }

@@ -1,18 +1,19 @@
-// House interior blocks: wallpapers, floors and the baseboard. Floors carry #house:floors so
+// House interior blocks: wallpapers, floors and the baseboard. Invisible — the rooms kit draws the
+// walls and floors over them (they still hold you up and stop you). Floors carry #house:floors so
 // furniture can stand on them.
 {
   entries: [
-    { id: 'house:baseboard', name: 'Плинтус', color: '#c99a70', textures: { all: 'house:baseboard' } },
-    { id: 'house:wall_cream', name: 'Обои', color: '#f7ecd6', textures: { all: 'house:wall_cream', top: 'house:wall_top' } },
-    { id: 'house:wall_mint', name: 'Обои', color: '#cdeee0', textures: { all: 'house:wall_mint', top: 'house:wall_top' } },
-    { id: 'house:wall_rose', name: 'Обои', color: '#f8d6df', textures: { all: 'house:wall_rose', top: 'house:wall_top' } },
-    { id: 'house:wall_sky', name: 'Обои', color: '#d4e8f8', textures: { all: 'house:wall_sky', top: 'house:wall_top' } },
-    { id: 'house:wall_logs', name: 'Брёвна', color: '#c99560', textures: { all: 'house:wall_logs', top: 'house:wall_top' } },
-    { id: 'house:wall_brick', name: 'Кирпич', color: '#d88a70', textures: { all: 'house:wall_brick', top: 'house:wall_top' } },
-    { id: 'house:floor_planks', name: 'Пол', color: '#e2b27f', textures: { all: 'house:floor_planks' }, sounds: { step: 'core:step_wood' }, tags: ['house:floors'] },
-    { id: 'house:floor_dark', name: 'Пол', color: '#8f5e3c', textures: { all: 'house:floor_dark' }, sounds: { step: 'core:step_wood' }, tags: ['house:floors'] },
-    { id: 'house:floor_tiles', name: 'Пол', color: '#eef0f2', textures: { all: 'house:floor_tiles' }, sounds: { step: 'core:step_tile' }, tags: ['house:floors'] },
-    { id: 'house:floor_carpet', name: 'Ковролин', color: '#f6c8a8', textures: { all: 'house:floor_carpet' }, sounds: { step: 'core:step_carpet' }, tags: ['house:floors'] },
-    { id: 'house:floor_grass', name: 'Лужайка', color: '#9bd67a', textures: { all: 'house:floor_grass' }, sounds: { step: 'core:step_grass' }, tags: ['house:floors'] },
+    { id: 'house:baseboard', name: 'Плинтус', color: '#c99a70', invisible: true, textures: { all: 'house:baseboard' } },
+    { id: 'house:wall_cream', name: 'Обои', color: '#f7ecd6', invisible: true, textures: { all: 'house:wall_cream', top: 'house:wall_top' } },
+    { id: 'house:wall_mint', name: 'Обои', color: '#cdeee0', invisible: true, textures: { all: 'house:wall_mint', top: 'house:wall_top' } },
+    { id: 'house:wall_rose', name: 'Обои', color: '#f8d6df', invisible: true, textures: { all: 'house:wall_rose', top: 'house:wall_top' } },
+    { id: 'house:wall_sky', name: 'Обои', color: '#d4e8f8', invisible: true, textures: { all: 'house:wall_sky', top: 'house:wall_top' } },
+    { id: 'house:wall_logs', name: 'Брёвна', color: '#c99560', invisible: true, textures: { all: 'house:wall_logs', top: 'house:wall_top' } },
+    { id: 'house:wall_brick', name: 'Кирпич', color: '#d88a70', invisible: true, textures: { all: 'house:wall_brick', top: 'house:wall_top' } },
+    { id: 'house:floor_planks', name: 'Пол', color: '#e2b27f', invisible: true, textures: { all: 'house:floor_planks' }, sounds: { step: 'core:step_wood' }, tags: ['house:floors'] },
+    { id: 'house:floor_dark', name: 'Пол', color: '#8f5e3c', invisible: true, textures: { all: 'house:floor_dark' }, sounds: { step: 'core:step_wood' }, tags: ['house:floors'] },
+    { id: 'house:floor_tiles', name: 'Пол', color: '#eef0f2', invisible: true, textures: { all: 'house:floor_tiles' }, sounds: { step: 'core:step_tile' }, tags: ['house:floors'] },
+    { id: 'house:floor_carpet', name: 'Ковролин', color: '#f6c8a8', invisible: true, textures: { all: 'house:floor_carpet' }, sounds: { step: 'core:step_carpet' }, tags: ['house:floors'] },
+    { id: 'house:floor_grass', name: 'Лужайка', color: '#9bd67a', invisible: true, textures: { all: 'house:floor_grass' }, sounds: { step: 'core:step_grass' }, tags: ['house:floors'] },
   ],
 }

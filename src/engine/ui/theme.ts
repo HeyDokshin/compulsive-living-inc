@@ -1,8 +1,10 @@
-import { patternCss } from './patterns'
+import { patternCss, waveMask } from './patterns'
 
 /** Shared look of all game UI: cream panels, warm brown text, rounded font, soft shadows, quiet patterns behind text. */
 export const UI_CSS = /* css */ `
 ${patternCss('rgba(176, 124, 72, .09)', 'rgba(255, 255, 255, .2)')}
+:root { --ui-wave: ${waveMask()}; }
+/* wavy edges: a 9-slice mask on each panel's background only (text stays crisp); plain rounded where unsupported */
 :root {
   --ui-bg: #fffaf0;
   --ui-bg-2: #f7eedc;
@@ -45,8 +47,8 @@ ${patternCss('rgba(176, 124, 72, .09)', 'rgba(255, 255, 255, .2)')}
 
 .cl-pill { position: relative; isolation: isolate; border-radius: 999px; padding: 7px 16px; font-weight: 700; font-size: 14px;
   filter: drop-shadow(0 4px 8px rgba(110, 80, 70, .16)); display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
-.cl-pill::before, .cl-toast::before, .cl-clock-date::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
-  background: var(--ui-pat-dots), rgba(255, 250, 240, .94); background-size: 14px; filter: url(#cl-wave-small); }
+.cl-pill::before, .cl-toast::before, .cl-clock-date::before { -webkit-mask-box-image: var(--ui-wave) 40 / 18px round; content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  background: var(--ui-pat-dots), rgba(255, 250, 240, .94); background-size: 14px; }
 .cl-key { display: inline-block; min-width: 22px; padding: 1px 7px; border-radius: 8px; background: var(--ui-bg-2);
   border: 1.5px solid var(--ui-line); font-size: 12px; font-weight: 800; text-align: center; color: var(--ui-text-soft); }
 
@@ -59,7 +61,7 @@ ${patternCss('rgba(176, 124, 72, .09)', 'rgba(255, 255, 255, .2)')}
 .cl-window { position: relative; isolation: isolate; border-radius: 28px; filter: drop-shadow(0 14px 26px rgba(110, 80, 70, .24));
   min-width: 300px; max-width: min(calc(92vw / var(--ui-zoom)), 720px); animation: cl-pop .26s cubic-bezier(.3, 1.4, .5, 1); }
 .cl-window::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--ui-pat), var(--ui-bg);
-  box-shadow: inset 0 0 0 3px #fff; filter: url(#cl-wave); }
+  -webkit-mask-box-image: var(--ui-wave) 40 / 36px round; }
 .cl-window-inner { max-height: calc(86vh / var(--ui-zoom)); overflow: auto; border-radius: inherit; }
 .cl-window.wide { max-width: min(calc(96vw / var(--ui-zoom)), 1040px); }
 .cl-window-body > * { max-width: 100%; }
@@ -100,6 +102,23 @@ ${patternCss('rgba(176, 124, 72, .09)', 'rgba(255, 255, 255, .2)')}
 @keyframes cl-pop { from { transform: scale(.85); opacity: 0 } to { transform: scale(1); opacity: 1 } }
 @keyframes cl-fade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes cl-fade-out { to { opacity: 0 } }
+.cl-loading { position: absolute; inset: 0; z-index: 50; pointer-events: auto; display: grid; place-items: center;
+  background: var(--ui-pat-stars), radial-gradient(circle at 50% 45%, #fffaf0, #f4e6cf);
+  animation: cl-iris-in var(--cl-veil-ms) cubic-bezier(.5, 0, .3, 1) both; }
+.cl-loading.leaving { animation: cl-iris-out var(--cl-veil-ms) cubic-bezier(.6, 0, .4, 1) both; pointer-events: none; }
+.cl-loading-card { display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--ui-text);
+  animation: cl-rise .4s .1s ease-out both; }
+.cl-loading.leaving .cl-loading-card { animation: cl-fade-out calc(var(--cl-veil-ms) * .5) ease-in forwards; }
+.cl-loading-icon { font-size: 54px; line-height: 1; animation: cl-bob 1.6s ease-in-out infinite; filter: drop-shadow(0 6px 8px rgba(110, 80, 70, .18)); }
+.cl-loading-title { font-size: 22px; font-weight: 800; letter-spacing: .01em; }
+.cl-loading-dots { display: flex; gap: 7px; }
+.cl-loading-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--ui-accent); animation: cl-dot 1s ease-in-out infinite; }
+.cl-loading-dots i:nth-child(2) { animation-delay: .15s; }
+.cl-loading-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes cl-dot { 0%, 100% { transform: translateY(0); opacity: .5 } 40% { transform: translateY(-6px); opacity: 1 } }
+@keyframes cl-iris-in { from { clip-path: circle(0% at 50% 50%) } to { clip-path: circle(75% at 50% 50%) } }
+@keyframes cl-iris-out { from { clip-path: circle(75% at 50% 50%) } to { clip-path: circle(0% at 50% 50%) } }
+@media (prefers-reduced-motion: reduce) { .cl-loading, .cl-loading.leaving { animation-name: cl-fade; } .cl-loading.leaving { animation-name: cl-fade-out; } }
 .cl-veil { position: absolute; inset: 0; background: #fff8ec; pointer-events: none; animation: cl-fade-out .65s ease-out forwards; }
 @keyframes cl-pop-out { to { transform: scale(.9); opacity: 0 } }
 @keyframes cl-rise { from { transform: translateY(8px); opacity: 0 } to { transform: none; opacity: 1 } }
@@ -109,7 +128,7 @@ ${patternCss('rgba(176, 124, 72, .09)', 'rgba(255, 255, 255, .2)')}
 .cl-slot > * { animation: cl-rise .35s cubic-bezier(.3, 1.2, .5, 1); }
 .cl-dialogue { position: relative; isolation: isolate; }
 .cl-dialogue::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--ui-pat-hearts), #fffaf0;
-  box-shadow: inset 0 0 0 2px rgba(201, 150, 106, .25); filter: url(#cl-wave-small); }
+  -webkit-mask-box-image: var(--ui-wave) 40 / 26px round; }
 .cl-bells-float { position: absolute; right: 12px; top: 100%; font-weight: 800; font-size: 14px; white-space: nowrap; pointer-events: none;
   text-shadow: 0 1px 0 #fff, 0 0 6px #fff; animation: cl-float 1.4s ease-out forwards; }
 @keyframes cl-float { 0% { transform: translateY(6px); opacity: 0 } 15% { transform: translateY(0); opacity: 1 } 100% { transform: translateY(-34px); opacity: 0 } }

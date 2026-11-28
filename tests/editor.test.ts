@@ -14,7 +14,14 @@ describe('content editor', () => {
     p = putEntry(p, { id: 'm:a', n: 2 }, null)
     p = putEntry(p, { id: 'm:b', n: 3 }, null)
     p = putEntry(p, { id: 'core:x', n: 5 }, { id: 'core:x', n: 4 })
-    expect(p).toEqual({ entries: [{ id: 'm:a', n: 2 }, { id: 'm:b', n: 3 }], patch: { 'core:x': { n: 5 } }, tags: { 't:t': ['m:a'] } })
+    expect(p).toEqual({
+      entries: [
+        { id: 'm:a', n: 2 },
+        { id: 'm:b', n: 3 },
+      ],
+      patch: { 'core:x': { n: 5 } },
+      tags: { 't:t': ['m:a'] },
+    })
     expect(readPack(JSON.parse(writePack(p)!))).toEqual(p)
     p = putEntry(p, { id: 'core:x', n: 4 }, { id: 'core:x', n: 4 }) // back to what it was
     expect(p.patch).toEqual({})
@@ -24,11 +31,27 @@ describe('content editor', () => {
   })
   it('makes a form out of a schema and an entry', () => {
     const schema = z.toJSONSchema(
-      z.looseObject({ id: z.string(), name: z.string(), tags: z.array(z.string()).optional(), price: z.number().optional(), layer: z.enum(['floor', 'wall']).default('floor'), box: z.boolean().default(true) }),
+      z.looseObject({
+        id: z.string(),
+        name: z.string(),
+        tags: z.array(z.string()).optional(),
+        price: z.number().optional(),
+        layer: z.enum(['floor', 'wall']).default('floor'),
+        box: z.boolean().default(true),
+      }),
       { io: 'input' },
     )
     const fields = fieldsOf(schema, { id: 'a:b', name: 'A', color: '#ff00aa', palette: { p: '#fff' }, lines: ['раз', 'два'] })
-    expect(Object.fromEntries(fields.map((f) => [f.key, f.kind]))).toEqual({ name: 'text', tags: 'lines', price: 'number', layer: 'choice', box: 'bool', color: 'color', palette: 'json', lines: 'lines' })
+    expect(Object.fromEntries(fields.map((f) => [f.key, f.kind]))).toEqual({
+      name: 'text',
+      tags: 'lines',
+      price: 'number',
+      layer: 'choice',
+      box: 'bool',
+      color: 'color',
+      palette: 'json',
+      lines: 'lines',
+    })
     expect(fields.find((f) => f.key === 'name')!.required).toBe(true)
     expect(fields.find((f) => f.key === 'layer')).toMatchObject({ options: ['floor', 'wall'], required: false })
   })

@@ -6,8 +6,29 @@ import * as sdk from '../src/sdk'
  * it breaks mods: then SDK_VERSION goes up and docs/06-modding.md says what changed.
  */
 const PUBLIC = [
-  'Fragment', 'JSON5', 'SDK_VERSION', 'batch', 'computed', 'deepMerge', 'definePlugin', 'downloadFile', 'effect', 'findPath', 'h', 'lineWalkable', 'signal', 'ui',
-  'useCallback', 'useComputed', 'useEffect', 'useMemo', 'useRef', 'useSignal', 'useState', 'voiceBlip', 'z',
+  'Fragment',
+  'JSON5',
+  'SDK_VERSION',
+  'batch',
+  'computed',
+  'deepMerge',
+  'definePlugin',
+  'downloadFile',
+  'effect',
+  'findPath',
+  'h',
+  'lineWalkable',
+  'signal',
+  'ui',
+  'useCallback',
+  'useComputed',
+  'useEffect',
+  'useMemo',
+  'useRef',
+  'useSignal',
+  'useState',
+  'voiceBlip',
+  'z',
 ]
 
 describe('public SDK', () => {

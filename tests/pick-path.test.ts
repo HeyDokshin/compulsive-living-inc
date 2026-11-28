@@ -31,10 +31,7 @@ describe('click-to-walk path', () => {
     const wall = new Set(['3,0', '3,1', '3,2', '3,3'])
     const free = (c: { x: number; z: number }) => c.x >= 0 && c.z >= 0 && c.x < 8 && c.z < 8 && !wall.has(`${c.x},${c.z}`)
     const target = { x: 6, z: 1 }
-    const path = findPath(
-      { x: 0, z: 1 },
-      { canStep: (_a, b) => free(b), isGoal: (c) => Math.abs(c.x - target.x) + Math.abs(c.z - target.z) === 1, target },
-    )!
+    const path = findPath({ x: 0, z: 1 }, { canStep: (_a, b) => free(b), isGoal: (c) => Math.abs(c.x - target.x) + Math.abs(c.z - target.z) === 1, target })!
     expect(path).not.toBe(null)
     expect(path.every(free)).toBe(true)
     const last = path[path.length - 1]!

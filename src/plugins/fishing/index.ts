@@ -116,7 +116,13 @@ export default definePlugin({
       const w = water()
       if (w.kindAt(x, z) !== kind) return false
       let n = 0
-      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) if (w.kindAt(x + dx, z + dz) === kind) n++
+      for (const [dx, dz] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ] as const)
+        if (w.kindAt(x + dx, z + dz) === kind) n++
       return n >= (kind === 'sea' ? cfg.seaNeighbours : cfg.inlandNeighbours)
     }
 
@@ -169,7 +175,22 @@ export default definePlugin({
       mesh.scale.setScalar(0.001)
       mesh.renderOrder = 2
       group.add(mesh)
-      const f: Fish = { species, kind, x: x + 0.5, z: z + 0.5, y: y + 0.66, heading: Math.random() * Math.PI * 2, tx: x + 0.5, tz: z + 0.5, rest: Math.random() * 2, state: 'swim', mesh, bump: 0, len, fade: 0 }
+      const f: Fish = {
+        species,
+        kind,
+        x: x + 0.5,
+        z: z + 0.5,
+        y: y + 0.66,
+        heading: Math.random() * Math.PI * 2,
+        tx: x + 0.5,
+        tz: z + 0.5,
+        rest: Math.random() * 2,
+        state: 'swim',
+        mesh,
+        bump: 0,
+        len,
+        fade: 0,
+      }
       fish.push(f)
       return f
     }
@@ -365,6 +386,7 @@ export default definePlugin({
     let time = 0
     api.systems.add({
       id: 'fishing',
+      outdoors: true, // the island waits while you're in a room
       phase: 'render',
       run: ({ dt }) => {
         time += dt
@@ -424,7 +446,7 @@ export default definePlugin({
           for (const f of fish) {
             if (f.state !== 'swim' || f.kind !== c.kind) continue
             const d = Math.hypot(f.x - c.x, f.z - c.z)
-            if (d < bestD) (best = f), (bestD = d)
+            if (d < bestD) ((best = f), (bestD = d))
           }
           if (!best && !c.helped && c.t >= cfg.helpAfter) {
             c.helped = true

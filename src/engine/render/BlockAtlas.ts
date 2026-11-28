@@ -1,17 +1,8 @@
 import { CanvasTexture, NearestFilter, SRGBColorSpace } from 'three'
 import type { BlockDef } from '../types'
 import type { BlockPalette } from '../world/BlockPalette'
-import { KIND_OPAQUE, KIND_TRANSPARENT, type BlockTable } from '../world/mesher/mesher'
-import {
-  BUILTIN_PATTERNS,
-  MISSING_PATTERN,
-  TILE,
-  mulberry32,
-  shade,
-  type PatternContext,
-  type PatternFn,
-  type TextureDef,
-} from './textures'
+import { KIND_AIR, KIND_OPAQUE, KIND_TRANSPARENT, type BlockTable } from '../world/mesher/mesher'
+import { BUILTIN_PATTERNS, MISSING_PATTERN, TILE, mulberry32, shade, type PatternContext, type PatternFn, type TextureDef } from './textures'
 import { createLogger } from '../util/log'
 
 const log = createLogger('atlas')
@@ -21,14 +12,7 @@ export function faceTextures(block: BlockDef): string[] {
   const t = (block.textures ?? {}) as Record<string, string | undefined>
   const auto = `auto:${block.id}`
   const side = t.side ?? t.all ?? auto
-  return [
-    t.east ?? side,
-    t.west ?? side,
-    t.top ?? t.all ?? auto,
-    t.bottom ?? t.all ?? auto,
-    t.south ?? side,
-    t.north ?? side,
-  ]
+  return [t.east ?? side, t.west ?? side, t.top ?? t.all ?? auto, t.bottom ?? t.all ?? auto, t.south ?? side, t.north ?? side]
 }
 
 export interface AtlasPlan {
@@ -78,7 +62,7 @@ export function buildBlockTable(plan: AtlasPlan, blocks: BlockDef[], palette: Bl
   const byId = new Map(blocks.map((b) => [b.id, b]))
   for (let num = 1; num < n; num++) {
     const b = byId.get(palette.id(num))
-    kind[num] = b?.transparent ? KIND_TRANSPARENT : KIND_OPAQUE
+    kind[num] = b?.invisible ? KIND_AIR : b?.transparent ? KIND_TRANSPARENT : KIND_OPAQUE
     liquid[num] = b?.liquid && b.transparent ? 1 : 0
     tint[num] = b?.tint ? 1 : 0
     const faces = b ? faceTextures(b) : []
@@ -104,7 +88,7 @@ export class BlockAtlas {
   private building = 0
   private textureDefs: (id: string) => TextureDef | undefined = () => undefined
   /** Materials the rounded island shows close up, by detail slot (see roundColors). */
-  detailMaterials: string[] = []
+  detail: DetailPlan = { materials: [], variants: new Float32Array(MAX_DETAIL_SLOTS * 2), looks: new Float32Array(MAX_DETAIL_SLOTS * 4) }
 
   constructor() {
     this.canvas = document.createElement('canvas')
@@ -156,14 +140,14 @@ export class BlockAtlas {
     this.texture.needsUpdate = true
     this.plan = plan
     this.table = buildBlockTable(plan, blocks, palette)
-    this.detailMaterials = roundColors(this.table, blocks, palette, textures)
+    this.detail = roundColors(this.table, blocks, palette, textures)
     return true
   }
 
   /** Recompute the table only (palette grew, textures unchanged). */
   refreshTable(blocks: BlockDef[], palette: BlockPalette): void {
     this.table = buildBlockTable(this.plan, blocks, palette)
-    this.detailMaterials = roundColors(this.table, blocks, palette, this.textureDefs)
+    this.detail = roundColors(this.table, blocks, palette, this.textureDefs)
   }
 
   private loadImage(url: string): Promise<HTMLImageElement | null> {
@@ -184,13 +168,7 @@ export class BlockAtlas {
   }
 }
 
-function drawPattern(
-  g: CanvasRenderingContext2D,
-  x0: number,
-  y0: number,
-  fn: PatternFn,
-  def: Pick<TextureDef, 'colors' | 'seed' | 'params'>,
-): void {
+function drawPattern(g: CanvasRenderingContext2D, x0: number, y0: number, fn: PatternFn, def: Pick<TextureDef, 'colors' | 'seed' | 'params'>): void {
   const data = g.createImageData(TILE, TILE)
   const rand = mulberry32(def.seed)
   const ctx: PatternContext = {
@@ -217,18 +195,33 @@ function drawPattern(
   g.putImageData(data, x0, y0)
 }
 
+/** Detail slots the shader can tell apart (and look up variants for; terrainMaterial's MAX_SLOTS). */
+export const MAX_DETAIL_SLOTS = 16
+
+/** What the rounded island shows close up: materials by slot, and the patches that vary them. */
+export interface DetailPlan {
+  materials: string[]
+  /** Per slot: first variant slot, number of variants (0: none). */
+  variants: Float32Array
+  /** Per slot (variant slots): tint r, g, b (linear) and the share of the ground it covers. */
+  looks: Float32Array
+}
+
 /**
  * Colors and detail materials for the rounded island: each block's top and sides get the average
- * color of their texture (no pixels), and the texture's `material` becomes a detail slot.
- * Fills the table's topColor / sideColor / detailTop / detailSide; returns the materials by slot.
+ * color of their texture (no pixels), and the texture's `material` becomes a detail slot; its
+ * `variants` get slots right after the base materials.
+ * Fills the table's topColor / sideColor / detailTop / detailSide; returns the plan of slots.
  */
-export function roundColors(table: BlockTable, blocks: BlockDef[], palette: BlockPalette, textures: (id: string) => TextureDef | undefined): string[] {
+export function roundColors(table: BlockTable, blocks: BlockDef[], palette: BlockPalette, textures: (id: string) => TextureDef | undefined): DetailPlan {
   const n = table.kind.length
   const top = new Float32Array(n * 3).fill(0.8)
   const side = new Float32Array(n * 3).fill(0.8)
   const detailTop = new Int16Array(n).fill(-1)
   const detailSide = new Int16Array(n).fill(-1)
   const slots: string[] = []
+  /** Base material → the texture that named it first (its variants). */
+  const varied = new Map<string, NonNullable<TextureDef['variants']>>()
   const slotOf = (m: string | undefined) => {
     if (!m) return -1
     let i = slots.indexOf(m)
@@ -260,6 +253,7 @@ export function roundColors(table: BlockTable, blocks: BlockDef[], palette: Bloc
       out[num * 3] = lin(r)
       out[num * 3 + 1] = lin(g)
       out[num * 3 + 2] = lin(bl)
+      if (t?.material && t.variants?.length && !varied.has(t.material)) varied.set(t.material, t.variants)
       return t?.material
     }
     detailTop[num] = slotOf(fill(top, faces[2]!))
@@ -269,7 +263,22 @@ export function roundColors(table: BlockTable, blocks: BlockDef[], palette: Bloc
   table.sideColor = side
   table.detailTop = detailTop
   table.detailSide = detailSide
-  return slots
+  const variants = new Float32Array(MAX_DETAIL_SLOTS * 2)
+  const looks = new Float32Array(MAX_DETAIL_SLOTS * 4)
+  for (const [base, list] of varied) {
+    const b = slots.indexOf(base)
+    const first = slots.length
+    let count = 0
+    for (const v of list) {
+      if (slots.length >= MAX_DETAIL_SLOTS) break
+      const s = slots.push(v.material) - 1
+      const [r, g, bl] = shade(v.tint, 1)
+      looks.set([Math.pow(r / 255, 2.2), Math.pow(g / 255, 2.2), Math.pow(bl / 255, 2.2), v.share], s * 4)
+      count++
+    }
+    if (b < MAX_DETAIL_SLOTS && count) variants.set([first, count], b * 2)
+  }
+  return { materials: slots, variants, looks }
 }
 
 function hash(s: string): number {

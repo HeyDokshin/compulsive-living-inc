@@ -46,7 +46,8 @@ export function meshChunkRound(input: RoundInput): MeshOutput {
   const PY = sy + 2
   const at = (x: number, y: number, z: number) => vol[x + z * PX + y * PX * PZ]! // padded coordinates
   const isLiquid = (b: number) => !!table.liquid && b < table.liquid.length && table.liquid[b] === 1
-  const solidAt = (b: number) => b !== 0 && !isLiquid(b)
+  // invisible blocks (kind air in the table, e.g. room walls drawn by their owner) are not meshed
+  const solidAt = (b: number) => b !== 0 && !isLiquid(b) && !(b < table.kind.length && table.kind[b] === 0)
 
   // only the layers where something happens (a lot of the world is solid below and air above)
   let y0 = PY

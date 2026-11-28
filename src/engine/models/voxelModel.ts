@@ -136,7 +136,7 @@ export function buildVoxelGeometry(m: VoxelModel, pivot: [number, number, number
         }
       }
       for (let j = 0; j < nv; j++) {
-        for (let i = 0; i < nu; ) {
+        for (let i = 0; i < nu;) {
           const c = mask[i + j * nu]!
           if (!c) {
             i++
@@ -159,7 +159,20 @@ export function buildVoxelGeometry(m: VoxelModel, pivot: [number, number, number
   return out
 }
 
-function quad(out: GeometryData, pivot: [number, number, number], d: number, u: number, v: number, s: number, layer: number, i: number, j: number, w: number, h: number, c: number): void {
+function quad(
+  out: GeometryData,
+  pivot: [number, number, number],
+  d: number,
+  u: number,
+  v: number,
+  s: number,
+  layer: number,
+  i: number,
+  j: number,
+  w: number,
+  h: number,
+  c: number,
+): void {
   const base = out.position.length / 3
   for (let k = 0; k < 4; k++) {
     const p = [0, 0, 0]

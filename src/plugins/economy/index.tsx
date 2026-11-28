@@ -103,7 +103,13 @@ export default definePlugin({
     // --- market ------------------------------------------------------------------------------
     const cats = api.createRegistry<MarketCategoryDef>(
       'economy:market',
-      z.looseObject({ id: z.string(), name: z.string(), icon: z.string().default('•'), tag: z.string(), amplitude: z.number().min(0).max(0.95).default(0.3) }) as never,
+      z.looseObject({
+        id: z.string(),
+        name: z.string(),
+        icon: z.string().default('•'),
+        tag: z.string(),
+        amplitude: z.number().min(0).max(0.95).default(0.3),
+      }) as never,
     )
     const items = api.registry('items')
     const market: Market = {
@@ -119,9 +125,19 @@ export default definePlugin({
     api.ui.window({ id: 'economy:market', title: 'Цены дня', component: () => <MarketBoard market={market} period={cfg.marketPeriod} /> })
 
     // quiet: shows when the bells change (and while the phone is out)
-    api.ui.slot('hud.topRight', () => <ui.Quiet watch={bells.value}><WalletPill bells={bells} change={change} countUp={cfg.countUp} /></ui.Quiet>, { order: 20 })
+    api.ui.slot(
+      'hud.topRight',
+      () => (
+        <ui.Quiet watch={bells.value}>
+          <WalletPill bells={bells} change={change} countUp={cfg.countUp} />
+        </ui.Quiet>
+      ),
+      { order: 20 },
+    )
     try {
-      api.registry('daily:sections').register({ id: 'economy:wallet', order: 50, line: () => ({ icon: '🔔', text: `В кошельке ${formatBells(bells.value)} колокольчиков.` }) })
+      api
+        .registry('daily:sections')
+        .register({ id: 'economy:wallet', order: 50, line: () => ({ icon: '🔔', text: `В кошельке ${formatBells(bells.value)} колокольчиков.` }) })
       api.registry('daily:sections').register({
         id: 'economy:market',
         order: 45,
@@ -209,7 +225,11 @@ export default definePlugin({
     api.commands.register({
       name: 'market',
       description: 'Цены дня по категориям',
-      run: () => cats.all().map((c) => `${c.icon} ${c.name.padEnd(16)} ${formatDemand(market.demand(c))}`).join('\n'),
+      run: () =>
+        cats
+          .all()
+          .map((c) => `${c.icon} ${c.name.padEnd(16)} ${formatDemand(market.demand(c))}`)
+          .join('\n'),
     })
     api.commands.register({
       name: 'bells',
@@ -226,7 +246,15 @@ export default definePlugin({
 // --- UI ------------------------------------------------------------------------------------------
 
 /** The wallet in the HUD: the sum counts up or down to the new value, changes float above it. */
-function WalletPill({ bells, change, countUp }: { bells: ReadonlySignal<number>; change: ReadonlySignal<{ amount: number; key: number } | null>; countUp: number }) {
+function WalletPill({
+  bells,
+  change,
+  countUp,
+}: {
+  bells: ReadonlySignal<number>
+  change: ReadonlySignal<{ amount: number; key: number } | null>
+  countUp: number
+}) {
   const target = bells.value
   const [shown, setShown] = useState(target)
   const from = useRef(target)
@@ -364,10 +392,23 @@ function MarketBoard({ market, period }: { market: Market; period: number }) {
             <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: '2px', height: '22px' }}>
               {days.map((d) => {
                 const m = market.demand(c, d)
-                return <span key={d} title={formatDemand(m)} style={{ width: '6px', height: `${Math.round(6 + (m - 0.5) * 16)}px`, borderRadius: '2px', background: d === 0 ? 'var(--ui-accent)' : 'var(--ui-line)' }} />
+                return (
+                  <span
+                    key={d}
+                    title={formatDemand(m)}
+                    style={{
+                      width: '6px',
+                      height: `${Math.round(6 + (m - 0.5) * 16)}px`,
+                      borderRadius: '2px',
+                      background: d === 0 ? 'var(--ui-accent)' : 'var(--ui-line)',
+                    }}
+                  />
+                )
               })}
             </span>
-            <span style={{ width: '56px', textAlign: 'right', fontWeight: 800, color: today >= 1 ? 'var(--ui-accent)' : 'var(--ui-text-soft)' }}>{formatDemand(today)}</span>
+            <span style={{ width: '56px', textAlign: 'right', fontWeight: 800, color: today >= 1 ? 'var(--ui-accent)' : 'var(--ui-text-soft)' }}>
+              {formatDemand(today)}
+            </span>
           </div>
         )
       })}

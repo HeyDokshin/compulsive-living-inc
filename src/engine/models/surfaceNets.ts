@@ -124,7 +124,12 @@ export function surfaceNets(g: NetsGrid, keepQuad?: (x: number, y: number, z: nu
 }
 
 /** Separable 3-sample box blur, `passes` times along each axis listed (0 = x, 1 = y, 2 = z). In place. */
-export function boxBlur(g: Pick<NetsGrid, 'd' | 'nx' | 'ny' | 'nz'>, axes: readonly number[], passes: number, tmp: Float32Array = new Float32Array(g.d.length)): void {
+export function boxBlur(
+  g: Pick<NetsGrid, 'd' | 'nx' | 'ny' | 'nz'>,
+  axes: readonly number[],
+  passes: number,
+  tmp: Float32Array = new Float32Array(g.d.length),
+): void {
   const { nx, ny, nz } = g
   let src: Float32Array = g.d
   let dst: Float32Array = tmp

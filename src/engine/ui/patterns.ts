@@ -40,8 +40,7 @@ const TILES: Record<UiPattern, { size: number; svg: string }> = {
   },
   leaves: {
     size: 34,
-    svg:
-      '<path d="M6 13C6 7 10 4 14 4c0 5-3 9-8 9z" fill="F"/><path d="M24 30c-1-4 1-7 5-8 1 4-1 7-5 8z" fill="F"/>',
+    svg: '<path d="M6 13C6 7 10 4 14 4c0 5-3 9-8 9z" fill="F"/><path d="M24 30c-1-4 1-7 5-8 1 4-1 7-5 8z" fill="F"/>',
   },
 }
 
@@ -66,4 +65,21 @@ export function patternCss(dark: string, light: string): string {
   vars += '  --ui-pat: var(--ui-pat-dots);\n}\n'
   for (const p of UI_PATTERNS) vars += `[data-pattern='${p}'] { --ui-pat: var(--ui-pat-${p}); }\n`
   return vars
+}
+
+/**
+ * Wavy panel edges without SVG filters (those leave noise behind in some browsers): a 120×120
+ * rounded square with one soft wave per 40-unit edge piece, used as a 9-slice mask — corners stay
+ * round, edges repeat whole waves whatever the panel's size.
+ */
+export function waveMask(): string {
+  const a = 6 // inset of the edge line
+  const w = 3 // wave height
+  const path =
+    `M${a},40 C${a},20 20,${a} 40,${a} Q50,${a - w * 2} 60,${a} T80,${a} ` +
+    `C100,${a} ${120 - a},20 ${120 - a},40 Q${120 - a + w * 2},50 ${120 - a},60 T${120 - a},80 ` +
+    `C${120 - a},100 100,${120 - a} 80,${120 - a} Q70,${120 - a + w * 2} 60,${120 - a} T40,${120 - a} ` +
+    `C20,${120 - a} ${a},100 ${a},80 Q${a - w * 2},70 ${a},60 T${a},40 Z`
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><path d="${path}" fill="#000"/></svg>`
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`
 }

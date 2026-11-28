@@ -31,7 +31,17 @@ describe('GameLoop + Scheduler', () => {
     vi.spyOn(console, 'log').mockImplementation(() => {})
     const s = new Scheduler()
     let n = 0
-    s.add({ id: 'bad', phase: 'update', run: () => { n++; throw new Error('x') } }, 't')
+    s.add(
+      {
+        id: 'bad',
+        phase: 'update',
+        run: () => {
+          n++
+          throw new Error('x')
+        },
+      },
+      't',
+    )
     const loop = new GameLoop(s, { tickRate: 10 })
     loop.advance(0.3)
     expect(n).toBe(1)

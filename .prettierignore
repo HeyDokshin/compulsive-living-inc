@@ -1,0 +1,10 @@
+# Data written by hand or by tools (model layers row by row, hall plans, aligned tables): kept as written.
+content/
+config/
+mods/**/*.json5
+docs/
+*.md
+.claude/
+.oxlintrc.json
+dist/
+package-lock.json

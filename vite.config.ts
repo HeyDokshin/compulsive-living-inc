@@ -52,10 +52,7 @@ function pluginHotReload(): Plugin {
     apply: 'serve',
     transform(code, id) {
       if (!/\/src\/plugins\/[^/]+\/index\.tsx?$/.test(id)) return
-      return (
-        code +
-        `\nif (import.meta.hot) { import.meta.hot.accept((m) => { if (m?.default) globalThis.__CL_HMR__?.plugin(m.default) }) }\n`
-      )
+      return code + `\nif (import.meta.hot) { import.meta.hot.accept((m) => { if (m?.default) globalThis.__CL_HMR__?.plugin(m.default) }) }\n`
     },
   }
 }

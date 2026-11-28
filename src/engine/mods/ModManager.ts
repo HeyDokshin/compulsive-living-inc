@@ -303,7 +303,8 @@ export class ModManager {
     const defs = (Array.isArray(module.default) ? module.default : [module.default]) as Array<GamePlugin | undefined>
     return defs.map((def) => {
       if (!def || typeof def.setup !== 'function') throw new Error(`${manifest.main}: нет export default definePlugin(…)`)
-      if (def.id !== manifest.id && !def.id?.startsWith(manifest.id + '_')) throw new Error(`id плагина «${def.id}» должен быть «${manifest.id}» или «${manifest.id}_…»`)
+      if (def.id !== manifest.id && !def.id?.startsWith(manifest.id + '_'))
+        throw new Error(`id плагина «${def.id}» должен быть «${manifest.id}» или «${manifest.id}_…»`)
       // what the mod needs loads before its code
       return { ...def, version: def.version ?? manifest.version, optionalDependsOn: [...new Set([...(def.optionalDependsOn ?? []), ...manifest.dependsOn])] }
     })

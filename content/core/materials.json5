@@ -17,6 +17,63 @@
     ],
   },
   {
+    // clover patches: round leaves in little clusters, a deeper green (texture variant of grass)
+    id: 'core:clover',
+    shading: 1,
+    occlusion: 0.7,
+    layers: [
+      { kind: 'noise', colors: ['#7fae5e', '#a2cc80'], scale: 3, octaves: 4, relief: 0.4, seed: 71 },
+      { kind: 'pebbles', colors: ['#8cbd6a', '#c8e9a8'], scale: 14, relief: 0.9, params: { size: 0.36, jitter: 0.9 }, seed: 72,
+        mask: { kind: 'pebbles', scale: 14, threshold: 0.05, softness: 0.06, params: { size: 0.36, jitter: 0.9 }, seed: 72 } },
+      { kind: 'pebbles', colors: ['#96c674', '#d4f0b8'], scale: 23, opacity: 0.8, relief: 0.6, params: { size: 0.3 }, seed: 73,
+        mask: { kind: 'pebbles', scale: 23, threshold: 0.05, softness: 0.06, params: { size: 0.3 }, seed: 73 } },
+    ],
+  },
+  {
+    // a meadow: the lawn with tiny bright flowers scattered through it (texture variant of grass)
+    id: 'core:meadow',
+    shading: 0.9,
+    occlusion: 0.5,
+    layers: [
+      { kind: 'noise', colors: ['#8fb86c', '#b9dd96'], scale: 3, octaves: 5, relief: 0.5, seed: 74 },
+      { kind: 'fibers', colors: ['#7aa65a', '#c6e3a6'], scale: 18, octaves: 3, blend: 'overlay', opacity: 0.5, relief: 0.4, params: { stretch: 0.15 }, warp: 0.08, seed: 75 },
+      { kind: 'flowers', colors: ['#000000', '#ffffff'], scale: 9, opacity: 0.9, relief: 0.4, params: { size: 0.16 }, seed: 76, blend: 'lighten' },
+      { kind: 'dots', colors: ['#000000', '#fff6c8'], scale: 17, opacity: 0.8, params: { size: 0.1, vary: 1 }, seed: 77, blend: 'lighten' },
+    ],
+  },
+  {
+    // dry grass: long pale blades combed one way (texture variant of grass)
+    id: 'core:grass_dry',
+    shading: 0.9,
+    occlusion: 0.45,
+    layers: [
+      { kind: 'noise', colors: ['#a7b878', '#cbd69a'], scale: 3, octaves: 5, relief: 0.4, seed: 78 },
+      { kind: 'fibers', colors: ['#9fb06e', '#e9eebc'], scale: 10, octaves: 3, blend: 'overlay', opacity: 0.5, relief: 0.45, params: { stretch: 6 }, warp: 0.2, seed: 79 },
+    ],
+  },
+  {
+    // moss over stone: soft cushions (texture variant of stone)
+    id: 'core:moss',
+    shading: 1,
+    occlusion: 0.7,
+    layers: [
+      { kind: 'noise', colors: ['#7e9e64', '#a9c98a'], scale: 4, octaves: 6, relief: 0.7, seed: 80 },
+      { kind: 'cells', colors: ['#7a9a5e', '#c2dea4'], scale: 9, opacity: 0.6, relief: 0.6, seed: 81, blend: 'overlay' },
+    ],
+  },
+  {
+    // wet sand with little shells (texture variant of sand)
+    id: 'core:sand_shells',
+    shading: 0.8,
+    occlusion: 0.3,
+    layers: [
+      { kind: 'noise', colors: ['#e6cf9a', '#f3e2b6'], scale: 2, octaves: 4, relief: 0.4, seed: 82 },
+      { kind: 'waves', colors: ['#000000', '#ffffff'], scale: 6, opacity: 0.25, relief: 0.4, params: { width: 0.5 }, seed: 83, blend: 'overlay' },
+      { kind: 'scales', colors: ['#000000', '#ffffff'], scale: 11, opacity: 0.55, relief: 0.3, seed: 84, blend: 'lighten',
+        mask: { kind: 'pebbles', scale: 5, threshold: 0.12, softness: 0.05, params: { size: 0.2 }, seed: 85 } },
+    ],
+  },
+  {
     // leaf clumps for tree crowns (model fabric): round tufts, lit on top, soft shade between
     id: 'core:leaves',
     shading: 1.1,

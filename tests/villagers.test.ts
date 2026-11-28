@@ -40,7 +40,12 @@ describe('friendship and routine', () => {
     expect(giftTaste(tags([]), [], [], 60)).toBe('neutral')
   })
   it('follows the daily schedule, across midnight too', () => {
-    const sch: Array<[number, number, string]> = [[0, 7, 'sleep'], [7, 12, 'garden'], [12, 22, 'plaza'], [22, 24, 'sleep']]
+    const sch: Array<[number, number, string]> = [
+      [0, 7, 'sleep'],
+      [7, 12, 'garden'],
+      [12, 22, 'plaza'],
+      [22, 24, 'sleep'],
+    ]
     expect(activityAt(sch, 3)).toBe('sleep')
     expect(activityAt(sch, 9.5)).toBe('garden')
     expect(activityAt(sch, 23)).toBe('sleep')

@@ -51,7 +51,12 @@ export default definePlugin({
         const rng = ctx.rng('flora')
         const tuftField = ctx.noise('flora-tufts')
         const flowerField = ctx.noise('flora-flowers')
-        const soil = new Set(api.registry('blocks').resolve(cfg.growsOn).map((b) => b.id))
+        const soil = new Set(
+          api
+            .registry('blocks')
+            .resolve(cfg.growsOn)
+            .map((b) => b.id),
+        )
         const s = cfg.clusterScale
         for (let z = 0; z < ctx.sizeZ; z++) {
           for (let x = 0; x < ctx.sizeX; x++) {
@@ -86,6 +91,7 @@ export default definePlugin({
     let dirty = false
     api.systems.add({
       id: 'rebuild',
+      outdoors: true, // the island waits while you're in a room
       phase: 'render',
       run: () => {
         if (!dirty) return
@@ -150,7 +156,12 @@ class FloraView {
     this.add(this.blossomGeometry(), material(), flowers, (p) => colors[p.color] ?? colors[0])
   }
 
-  private add(geo: NonNullable<ConstructorParameters<THREE['InstancedMesh']>[0]>, mat: InstanceType<THREE['Material']>, plants: Plant[], color: (p: Plant) => InstanceType<THREE['Color']> | undefined): void {
+  private add(
+    geo: NonNullable<ConstructorParameters<THREE['InstancedMesh']>[0]>,
+    mat: InstanceType<THREE['Material']>,
+    plants: Plant[],
+    color: (p: Plant) => InstanceType<THREE['Color']> | undefined,
+  ): void {
     if (!plants.length) {
       geo.dispose()
       mat.dispose()

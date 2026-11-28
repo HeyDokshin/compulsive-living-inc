@@ -40,7 +40,11 @@ try {
   mkdirSync(set)
   for (const size of [16, 32, 128, 256, 512])
     for (const scale of [1, 2])
-      execFileSync('sips', ['-z', `${size * scale}`, `${size * scale}`, join(here, 'icon.png'), '--out', join(set, `icon_${size}x${size}${scale === 2 ? '@2x' : ''}.png`)], { stdio: 'ignore' })
+      execFileSync(
+        'sips',
+        ['-z', `${size * scale}`, `${size * scale}`, join(here, 'icon.png'), '--out', join(set, `icon_${size}x${size}${scale === 2 ? '@2x' : ''}.png`)],
+        { stdio: 'ignore' },
+      )
   run('iconutil', '-c', 'icns', '-o', join(contents, 'Resources', 'icon.icns'), set)
 
   writeFileSync(

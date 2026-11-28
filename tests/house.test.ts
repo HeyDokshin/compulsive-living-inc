@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { moveToWall, nearWall, payment, planRoom } from '../src/plugins/house/room'
+import { moveToWall, payment, planRoom, windowsOf } from '../src/plugins/house/room'
 import { fits, topmost, type Placed } from '../src/plugins/decor/layers'
 
 describe('house room', () => {
@@ -21,11 +21,19 @@ describe('house room', () => {
     expect(floor).toHaveLength(36)
     expect(new Set(floor)).toEqual(new Set(['floor']))
   })
-  it('knows which walls face the camera', () => {
-    const r = planRoom(8, 8)
-    expect(nearWall(r.outward(11, 6), 45)).toBe(true) // +x wall, camera at +x+z
-    expect(nearWall(r.outward(4, 6), 45)).toBe(false)
-    expect(nearWall(r.outward(4, 6), 225)).toBe(true)
+  it('puts windows in the back and side walls, never by the door or in a corner', () => {
+    for (const size of [8, 10, 12]) {
+      const r = planRoom(size, size)
+      const w = windowsOf(r)
+      expect(w).toHaveLength(4)
+      for (const c of w) {
+        expect(r.kindAt(c.x, c.z)).toBe('wall')
+        expect(c.z).not.toBe(r.door.z)
+        const corner = (c.x === r.x0 || c.x === r.x0 + r.w - 1) && (c.z === r.z0 || c.z === r.z0 + r.d - 1)
+        expect(corner).toBe(false)
+      }
+    }
+    expect(windowsOf(planRoom(5, 5))).toHaveLength(3)
   })
   it('pays the loan within what is owed and held', () => {
     expect(payment(10000, 3000, 50000)).toBe(3000)

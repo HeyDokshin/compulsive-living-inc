@@ -45,7 +45,7 @@ describe('species availability', () => {
       { id: 'rare', rarity: 5 },
     ]
     let seed = 1
-    const rand = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296)
+    const rand = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296
     const counts: Record<string, number> = { common: 0, rare: 0 }
     for (let i = 0; i < 2000; i++) counts[pickByRarity(list, [10, 6, 3, 1.4, 0.5], rand)!.id]!++
     expect(counts.common! / 2000).toBeGreaterThan(0.9)

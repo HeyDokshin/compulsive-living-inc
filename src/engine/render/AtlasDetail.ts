@@ -132,7 +132,9 @@ export class AtlasDetail {
     this.levels.set(level, tex)
     // keep a few levels around, drop the farthest from what is wanted
     if (this.levels.size > 3) {
-      const far = [...this.levels.keys()].filter((l) => l !== this.shown && l !== this.target).sort((a, b) => Math.abs(b - this.target) - Math.abs(a - this.target))[0]
+      const far = [...this.levels.keys()]
+        .filter((l) => l !== this.shown && l !== this.target)
+        .sort((a, b) => Math.abs(b - this.target) - Math.abs(a - this.target))[0]
       if (far !== undefined) {
         this.levels.get(far)?.dispose()
         this.levels.delete(far)

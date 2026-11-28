@@ -8,7 +8,7 @@ const CSS = `
 .cl-phone { position: relative; isolation: isolate; width: min(310px, 86vw); height: min(500px, 70vh); margin: 0 0 110px 28px; display: flex; flex-direction: column;
   border-radius: 42px; padding: 16px; filter: drop-shadow(0 18px 30px rgba(70, 50, 30, 0.3)); color: var(--ui-text); font-family: var(--ui-font); }
 .cl-phone::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--ui-pat-sprinkles), #fffaf0;
-  box-shadow: inset 0 0 0 7px #f3e6d0; filter: url(#cl-wave); }
+  -webkit-mask-box-image: var(--ui-wave) 40 / 44px round; }
 .cl-phone-screen { animation: cl-phone-in .28s cubic-bezier(.3, 1.2, .5, 1); }
 @keyframes cl-phone-in { from { transform: translateX(18px); opacity: 0 } to { transform: none; opacity: 1 } }
 .cl-phone-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px 10px; font-size: 13px; font-weight: 800; }

@@ -4,7 +4,7 @@
  * island. The picture of the island is drawn from the blocks' colors and redrawn when land
  * changes (terraforming, paths, a new island).
  */
-import { definePlugin, useEffect, useRef, z, type PluginApi } from '@sdk'
+import { definePlugin, signal, useEffect, useRef, z, type PluginApi } from '@sdk'
 
 const Config = z.object({
   /** Blocks from the player to the edge of the round map. */
@@ -170,36 +170,46 @@ export default definePlugin({
     const cfg: Cfg = api.config.define(Config)
     const picture = new IslandPicture(api)
     let pending = 0
+    // the island's picture: only drawn while the island is the world being played (in a room,
+    // `api.world` is the room's)
+    const outside = signal(!api.interiors.current)
+    const draw = () => outside.value && picture.draw()
     const soon = () => {
       window.clearTimeout(pending)
-      pending = window.setTimeout(() => picture.draw(), cfg.redraw * 1000)
+      pending = window.setTimeout(draw, cfg.redraw * 1000)
     }
-    api.events.on('world:generated', () => picture.draw())
-    api.events.on('save:loaded', () => picture.draw())
-    api.events.on('world:blockChanged', soon)
+    api.events.on('world:generated', draw)
+    api.events.on('save:loaded', draw)
+    api.events.on('world:blockChanged', () => outside.value && soon())
+    api.events.on('interior:changed', ({ id }) => {
+      outside.value = !id
+      draw()
+    })
+    api.events.on('session:started', () => (outside.value = !api.interiors.current))
     api.onDispose(() => window.clearTimeout(pending))
 
     api.ui.slot(
       'hud.bottomRight',
-      () => (
-        <button
-          type="button"
-          title="Карта острова"
-          onClick={() => api.ui.open('minimap:full')}
-          style={{
-            pointerEvents: 'auto',
-            padding: 0,
-            border: '6px solid #fffaf0',
-            borderRadius: '50%',
-            overflow: 'hidden',
-            cursor: 'pointer',
-            background: '#7fcde6',
-            boxShadow: '0 8px 24px rgba(70, 50, 30, 0.3)',
-          }}
-        >
-          <MapCanvas api={api} picture={picture} size={cfg.size} radius={cfg.radius} turn />
-        </button>
-      ),
+      () =>
+        outside.value && (
+          <button
+            type="button"
+            title="Карта острова"
+            onClick={() => api.ui.open('minimap:full')}
+            style={{
+              pointerEvents: 'auto',
+              padding: 0,
+              border: '6px solid #fffaf0',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              cursor: 'pointer',
+              background: '#7fcde6',
+              boxShadow: '0 8px 24px rgba(70, 50, 30, 0.3)',
+            }}
+          >
+            <MapCanvas api={api} picture={picture} size={cfg.size} radius={cfg.radius} turn />
+          </button>
+        ),
       { order: 10 },
     )
     api.ui.window({

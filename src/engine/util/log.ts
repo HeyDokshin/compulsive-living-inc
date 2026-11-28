@@ -1,5 +1,10 @@
 export type LogLevel = 'info' | 'warn' | 'error'
-export interface LogRecord { level: LogLevel; source: string; message: string; time: number }
+export interface LogRecord {
+  level: LogLevel
+  source: string
+  message: string
+  time: number
+}
 
 type Sink = (r: LogRecord) => void
 const sinks = new Set<Sink>()
@@ -15,8 +20,7 @@ export interface Logger {
   error(...args: unknown[]): void
 }
 
-const fmt = (args: unknown[]) =>
-  args.map((a) => (a instanceof Error ? a.message : typeof a === 'string' ? a : JSON.stringify(a))).join(' ')
+const fmt = (args: unknown[]) => args.map((a) => (a instanceof Error ? a.message : typeof a === 'string' ? a : JSON.stringify(a))).join(' ')
 
 export function createLogger(source: string): Logger {
   const emit = (level: LogLevel, args: unknown[]) => {

@@ -28,8 +28,7 @@ export class DevConsole {
       'position:fixed;left:0;right:0;top:0;height:42%;display:none;flex-direction:column;z-index:30;' +
       'background:rgba(16,22,30,.88);color:#dfe8f0;font:13px/1.45 ui-monospace,Menlo,monospace;backdrop-filter:blur(4px)'
     this.output.style.cssText = 'flex:1;overflow:auto;padding:8px 12px;white-space:pre-wrap'
-    this.input.style.cssText =
-      'border:0;outline:0;padding:8px 12px;background:rgba(255,255,255,.07);color:#fff;font:inherit'
+    this.input.style.cssText = 'border:0;outline:0;padding:8px 12px;background:rgba(255,255,255,.07);color:#fff;font:inherit'
     this.input.placeholder = 'команда… (help — список, Tab — дополнение, ↑↓ — история)'
     this.root.append(this.output, this.input)
     document.body.appendChild(this.root)
@@ -101,7 +100,11 @@ export class DevConsole {
       e.preventDefault()
       const v = this.input.value
       if (v.includes(' ')) return
-      const names = this.commands.all().map((c) => c.name).filter((n) => n.startsWith(v)).sort()
+      const names = this.commands
+        .all()
+        .map((c) => c.name)
+        .filter((n) => n.startsWith(v))
+        .sort()
       if (names.length === 1) this.input.value = names[0] + ' '
       else if (names.length > 1) this.print(names.join('  '), '#8fb3c9')
     }

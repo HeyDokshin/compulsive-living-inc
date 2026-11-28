@@ -170,6 +170,7 @@ export default definePlugin({
     const guestQuery = api.entities.world.with('guest', 'transform')
     api.systems.add({
       id: 'guest',
+      outdoors: true, // the island waits while you're in a room
       phase: 'render',
       run: () => {
         let pl: (typeof players.entities)[number] | undefined
@@ -179,7 +180,8 @@ export default definePlugin({
         }
         if (!pl) return
         for (const g of guestQuery) {
-          if (Math.hypot(pl.transform.x - g.transform.x, pl.transform.z - g.transform.z) < 5) g.transform.rotY = Math.atan2(pl.transform.x - g.transform.x, pl.transform.z - g.transform.z)
+          if (Math.hypot(pl.transform.x - g.transform.x, pl.transform.z - g.transform.z) < 5)
+            g.transform.rotY = Math.atan2(pl.transform.x - g.transform.x, pl.transform.z - g.transform.z)
         }
       },
     })
@@ -237,7 +239,17 @@ export default definePlugin({
   },
 })
 
-function GuestTalk({ api, who, guests, calendar }: { api: PluginApi; who: Signal<Entity | null>; guests: RegistryView<GuestDef>; calendar: RegistryView<EventDef> }) {
+function GuestTalk({
+  api,
+  who,
+  guests,
+  calendar,
+}: {
+  api: PluginApi
+  who: Signal<Entity | null>
+  guests: RegistryView<GuestDef>
+  calendar: RegistryView<EventDef>
+}) {
   const e = who.value
   const g = e?.guest ? guests.get(e.guest.id) : undefined
   const ev = e?.guest ? calendar.get(e.guest.event) : undefined
@@ -264,14 +276,23 @@ function GuestTalk({ api, who, guests, calendar }: { api: PluginApi; who: Signal
   const scene = api.services.has('cutscene:talk') ? api.services.get('cutscene:talk') : undefined
   return (
     <div style={{ width: 'min(600px, 90vw)' }}>
-      <ui.Dialogue speaker={`${g.name}, ${g.animal} · ${ev.name}`} text={text} typeSpeed={g.speed} onBlip={() => voiceBlip(api, g.voice)} onTyping={(on) => scene?.typing(on)} onLine={(t) => scene?.line(t)}>
+      <ui.Dialogue
+        speaker={`${g.name}, ${g.animal} · ${ev.name}`}
+        text={text}
+        typeSpeed={g.speed}
+        onBlip={() => voiceBlip(api, g.voice)}
+        onTyping={(on) => scene?.typing(on)}
+        onLine={(t) => scene?.line(t)}
+      >
         {shopping && (
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {ev.shop.map((s) => (
               <div key={s.item} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '76px', gap: '2px' }}>
                 <ui.ItemSlot icon={api.ui.itemIcon(s.item)} title={items.get(s.item)?.name} onClick={() => buy(s.item, s.price)} />
                 <span style={{ fontSize: '11px', textAlign: 'center', lineHeight: 1.2 }}>{items.get(s.item)?.name ?? s.item}</span>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: (wallet?.bells.value ?? 0) >= s.price ? 'var(--ui-text)' : '#d9774a' }}>{s.price.toLocaleString('ru-RU')} 🔔</span>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: (wallet?.bells.value ?? 0) >= s.price ? 'var(--ui-text)' : '#d9774a' }}>
+                  {s.price.toLocaleString('ru-RU')} 🔔
+                </span>
               </div>
             ))}
           </div>

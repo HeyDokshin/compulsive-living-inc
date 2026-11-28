@@ -53,7 +53,10 @@ describe('shipped content', () => {
     const wanted: string[] = []
     for (const [path, text] of Object.entries(files)) {
       const data = JSON5.parse(text) as unknown
-      const entries = (Array.isArray(data) ? data : ((data as { entries?: unknown[] }).entries ?? [])) as Array<{ id?: string; parts?: Array<{ model?: string }> }>
+      const entries = (Array.isArray(data) ? data : ((data as { entries?: unknown[] }).entries ?? [])) as Array<{
+        id?: string
+        parts?: Array<{ model?: string }>
+      }>
       for (const e of entries) {
         if (!e.id) continue
         if (!ID_PATTERN.test(e.id)) bad.push(`${path}: ${e.id}`)

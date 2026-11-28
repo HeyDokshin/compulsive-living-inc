@@ -126,7 +126,13 @@ export default definePlugin({
           if (!t) return null
           // on the trunk, on the side facing the camera-ish (south/east) so it can be seen
           const side = Math.random() < 0.5 ? 0 : Math.PI / 2
-          return { x: t.transform!.x + Math.sin(side) * 0.3, y: t.transform!.y + 0.75 + Math.random() * 0.35, z: t.transform!.z + Math.cos(side) * 0.3, host: t, heading: side }
+          return {
+            x: t.transform!.x + Math.sin(side) * 0.3,
+            y: t.transform!.y + 0.75 + Math.random() * 0.35,
+            z: t.transform!.z + Math.cos(side) * 0.3,
+            host: t,
+            heading: side,
+          }
         }
         case 'rocks': {
           const r = nearHost('rock', px, pz)
@@ -174,7 +180,16 @@ export default definePlugin({
         const wingR = rigged ? obj.getObjectByName('wingR') : undefined
         let halo: Bug['halo'] = null
         if (species.glow) {
-          halo = new T.Sprite(new T.SpriteMaterial({ map: haloTexture, color: species.glow.color, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: 0 }))
+          halo = new T.Sprite(
+            new T.SpriteMaterial({
+              map: haloTexture,
+              color: species.glow.color,
+              transparent: true,
+              depthWrite: false,
+              blending: T.AdditiveBlending,
+              opacity: 0,
+            }),
+          )
           halo.scale.setScalar(species.glow.size)
           group.add(halo)
         }
@@ -248,7 +263,7 @@ export default definePlugin({
         if (b.fleeing) continue
         if (b.y - t.y > 2.8 || b.y - t.y < -1.2) continue
         const d = Math.min(Math.hypot(b.x - fx, b.z - fz), Math.hypot(b.x - (ctx.x + 0.5), b.z - (ctx.z + 0.5)))
-        if (d < bestD) (best = b), (bestD = d)
+        if (d < bestD) ((best = b), (bestD = d))
       }
       return best
     }
@@ -279,6 +294,7 @@ export default definePlugin({
     let spawnIn = 0
     api.systems.add({
       id: 'bugs',
+      outdoors: true, // the island waits while you're in a room
       phase: 'render',
       run: ({ dt }) => {
         const p = player()
@@ -424,7 +440,9 @@ export default definePlugin({
     api.commands.register({
       name: 'bugs',
       description: 'Насекомые рядом',
-      run: () => bugs.map((b) => `${b.species.name} (${b.place}) @ ${b.x.toFixed(1)},${b.y.toFixed(1)},${b.z.toFixed(1)}${b.fleeing ? ' убегает' : ''}`).join('\n') || 'рядом никого',
+      run: () =>
+        bugs.map((b) => `${b.species.name} (${b.place}) @ ${b.x.toFixed(1)},${b.y.toFixed(1)},${b.z.toFixed(1)}${b.fleeing ? ' убегает' : ''}`).join('\n') ||
+        'рядом никого',
     })
   },
 })

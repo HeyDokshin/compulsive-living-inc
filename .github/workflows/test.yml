@@ -1,0 +1,55 @@
+# Every push and pull request: the checks, then a walk through the built game (into the house and the
+# museum, saved and loaded in a room) in Chromium and in WebKit — the engine of the macOS app and Safari.
+name: Test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# reading the code is all these jobs need
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+
+  e2e:
+    name: Play (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run e2e -- --project ${{ matrix.browser }}
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: e2e-${{ matrix.browser }}
+          path: |
+            e2e-report
+            e2e-results
+          if-no-files-found: ignore

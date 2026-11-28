@@ -2,13 +2,26 @@ import { describe, expect, it } from 'vitest'
 import { advance, pickTasks, rate, tierOf, type TaskTemplate } from '../src/plugins/quests/logic'
 
 const t = (id: string, track: string, params?: Record<string, unknown>): TaskTemplate => ({ id, text: id, track, params, count: [2, 4], points: 50, weight: 1 })
-const templates = [t('a', 'catch', { kind: 'fish' }), t('b', 'catch', { kind: 'bug' }), t('c', 'talk'), t('d', 'craft'), t('e', 'sell'), t('f', 'catch', { kind: 'fish' })]
+const templates = [
+  t('a', 'catch', { kind: 'fish' }),
+  t('b', 'catch', { kind: 'bug' }),
+  t('c', 'talk'),
+  t('d', 'craft'),
+  t('e', 'sell'),
+  t('f', 'catch', { kind: 'fish' }),
+]
 
 describe('daily tasks', () => {
   it('are the same all day and change from day to day', () => {
     const today = pickTasks(templates, 4, 9, 100)
     expect(pickTasks(templates, 4, 9, 100)).toEqual(today)
-    const days = new Set(Array.from({ length: 8 }, (_, d) => pickTasks(templates, 4, 9, 100 + d).map((x) => x.id).join()))
+    const days = new Set(
+      Array.from({ length: 8 }, (_, d) =>
+        pickTasks(templates, 4, 9, 100 + d)
+          .map((x) => x.id)
+          .join(),
+      ),
+    )
     expect(days.size).toBeGreaterThan(2)
   })
   it('never repeats the same kind of task in a day, and goals are in range', () => {

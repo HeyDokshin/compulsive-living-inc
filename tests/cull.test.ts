@@ -31,7 +31,10 @@ describe('view culling', () => {
 describe('sea tiles', () => {
   it('cover exactly the same ground', () => {
     const area = (r: readonly (readonly number[])[]) => r.reduce((s, [x0, z0, x1, z1]) => s + (x1! - x0!) * (z1! - z0!), 0)
-    const rects: Array<[number, number, number, number, number]> = [[-24, -24, 152, 0, 1], [0, 0, 100, 50, 4]]
+    const rects: Array<[number, number, number, number, number]> = [
+      [-24, -24, 152, 0, 1],
+      [0, 0, 100, 50, 4],
+    ]
     const tiles = tileRects(rects, 16)
     expect(area(tiles)).toBe(area(rects))
     expect(tiles.every(([x0, z0, x1, z1, c]) => x1 - x0 <= 16 * c! && z1 - z0 <= 16 * c!)).toBe(true)

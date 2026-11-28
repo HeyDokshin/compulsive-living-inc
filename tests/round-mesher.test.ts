@@ -21,8 +21,7 @@ function chunk(cx: number, block: (x: number, y: number, z: number) => number): 
   const PX = 16 + PAD * 2
   const vol = new Uint16Array(PX * PX * (H + 2))
   for (let y = 0; y < H; y++)
-    for (let z = -PAD; z < 16 + PAD; z++)
-      for (let x = -PAD; x < 16 + PAD; x++) vol[x + PAD + (z + PAD) * PX + (y + 1) * PX * PX] = block(cx * 16 + x, y, z)
+    for (let z = -PAD; z < 16 + PAD; z++) for (let x = -PAD; x < 16 + PAD; x++) vol[x + PAD + (z + PAD) * PX + (y + 1) * PX * PX] = block(cx * 16 + x, y, z)
   return { vol, sx: 16, sy: H, sz: 16, pad: PAD, table, round }
 }
 
@@ -49,8 +48,7 @@ describe('rounded island', () => {
     expect(Math.max(...tops)).toBeCloseTo(6, 0)
     // the plateau's corner at (13, 5) is cut round: nothing stands at full height right there
     let corner = 0
-    for (let i = 0; i < a.position.length; i += 3)
-      if (Math.hypot(a.position[i]! - 13, a.position[i + 2]! - 5) < 0.25 && a.position[i + 1]! > 5.8) corner++
+    for (let i = 0; i < a.position.length; i += 3) if (Math.hypot(a.position[i]! - 13, a.position[i + 2]! - 5) < 0.25 && a.position[i + 1]! > 5.8) corner++
     expect(corner).toBe(0)
   })
 

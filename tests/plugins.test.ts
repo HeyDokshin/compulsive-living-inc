@@ -35,7 +35,13 @@ describe('PluginManager', () => {
     pm.register(def('a', ['missing']))
     pm.register(def('x', ['y']))
     pm.register(def('y', ['x']))
-    pm.register(def('broken', [], { setup: () => { throw new Error('nope') } }))
+    pm.register(
+      def('broken', [], {
+        setup: () => {
+          throw new Error('nope')
+        },
+      }),
+    )
     pm.register(def('needs_broken', ['broken']))
     pm.register(def('ok'))
     await pm.loadAll()

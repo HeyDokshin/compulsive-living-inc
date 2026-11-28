@@ -27,7 +27,10 @@ export const ModelDefSchema = z.looseObject({
   layers: z.array(z.array(z.string())).optional(),
   palette: z.record(z.string(), z.string()).default({}),
   /** World units per voxel (1/12 → 12 voxels per block). */
-  scale: z.number().positive().default(1 / 12),
+  scale: z
+    .number()
+    .positive()
+    .default(1 / 12),
   /** Origin in voxel units; default: bottom center. */
   pivot: Vec3.optional(),
   /** Draw smooth and rounded instead of blocky (trees, rocks, bushes). */
@@ -89,7 +92,10 @@ export type ModelDef = z.infer<typeof ModelDefSchema>
 export const RigDefSchema = z.looseObject({
   id: z.string(),
   tags: z.array(z.string()).optional(),
-  scale: z.number().positive().default(1 / 12),
+  scale: z
+    .number()
+    .positive()
+    .default(1 / 12),
   /** Draw the parts as smooth, rounded shapes instead of blocks (characters, trees); see smoothMesh. */
   round: RoundSchema.optional(),
   parts: z.array(

@@ -7,6 +7,9 @@ export interface SystemDef {
   phase: Phase
   /** Lower runs first. Engine systems use ±1000. */
   priority?: number
+  /** Only while the island is being played: paused while the player is in a room (villagers walking,
+   * bugs, fish, growing things — the island waits, as it is, until you come back). */
+  outdoors?: boolean
   run(ctx: TickContext): void
 }
 
@@ -22,6 +25,8 @@ const log = createLogger('systems')
 export class Scheduler {
   private systems: SystemEntry[] = []
   private counter = 0
+  /** Is the player in a room? (outdoor systems wait) */
+  indoors: () => boolean = () => false
 
   add(def: SystemDef, owner: string): Dispose {
     if (this.systems.some((s) => s.id === def.id)) throw new Error(`System "${def.id}" already exists`)
@@ -35,8 +40,9 @@ export class Scheduler {
   }
 
   run(phase: Phase, ctx: TickContext): void {
+    const indoors = this.indoors()
     for (const s of this.systems) {
-      if (s.phase !== phase || !s.enabled) continue
+      if (s.phase !== phase || !s.enabled || (indoors && s.outdoors)) continue
       try {
         s.run(ctx)
       } catch (e) {

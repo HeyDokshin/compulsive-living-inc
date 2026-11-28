@@ -1,0 +1,128 @@
+// Surfaces of the house inside (rooms kit): wallpapers, panelling, floors, trims. Light colors —
+// finishes tint them (content/house/house.finishes.json5: `look.color`).
+[
+  {
+    // plain paper: soft fibres and a faint print of little dots
+    id: 'house:paper_dots',
+    shading: 0.5,
+    occlusion: 0.2,
+    layers: [
+      { kind: 'noise', colors: ['#f2ede6', '#fbf8f3'], scale: 3, octaves: 4, relief: 0.15, seed: 201 },
+      { kind: 'fibers', colors: ['#ece6dc', '#ffffff'], scale: 24, octaves: 2, blend: 'overlay', opacity: 0.35, params: { stretch: 3 }, seed: 202 },
+      { kind: 'dots', colors: ['#ffffff', '#dcd2c4'], scale: 6, blend: 'multiply', opacity: 0.7, params: { size: 0.1, vary: 0.2 }, seed: 203 },
+    ],
+  },
+  {
+    // striped paper: upright bands, a fine line between them
+    id: 'house:paper_stripes',
+    shading: 0.5,
+    occlusion: 0.2,
+    layers: [
+      { kind: 'noise', colors: ['#f2ede6', '#fbf8f3'], scale: 3, octaves: 4, relief: 0.15, seed: 204 },
+      { kind: 'stripes', colors: ['#ffffff', '#e3d9cb'], scale: 4, blend: 'multiply', opacity: 0.8, params: { turns: 0, across: 1, width: 0.42 }, seed: 205 },
+      { kind: 'stripes', colors: ['#ffffff', '#d8ccbb'], scale: 8, blend: 'multiply', opacity: 0.5, params: { turns: 0, across: 1, width: 0.06 }, seed: 206 },
+    ],
+  },
+  {
+    // flowered paper
+    id: 'house:paper_flowers',
+    shading: 0.5,
+    occlusion: 0.2,
+    layers: [
+      { kind: 'noise', colors: ['#f2ede6', '#fbf8f3'], scale: 3, octaves: 4, relief: 0.15, seed: 207 },
+      { kind: 'flowers', colors: ['#ffffff', '#ded3c3'], scale: 5, blend: 'multiply', opacity: 0.85, params: { size: 0.22, vary: 0.3 }, seed: 208 },
+      { kind: 'dots', colors: ['#ffffff', '#e6ddd0'], scale: 10, blend: 'multiply', opacity: 0.5, params: { size: 0.07 }, seed: 209 },
+    ],
+  },
+  {
+    // log walls: round logs laid level, darker in the joints
+    id: 'house:logs',
+    shading: 1,
+    occlusion: 0.7,
+    layers: [
+      { kind: 'boards', colors: ['#c9c0b4', '#ece4d8', '#faf4ea'], scale: 2, octaves: 4, relief: 1.2, params: { rows: 3, lengths: 1, gap: 0.08 }, seed: 210 },
+      { kind: 'wood', colors: ['#d8cfc2', '#ffffff'], scale: 2, blend: 'multiply', opacity: 0.4, params: { rings: 12, aspect: 8, wobble: 1.6 }, seed: 211 },
+    ],
+  },
+  {
+    // brick with mortar
+    id: 'house:brick',
+    shading: 1,
+    occlusion: 0.6,
+    layers: [
+      { kind: 'boards', colors: ['#d6cbc0', '#efe6dc', '#fbf3ea'], scale: 2, octaves: 5, relief: 0.9, params: { rows: 8, lengths: 4, gap: 0.1, stagger: 0.5 }, seed: 212 },
+      { kind: 'noise', colors: ['#e8dfd6', '#ffffff'], scale: 9, octaves: 3, blend: 'multiply', opacity: 0.4, seed: 213 },
+    ],
+  },
+  {
+    // panelling under the paper: upright boards with a groove
+    id: 'house:panel',
+    shading: 0.9,
+    occlusion: 0.6,
+    layers: [
+      { kind: 'boards', colors: ['#d9d0c4', '#f2eade', '#fbf5ec'], scale: 2, octaves: 4, relief: 0.8, params: { rows: 6, lengths: 1, gap: 0.05, across: 1 }, seed: 214 },
+      { kind: 'fibers', colors: ['#e4dbcf', '#ffffff'], scale: 6, blend: 'overlay', opacity: 0.3, params: { stretch: 0.15 }, seed: 215 },
+    ],
+  },
+  {
+    // parquet: herringbone
+    id: 'house:parquet',
+    shading: 0.9,
+    occlusion: 0.5,
+    layers: [
+      { kind: 'herringbone', colors: ['#cfc2b2', '#efe4d6', '#fbf4ea'], scale: 4, relief: 0.7, seed: 216 },
+      { kind: 'fibers', colors: ['#ddd2c4', '#ffffff'], scale: 8, blend: 'overlay', opacity: 0.35, params: { stretch: 6 }, seed: 217 },
+    ],
+  },
+  {
+    // tiles: a soft checker with grout lines
+    id: 'house:tiles',
+    shading: 0.6,
+    occlusion: 0.3,
+    layers: [
+      { kind: 'checker', colors: ['#e9ecef', '#ffffff'], scale: 4, relief: 0.2, seed: 218 },
+      { kind: 'boards', colors: ['#cfd3d8', '#ffffff'], scale: 4, blend: 'multiply', opacity: 0.6, params: { rows: 4, lengths: 4, gap: 0.04, stagger: 0 }, seed: 219 },
+      { kind: 'noise', colors: ['#f1f3f5', '#ffffff'], scale: 6, blend: 'multiply', opacity: 0.4, seed: 220 },
+    ],
+  },
+  {
+    // wall-to-wall carpet: a soft weave
+    id: 'house:carpet',
+    shading: 0.8,
+    occlusion: 0.5,
+    layers: [
+      { kind: 'weave', colors: ['#e6dfd6', '#fbf7f2'], scale: 24, relief: 0.5, seed: 221 },
+      { kind: 'noise', colors: ['#ece6de', '#ffffff'], scale: 5, octaves: 4, blend: 'multiply', opacity: 0.5, seed: 222 },
+    ],
+  },
+  {
+    // painted wood for trims, frames and the door
+    id: 'house:painted_wood',
+    shading: 0.6,
+    occlusion: 0.3,
+    layers: [
+      { kind: 'fibers', colors: ['#e6e0d8', '#fbf8f4'], scale: 3, octaves: 4, relief: 0.25, params: { stretch: 6 }, seed: 223 },
+      { kind: 'noise', colors: ['#efebe5', '#ffffff'], scale: 6, octaves: 2, blend: 'multiply', opacity: 0.3, seed: 224 },
+    ],
+  },
+  {
+    // a woven mat by the door
+    id: 'house:doormat',
+    shading: 1,
+    occlusion: 0.6,
+    layers: [
+      { kind: 'weave', colors: ['#e2d6c2', '#f8efe0'], scale: 18, relief: 0.5, seed: 225 },
+      { kind: 'stripes', colors: ['#ffffff', '#d8c6aa'], scale: 3, blend: 'multiply', opacity: 0.45, params: { turns: 0, width: 0.2 }, seed: 226 },
+    ],
+  },
+  {
+    // curtain cloth: a light linen weave
+    id: 'house:curtain',
+    shading: 0.6,
+    occlusion: 0.3,
+    layers: [
+      { kind: 'noise', colors: ['#f4efe8', '#fefcf9'], scale: 3, octaves: 3, relief: 0.2, seed: 227 },
+      { kind: 'fibers', colors: ['#ece6dd', '#ffffff'], scale: 10, blend: 'overlay', opacity: 0.5, params: { stretch: 0.12 }, relief: 0.3, seed: 228 },
+    ],
+  },
+]

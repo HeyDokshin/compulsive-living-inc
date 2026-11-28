@@ -28,11 +28,9 @@ export function createVoxelMaterial(atlas: Texture, opts: { transparent?: boolea
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nattribute vec4 tile;\nvarying vec4 vTile;')
       .replace('#include <uv_vertex>', '#include <uv_vertex>\nvTile = tile;')
-    shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec4 vTile;\n' + DETAIL_DECLS)
-      .replace(
-        '#include <map_fragment>',
-        `#ifdef USE_MAP
+    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec4 vTile;\n' + DETAIL_DECLS).replace(
+      '#include <map_fragment>',
+      `#ifdef USE_MAP
           vec2 tileUv = fract(vMapUv);
           // keep half a texel away from tile borders so neighbours never bleed in
           vec2 texel = vTile.zw / 16.0 * 0.5;
@@ -48,7 +46,7 @@ export function createVoxelMaterial(atlas: Texture, opts: { transparent?: boolea
           }
           diffuseColor *= texColor;
         #endif`,
-      )
+    )
   }
   mat.customProgramCacheKey = () => 'voxel-atlas'
   return stylize(mat, { flowUv: !!opts.transparent })

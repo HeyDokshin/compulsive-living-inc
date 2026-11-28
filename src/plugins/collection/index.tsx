@@ -223,8 +223,11 @@ export default definePlugin({
         line: () => {
           const c = conditions()
           const today = (kind: Kind) =>
-            all(kind).filter((s) => !caught.has(s.id) && Array.from({ length: 24 }, (_, h) => h).some((h) => isAvailable(s, { ...c, hour: h + 0.5, raining: s.weather === 'rain' })))
-              .length
+            all(kind).filter(
+              (s) =>
+                !caught.has(s.id) &&
+                Array.from({ length: 24 }, (_, h) => h).some((h) => isAvailable(s, { ...c, hour: h + 0.5, raining: s.weather === 'rain' })),
+            ).length
           const fish = today('fish')
           const bugs = today('bug')
           if (!fish && !bugs) return { icon: '📖', text: 'Всех, кто водится сегодня, вы уже нашли. Загляните в энциклопедию (B).' }
@@ -303,7 +306,12 @@ function Book({ api, catalog }: { api: PluginApi; catalog: Catalog }) {
           const known = catalog.has(s.id)
           return (
             <div key={s.id} class={known ? undefined : 'cl-silhouette'}>
-              <ui.ItemSlot icon={api.ui.itemIcon(s.id)} title={known ? s.name : '???'} selected={selected === s.id} onClick={() => setSelected(selected === s.id ? null : s.id)} />
+              <ui.ItemSlot
+                icon={api.ui.itemIcon(s.id)}
+                title={known ? s.name : '???'}
+                selected={selected === s.id}
+                onClick={() => setSelected(selected === s.id ? null : s.id)}
+              />
             </div>
           )
         })}
@@ -313,7 +321,9 @@ function Book({ api, catalog }: { api: PluginApi; catalog: Catalog }) {
           <div>
             <div style={{ fontWeight: 800, fontSize: '16px', color: 'var(--ui-text)' }}>
               {sel.name}
-              {sel.kind !== 'fossil' && isAvailable(sel, c) ? <span style={{ color: 'var(--ui-accent)', fontSize: '12px', marginLeft: '8px' }}>● сейчас можно поймать</span> : null}
+              {sel.kind !== 'fossil' && isAvailable(sel, c) ? (
+                <span style={{ color: 'var(--ui-accent)', fontSize: '12px', marginLeft: '8px' }}>● сейчас можно поймать</span>
+              ) : null}
             </div>
             <div>{sel.description}</div>
             <div style={{ marginTop: '4px' }}>

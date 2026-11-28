@@ -83,7 +83,10 @@ export function Board(props: Props) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           {props.rewards.all().map((r) => (
-            <div key={r.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '84px', gap: '2px', opacity: s.points >= r.cost ? 1 : 0.5 }}>
+            <div
+              key={r.id}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '84px', gap: '2px', opacity: s.points >= r.cost ? 1 : 0.5 }}
+            >
               {r.bells ? (
                 <div class="cl-slotbox" style={{ fontSize: '26px' }} onClick={() => buy(r)}>
                   🔔
@@ -91,7 +94,9 @@ export function Board(props: Props) {
               ) : (
                 <ui.ItemSlot icon={api.ui.itemIcon(r.item)} count={r.count} title={items.get(r.item)?.name} onClick={() => buy(r)} />
               )}
-              <span style={{ fontSize: '11px', textAlign: 'center', lineHeight: 1.2 }}>{r.bells ? `${fmt(r.bells)} колокольчиков` : (items.get(r.item)?.name ?? r.item)}</span>
+              <span style={{ fontSize: '11px', textAlign: 'center', lineHeight: 1.2 }}>
+                {r.bells ? `${fmt(r.bells)} колокольчиков` : (items.get(r.item)?.name ?? r.item)}
+              </span>
               <span style={{ fontSize: '11px', fontWeight: 800 }}>{fmt(r.cost)} 🍃</span>
             </div>
           ))}
@@ -159,7 +164,10 @@ export function Board(props: Props) {
               ) : st?.state === 'funded' ? (
                 <span style={{ fontSize: '12px' }}>🏗 К утру</span>
               ) : (
-                <ui.Button disabled={!actor} onClick={() => actor && setNote(props.fund(p, actor) ?? `Строители взялись за «${p.name}» — к утру будет готово!`)}>
+                <ui.Button
+                  disabled={!actor}
+                  onClick={() => actor && setNote(props.fund(p, actor) ?? `Строители взялись за «${p.name}» — к утру будет готово!`)}
+                >
                   Начать
                 </ui.Button>
               )}

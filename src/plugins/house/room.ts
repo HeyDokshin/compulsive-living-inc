@@ -49,10 +49,19 @@ export function moveToWall(from: RoomPlan, to: RoomPlan, x: number, z: number): 
   return to.kindAt(at.x, at.z) === 'wall' ? at : null
 }
 
-/** Is a wall on the side facing the camera (yaw in degrees)? Those are drawn low. */
-export function nearWall(out: { x: number; z: number }, yawDeg: number): boolean {
-  const y = (yawDeg * Math.PI) / 180
-  return out.x * Math.sin(y) + out.z * Math.cos(y) > 0.01
+/**
+ * Windows of a room (area cells on the wall ring): two in the back wall (one in a narrow room), one
+ * in the middle of each side wall; never in the front wall with the door, never in a corner.
+ */
+export function windowsOf(p: RoomPlan): Array<{ x: number; z: number }> {
+  const out: Array<{ x: number; z: number }> = []
+  if (p.w >= 8) out.push({ x: p.x0 + 2, z: p.z0 }, { x: p.x0 + p.w - 3, z: p.z0 })
+  else out.push({ x: p.x0 + Math.floor(p.w / 2), z: p.z0 })
+  if (p.d >= 5) {
+    const z = p.z0 + Math.floor((p.d - 1) / 2)
+    out.push({ x: p.x0, z }, { x: p.x0 + p.w - 1, z })
+  }
+  return out
 }
 
 /** Loan: how much a payment really takes (never more than owed or held). */

@@ -43,7 +43,14 @@ describe('hours of the day', () => {
     expect(changes / 100).toBeLessThan(6)
   })
   it('suits the hour: fog in the morning, never at noon', () => {
-    const fog = { id: 'fog', weights: { autumn: 1 }, hours: [[4, 9, 5], [12, 19, 0]] as Array<[number, number, number]> }
+    const fog = {
+      id: 'fog',
+      weights: { autumn: 1 },
+      hours: [
+        [4, 9, 5],
+        [12, 19, 0],
+      ] as Array<[number, number, number]>,
+    }
     expect([weightAt(fog, 'autumn', 6), weightAt(fog, 'autumn', 14), weightAt(fog, 'autumn', 22), weightAt(fog, 'summer', 6)]).toEqual([5, 0, 1, 0])
     const withFog = [...types, fog]
     for (let d = 0; d < 60; d++) for (let h = 12; h < 19; h++) expect(dayWeather(withFog, 2, d, 'autumn')[h]!.id).not.toBe('fog')
@@ -68,7 +75,16 @@ describe('real weather', () => {
   it('reads a place, rounded; refuses what is no place', () => {
     expect(parsePlace({ success: true, city: 'Где-то', latitude: 12.3456, longitude: '-98.7654' }, 0.1)).toEqual({ lat: 12.3, lon: -98.8, name: 'Где-то' })
     expect(parsePlace({ latitude: 12.3456, longitude: 5 }, 0.25)).toEqual({ lat: 12.25, lon: 5, name: '' })
-    for (const bad of [null, 'x', {}, { success: false, latitude: 1, longitude: 1 }, { latitude: 99, longitude: 1 }, { latitude: '', longitude: 1 }, { latitude: 37, longitude: -97, accuracy: 1000 }]) expect(parsePlace(bad, 0.1)).toBeNull()
+    for (const bad of [
+      null,
+      'x',
+      {},
+      { success: false, latitude: 1, longitude: 1 },
+      { latitude: 99, longitude: 1 },
+      { latitude: '', longitude: 1 },
+      { latitude: 37, longitude: -97, accuracy: 1000 },
+    ])
+      expect(parsePlace(bad, 0.1)).toBeNull()
   })
   it('reads the hours and what is between them', () => {
     const h = parseHourly(answer())!
@@ -81,7 +97,11 @@ describe('real weather', () => {
     expect(parseHourly('<html>')).toBeNull()
   })
   it('knows the weather of a code and the days it rained', () => {
-    const t = [{ id: 'clear', codes: [0] }, { id: 'rain', codes: [61, 63] }, { id: 'storm', codes: [95] }]
+    const t = [
+      { id: 'clear', codes: [0] },
+      { id: 'rain', codes: [61, 63] },
+      { id: 'storm', codes: [95] },
+    ]
     expect([0, 3, 61, 65, 97].map((c) => typeFor(t, c)!.id)).toEqual(['clear', 'clear', 'rain', 'rain', 'storm'])
     const days = rainyDays(parseHourly(answer())!, (c) => c >= 51, START + 4 * HOUR)
     expect([...days.values()].some(Boolean)).toBe(true)
@@ -100,8 +120,21 @@ describe('real weather', () => {
     let kept: unknown = null
     const asked: string[] = []
     const store = { read: () => kept, write: (v: unknown) => void (kept = v) }
-    const cfg = { placeUrls: ['https://a.test', 'https://b.test'], forecastUrl: 'https://f.test?{lat},{lon}', placeStep: 0.1, placeHours: 24, retryMinutes: 10, timeout: 5 }
-    const create = () => new LiveWeather(cfg, store, async (url) => (asked.push(url), ask(url)), () => {})
+    const cfg = {
+      placeUrls: ['https://a.test', 'https://b.test'],
+      forecastUrl: 'https://f.test?{lat},{lon}',
+      placeStep: 0.1,
+      placeHours: 24,
+      retryMinutes: 10,
+      timeout: 5,
+    }
+    const create = () =>
+      new LiveWeather(
+        cfg,
+        store,
+        async (url) => (asked.push(url), ask(url)),
+        () => {},
+      )
     return { create, asked, kept: () => kept }
   }
   it('asks once an hour, keeps the place for a day and sends only the rounded one', async () => {

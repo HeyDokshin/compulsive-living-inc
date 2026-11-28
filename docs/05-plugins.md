@@ -85,7 +85,10 @@ export default definePlugin({
 | `api.render.stylize(material, { sway, flowUv })` | дать своему материалу стиль игры: изгиб мира, покачивание, течение |
 | `api.render.blockSurface(blockId, rects, y)` | плоская поверхность с текстурой блока (так сделано море вокруг острова) |
 | компонент `blocker: { w, d, h }` / `api.world.blockerAt(x, z)` / `updateBlocker(entity)` (после переезда сущности) | персонажи обходят сущность; `w × d` клеток вокруг её центра (дерево 1×1, музей 5×5); взаимодействие находит её из любой клетки |
-| `api.interiors.area(id)` / `enter(id, actor, at)` / `exit(actor)` / `current` | помещения (музей, позже дома): комната 16 × 16 в углу мира, где всегда море; постройте её на `interior:changed`, на выходе движок вернёт морю; внутри рисуется только она — спрячьте свои уличные объекты |
+| `api.interiors.define(id, { name, icon })` / `area(id)` / `enter(id, actor, at)` / `exit(actor)` / `current` / `changing` / `roomAt(x, z)` | помещения — отдельные миры, загружаются при входе: шторка с названием и значком закрывает экран, мир комнаты создаётся пустым (постройте её в `area(id)` на `interior:changed`), игрок переносится, шторка открывается, когда сетка готова; на выходе — обратно к двери, лицом от неё. Комнаты лежат далеко от острова (свои координаты), поэтому всё поставленное в комнате просто стоит там; `api.world` внутри — мир комнаты, рисуется только она; остров не меняется и ждёт |
+| `api.systems.add({ …, outdoors: true })` | система острова: пока игрок в помещении, она стоит (жители, насекомые, рыба, рост) |
+| `api.render.material(id, size?)` | процедурный материал как готовая текстура (sRGB, повтор, мипмапы) — для своих поверхностей; общая, не удаляйте |
+| сервис `rooms:kit` → `build({ box, floorY, height, doors, windows, look, floorAt? })` | вид помещения поверх невидимых блоков: обои, панели, плинтусы и карнизы, пол из материалов с тенью у стен, окна с небом часа (звёзды ночью, капли в дождь), шторы (`setCurtains`), свет из окон и пыль в лучах, бра (`setLights`), дверь с наличником и коврик; ближние к камере стены низкие |
 | реестр `daily:sections` | строка в сводке дня: `{ id, order, line(api) → { icon, text } \| null }` |
 | сервис `economy:wallet` | колокольчики: `bells` (сигнал), `add(n)`, `spend(n)` |
 | сервис `economy:market` | цены дня: `demand(category)`, `sellPrice(item)`; категории — реестр `economy:market` (тег, размах колебаний) |
@@ -152,7 +155,11 @@ export default definePlugin({
 // textures.json5: { id: 'my_pack:brick', pattern: 'planks', colors: ['#b5543c'], material: 'my_pack:brick' }
 ```
 
+**Пятна на острове.** У текстуры с `material` могут быть `variants: [{ material, tint, share }]` — другие материалы мягкими пятнами по земле (клевер, луг, сухая трава): `tint` окрашивает пятно (умножением), `share` — доля земли под ним. Размер пятен и сила оттенка — `engine → render.terrain.varietyScale / varietyTint`.
+
 Слой — узор (`fill noise ridged cells cracks strata wood boards grain fibers knit pebbles twill weave`, мотивы `stripes dots stars hearts flowers checker waves marble terrazzo scales herringbone zigzag`) через цветовую рампу `colors`, наложенный режимом `blend` (`normal multiply screen overlay soft add darken lighten`) с `opacity` и маской; `scale` — сколько деталей на тайл (целые — без швов), `octaves`, `roughness`, `warp`, `contrast`, `relief` (рельеф для запечённого света). Настройки детализации — `engine → render.detail`.
+
+**Невидимые блоки.** `invisible: true` у блока — его не рисуют, но по нему ходят и в него упираются (если `solid`). Так устроены стены и полы помещений: их рисует набор `rooms`, а блоки дают столкновения и звук шагов.
 
 **Поверхность у каждой модели.** Модель без своей ткани получает материал по цвету вокселей (светлое — штукатурка, серое — камень, коричневое — дерево, зелёное — листва, остальное — крашеная поверхность), сдвинутый на каждый экземпляр, чтобы соседние предметы не были одинаковыми.
 

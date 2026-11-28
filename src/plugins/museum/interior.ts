@@ -1,20 +1,24 @@
 /**
- * The museum hall you walk around in: built from the text plan in `museum:layouts` inside a room
- * reserved by the engine (`api.interiors`). Pedestals hold tanks, terrariums and fossils for
- * everything donated; empty slots show a placard. The reception desk opens the donation window,
- * the door mat takes you back outside.
+ * The museum hall you walk around in: a room of its own (`api.interiors`), built from the text plan
+ * in `museum:layouts` — invisible blocks to walk on and into, with walls, floors, windows and lamps
+ * drawn by the rooms kit. Pedestals hold tanks, terrariums and fossils for everything donated; empty
+ * slots show a placard. The reception desk opens the donation window, the door takes you back out.
  */
 import { z, type Entity, type PluginApi, type RegistryEntry, type Services } from '@sdk'
-import { floorBlock, parseHall, type Cell, type HallPlan } from './layout'
+import { floorBlock, parseHall, WALLS, type Cell, type HallPlan } from './layout'
 
 type Three = PluginApi['render']['three']
 type Obj = InstanceType<Three['Object3D']>
 type SpeciesDef = NonNullable<ReturnType<Services['collection:catalog']['get']>>
+type Shell = ReturnType<Services['rooms:kit']['build']>
+
+const Surface = z.object({ material: z.string(), color: z.string() })
 
 export const HALL_ID = 'museum:hall'
 
 export interface LayoutDef extends RegistryEntry {
   rows: string[]
+  look: z.infer<typeof LayoutSchema>['look']
   /** Floor block per layout character ('.' = default). */
   floors: Record<string, string>
   blocks: { wall: string; wainscot: string; glass: string; pedestal: string; desk: string }
@@ -55,6 +59,29 @@ export const LayoutSchema = z.looseObject({
     .prefault({}),
   /** Rig of the curator standing at the C cells. */
   curator: z.string().default('museum:curator'),
+  /** What the hall looks like (rooms kit surfaces); floors per layout character ('.' = default). */
+  look: z
+    .object({
+      wall: Surface.default({ material: 'museum:damask', color: '#e6eddc' }),
+      wainscot: Surface.extend({ height: z.number().min(0.1).max(3) }).default({ material: 'museum:panel', color: '#b98258', height: 1.25 }),
+      trim: Surface.default({ material: 'museum:marble', color: '#f6f2ea' }),
+      door: Surface.default({ material: 'core:wood', color: '#c58e5e' }),
+      curtain: Surface.default({ material: 'museum:carpet', color: '#d47a86' }),
+      mat: Surface.default({ material: 'museum:carpet', color: '#d08a66' }),
+      /** Pedestals under the exhibits and the reception desk. */
+      pedestal: Surface.default({ material: 'museum:marble', color: '#f1ece3' }),
+      pedestalTop: Surface.default({ material: 'museum:marble', color: '#fbf8f2' }),
+      desk: Surface.default({ material: 'museum:panel', color: '#b98258' }),
+      deskTop: Surface.default({ material: 'core:wood', color: '#e2b47e' }),
+      floors: z.record(z.string(), Surface).default({
+        '.': { material: 'museum:parquet', color: '#d9a46c' },
+        a: { material: 'museum:carpet', color: '#a6d3e4' },
+        b: { material: 'museum:carpet', color: '#bddc9c' },
+        c: { material: 'museum:carpet', color: '#eed8aa' },
+        O: { material: 'museum:carpet', color: '#eed8aa' },
+      }),
+    })
+    .prefault({}),
 })
 
 export const HallConfig = z
@@ -146,17 +173,13 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
         const X = area.x + x
         const Z = area.z + z
         const ch = x < p.width && z < p.depth ? p.at(x, z) : ' '
-        // Below the floor the room keeps the sea it stands in, like the columns around it — an
-        // emptied hole would show the sides of the neighbouring water from outside.
-        const refX = area.x + area.w < w.sizeX ? area.x + area.w : area.x - 1
-        for (let y = 0; y < F; y++) if (w.getBlock(X, y, Z) === w.AIR) set(X, y, Z, w.getBlock(refX, y, Z))
         for (let y = F; y < w.height; y++) {
           let id = w.AIR
           if (ch !== ' ') {
             if (y === F) id = floorBlock(ch, l.floors)
             else if (y > F) {
               const h = y - F
-              if (ch === '#' || ch === 'w' || ch === '=') id = wallBlock(l, ch, h, near(x, z, p))
+              if (WALLS.includes(ch)) id = h <= cfg.wallHeight ? l.blocks.wall : w.AIR
               else if (h === 1 && (ch === 'F' || ch === 'B' || ch === 'O')) id = l.blocks.pedestal
               else if (h === 1 && ch === 'R') id = l.blocks.desk
               else if (h === 1 && ch === 'C') id = floorBlock('.', l.floors) // a little stage behind the desk
@@ -166,43 +189,47 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
         }
       }
     }
-    wallsYaw = api.render.camera.targetYaw
     dirty = true
+    showShell()
   }
 
-  // Walls on the side facing the camera stay low (a cutaway, like a dollhouse); they follow Z/X.
-  const near = (x: number, z: number, p: HallPlan) => {
-    const yaw = (api.render.camera.targetYaw * Math.PI) / 180
-    const cx = Math.sin(yaw)
-    const cz = Math.cos(yaw)
-    const nx = x === 0 ? -1 : x === p.width - 1 ? 1 : 0
-    const nz = z === 0 ? -1 : z === p.depth - 1 ? 1 : 0
-    return nx * cx + nz * cz > 0.01
-  }
-  const wallBlock = (l: LayoutDef, ch: string, h: number, isNear: boolean) => {
-    if (h > cfg.wallHeight) return api.world.AIR
-    if (h === 1) return l.blocks.wainscot
-    if (ch === '=' || isNear) return api.world.AIR
-    return ch === 'w' && (h === 2 || h === 3) ? l.blocks.glass : l.blocks.wall
-  }
-  let wallsYaw = NaN
-  const rebuildWalls = () => {
+  // The look: walls, floors, windows, the door, lamps — the rooms kit over the invisible blocks.
+  let shell: Shell | null = null
+  const showShell = () => {
+    shell?.dispose()
+    shell = null
     const l = layout()
     const p = getPlan()
-    wallsYaw = api.render.camera.targetYaw
-    if (!l || !p) return
-    for (let z = 0; z < p.depth; z++)
-      for (let x = 0; x < p.width; x++) {
-        const ch = p.at(x, z)
-        if (ch !== '#' && ch !== 'w' && ch !== '=') continue
-        for (let h = 2; h <= cfg.wallHeight; h++) {
-          const id = wallBlock(l, ch, h, near(x, z, p))
-          const X = area.x + x
-          const Z = area.z + z
-          if (api.world.getBlock(X, cfg.floorY + h, Z) !== id) api.world.setBlock(X, cfg.floorY + h, Z, id)
-        }
-      }
+    if (!l || !p || !inside()) return
+    const cells = (test: (ch: string) => boolean) => {
+      const out: Cell[] = []
+      for (let z = 0; z < p.depth; z++) for (let x = 0; x < p.width; x++) if (test(p.at(x, z))) out.push({ x: area.x + x, z: area.z + z })
+      return out
+    }
+    const floors = l.look.floors
+    shell = api.services.get('rooms:kit').build({
+      box: { x0: area.x, z0: area.z, w: p.width, d: p.depth },
+      floorY: cfg.floorY + 1,
+      height: cfg.wallHeight,
+      doors: cells((ch) => ch === 'D'),
+      windows: cells((ch) => ch === 'w'),
+      look: {
+        wall: l.look.wall,
+        wainscot: l.look.wainscot,
+        floor: floors['.'] ?? l.look.wall,
+        trim: l.look.trim,
+        door: l.look.door,
+        curtain: l.look.curtain,
+        mat: l.look.mat,
+      },
+      floorAt: (x, z) => floors[p.at(x - area.x, z - area.z)] ?? null,
+      builtIns: [
+        { cells: cells((ch) => ch === 'F' || ch === 'B' || ch === 'O'), body: l.look.pedestal, top: l.look.pedestalTop, height: 1 },
+        { cells: cells((ch) => ch === 'R'), body: l.look.desk, top: l.look.deskTop, height: 1 },
+      ],
+    })
   }
+  api.onDispose(() => shell?.dispose())
 
   // Slots, decor and the desk can't be walked into (a pedestal is one block: it would be climbable).
   api.hooks.tap('movement:blocked', (b, { x, y, z }) => {
@@ -216,10 +243,11 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
   // --- exhibits -----------------------------------------------------------------------------------
   const group = api.render.add(new T.Group())
   group.visible = inside()
-  // The hall exists only while you're in it (outside, its corner of the world is open sea).
+  // The hall exists only while you're in it (its world is made fresh each time you go in).
   api.events.on('interior:changed', ({ id }) => {
     group.visible = id === HALL_ID
     if (group.visible) build()
+    else showShell() // gone out: the shell goes too
   })
   const waterGeo = new T.BoxGeometry(0.76, 0.5, 0.76)
   const waterMat = api.render.stylize(new T.MeshLambertMaterial({ color: cfg.waterColor, transparent: true, opacity: cfg.waterOpacity, depthWrite: false }))
@@ -313,7 +341,6 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
         build()
       }
       if (!inside()) return
-      if (api.render.camera.targetYaw !== wallsYaw) rebuildWalls()
       if (dirty) rebuildExhibits()
       time += dt
       for (const e of exhibits) {
@@ -321,7 +348,11 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
         if (e.kind === 'fish') {
           // back and forth across the tank, turning at the ends
           const s = Math.sin(t)
-          e.obj.position.set(e.x + Math.sin(e.facing + Math.PI / 2) * s * 0.18, e.y + Math.sin(t * 2.3) * 0.03, e.z + Math.cos(e.facing + Math.PI / 2) * s * 0.18)
+          e.obj.position.set(
+            e.x + Math.sin(e.facing + Math.PI / 2) * s * 0.18,
+            e.y + Math.sin(t * 2.3) * 0.03,
+            e.z + Math.cos(e.facing + Math.PI / 2) * s * 0.18,
+          )
           e.obj.rotation.y = e.facing + (Math.cos(t) >= 0 ? 0 : Math.PI)
         } else if (e.kind === 'bug') {
           e.obj.position.y = e.y + Math.max(0, Math.sin(t * 1.3)) * 0.05
@@ -363,8 +394,8 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
       if (!p || !pl) return
       const l = local(Math.floor(pl.transform.x), Math.floor(pl.transform.z))
       if (p.doors.some((d) => d.x === l.x && d.z === l.z)) {
-        api.interiors.exit(pl)
-        pl.transform.rotY += Math.PI // turn away from the door
+        if (api.interiors.changing) return
+        api.interiors.exit(pl) // out of the door, facing away from it
         api.audio.play('ui:close')
       }
     },

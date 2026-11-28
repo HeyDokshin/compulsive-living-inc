@@ -1,6 +1,25 @@
-import { BufferGeometry, Color, Float32BufferAttribute, Group, InstancedMesh, Mesh, MeshLambertMaterial, type Material, type Object3D, type Texture } from 'three'
+import {
+  BufferGeometry,
+  Color,
+  Float32BufferAttribute,
+  Group,
+  InstancedMesh,
+  Mesh,
+  MeshLambertMaterial,
+  type Material,
+  type Object3D,
+  type Texture,
+} from 'three'
 import type { Registry } from '../registry/Registry'
-import { createCharacterMaterial, createFaceUniforms, createFurMaterial, furUniforms, type FabricSlots, type FaceUniforms, type PatternUniforms } from '../render/characterMaterial'
+import {
+  createCharacterMaterial,
+  createFaceUniforms,
+  createFurMaterial,
+  furUniforms,
+  type FabricSlots,
+  type FaceUniforms,
+  type PatternUniforms,
+} from '../render/characterMaterial'
 import type { ModelSpec } from '../types'
 import { fabricUniforms, type FabricTextures } from '../render/fabric'
 import { stylize } from '../render/style'
@@ -238,7 +257,10 @@ export class ModelLibrary {
         uses.set(m, (uses.get(m) ?? 0) + (count.get(c) ?? 0))
       }
       // at most three materials: the most used ones; the rest stay plain
-      const top = [...uses].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([m]) => m)
+      const top = [...uses]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([m]) => m)
       for (const c of chars) if (!top.includes(keys[c]!)) delete keys[c]
       f = Object.keys(keys).length ? { keys, tile: 6, strength: 0.5, always: true } : null
       this.autoFabric.set(def, f)
@@ -267,7 +289,14 @@ export class ModelLibrary {
     if (!f || !this.fabrics || !this.look.fabric || !geo.getAttribute('fabric')) return undefined
     const ids = [...new Set(Object.values(f.keys))].slice(0, 3)
     const tex = (i: number) => this.fabrics!.uniform(ids[i] ?? ids[0]!)
-    return { uMat0: tex(0), uMat1: tex(1), uMat2: tex(2), uMatScale: { value: 1 / f.tile }, uMatStrength: { value: f.strength }, uMatAlways: { value: f.always ? 1 : 0 } }
+    return {
+      uMat0: tex(0),
+      uMat1: tex(1),
+      uMat2: tex(2),
+      uMatScale: { value: 1 / f.tile },
+      uMatStrength: { value: f.strength },
+      uMatAlways: { value: f.always ? 1 : 0 },
+    }
   }
 
   /** Every drawn face in the scene (rig heads with a `face`), for the plugin that paints them. */
@@ -399,7 +428,14 @@ export class ModelLibrary {
     return { uPat: this.fabrics!.mask(p.material), uPatColor: { value: [c.r, c.g, c.b] }, uPatScale: { value: 1 / p.tile } }
   }
 
-  private geometry(id: string, model: VoxelModel, pivot: [number, number, number], palette: Record<string, string> | undefined, def: ModelDef, rigRound?: RigDef['round']) {
+  private geometry(
+    id: string,
+    model: VoxelModel,
+    pivot: [number, number, number],
+    palette: Record<string, string> | undefined,
+    def: ModelDef,
+    rigRound?: RigDef['round'],
+  ) {
     // soft and round (low-poly: a sample per voxel) where the model or its rig asks for it
     const round = this.look.round ? (def.round ?? rigRound) : undefined
     const key = `${id}|${pivot.join(',')}|${palette ? JSON.stringify(palette) : ''}|${round ? JSON.stringify(round) : ''}`
@@ -422,7 +458,14 @@ export class ModelLibrary {
   }
 
   /** Null for empty models (a tree's missing fruit): nothing to draw. */
-  private mesh(id: string, model: VoxelModel, pivot: [number, number, number], palette: Record<string, string> | undefined, def: ModelDef, pattern?: Pattern): Mesh | null {
+  private mesh(
+    id: string,
+    model: VoxelModel,
+    pivot: [number, number, number],
+    palette: Record<string, string> | undefined,
+    def: ModelDef,
+    pattern?: Pattern,
+  ): Mesh | null {
     const { geo } = this.geometry(id, model, pivot, palette, def)
     if (!geo.index!.count) return null
     const mesh = new Mesh(geo, this.materialOf(id, def, geo, pattern))

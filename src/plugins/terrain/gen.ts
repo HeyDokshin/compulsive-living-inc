@@ -144,8 +144,7 @@ export function shape(ctx: WorldGenContext, cfg: Config): void {
     for (let x = 0; x < sizeX; x++) {
       const d = Math.hypot(x + 0.5 - cx, z + 0.5 - cz) / half
       if (d >= MAX_LAND_RADIUS) continue // a ring of sea always stays inside the world
-      const wobble =
-        1 + coast(x * coastScale, z * coastScale) * coastNoise + coast2(x * coastScale * 3, z * coastScale * 3) * coastNoise * 0.3
+      const wobble = 1 + coast(x * coastScale, z * coastScale) * coastNoise + coast2(x * coastScale * 3, z * coastScale * 3) * coastNoise * 0.3
       r[ctx.index(x, z)] = d / Math.max(0.2, wobble)
     }
   }
@@ -221,7 +220,9 @@ export const MAX_LAND_RADIUS = 0.9
 
 /** Value below which `fraction` of ALL cells lie (Infinity-valued cells count as above). */
 export function quantile(values: Float32Array, fraction: number): number {
-  const finite = Array.from(values).filter(Number.isFinite).sort((a, b) => a - b)
+  const finite = Array.from(values)
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b)
   if (!finite.length) return 0
   const k = Math.floor(Math.max(0, Math.min(1, fraction)) * values.length)
   if (k >= finite.length) return finite[finite.length - 1]! + 1e-6
@@ -239,7 +240,7 @@ const NEIGHBOURS = [
 function flood(sizeX: number, sizeZ: number, starts: number[], pass: (i: number) => boolean): Uint8Array {
   const seen = new Uint8Array(sizeX * sizeZ)
   const queue: number[] = []
-  for (const s of starts) if (pass(s) && !seen[s]) (seen[s] = 1), queue.push(s)
+  for (const s of starts) if (pass(s) && !seen[s]) ((seen[s] = 1), queue.push(s))
   for (let head = 0; head < queue.length; head++) {
     const i = queue[head]!
     const x = i % sizeX
@@ -249,7 +250,7 @@ function flood(sizeX: number, sizeZ: number, starts: number[], pass: (i: number)
       const nz = z + dz
       if (nx < 0 || nz < 0 || nx >= sizeX || nz >= sizeZ) continue
       const j = nx + nz * sizeX
-      if (!seen[j] && pass(j)) (seen[j] = 1), queue.push(j)
+      if (!seen[j] && pass(j)) ((seen[j] = 1), queue.push(j))
     }
   }
   return seen
@@ -265,7 +266,7 @@ export function keepLargestComponent(land: Uint8Array, sizeX: number, sizeZ: num
     if (!land[i] || label[i] !== -1) continue
     const comp = flood(sizeX, sizeZ, [i], (j) => land[j] === 1 && label[j] === -1)
     let count = 0
-    for (let j = 0; j < comp.length; j++) if (comp[j]) (label[j] = next), count++
+    for (let j = 0; j < comp.length; j++) if (comp[j]) ((label[j] = next), count++)
     if (count > bestSize) [best, bestSize] = [next, count]
     next++
   }
@@ -395,7 +396,7 @@ export function surface(ctx: WorldGenContext, cfg: Config): void {
   // Distance (in cells) to the ocean, by BFS from all ocean cells.
   const dist = t.oceanDistance.fill(-1)
   const queue: number[] = []
-  for (let i = 0; i < dist.length; i++) if (!t.land[i]) (dist[i] = 0), queue.push(i)
+  for (let i = 0; i < dist.length; i++) if (!t.land[i]) ((dist[i] = 0), queue.push(i))
   for (let head = 0; head < queue.length; head++) {
     const i = queue[head]!
     const x = i % sizeX
