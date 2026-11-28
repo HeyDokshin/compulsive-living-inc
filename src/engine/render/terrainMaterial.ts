@@ -46,6 +46,8 @@ export const terrainUniforms = {
   uLitter: { value: 0 },
   uLitterA: { value: [0.85, 0.35, 0.1] as [number, number, number] },
   uLitterB: { value: [0.95, 0.6, 0.15] as [number, number, number] },
+  /** Night (0…1): stars twinkle in the water. */
+  uStars: { value: 0 },
 }
 
 /**
@@ -177,6 +179,7 @@ export function createWaterMaterial(opacity: number): MeshLambertMaterial {
         `#include <common>
         uniform float uIce;
         uniform vec3 uIceColor;
+        uniform float uStars;
         varying float vShore;
         uniform vec3 uWaterDeep;
         uniform vec3 uWaterShallow;
@@ -192,6 +195,7 @@ export function createWaterMaterial(opacity: number): MeshLambertMaterial {
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
+        vec3 emissiveAccum = vec3(0.0);
         {
           vec2 q = vWPos.xz;
           float t = uTime;
@@ -204,16 +208,30 @@ export function createWaterMaterial(opacity: number): MeshLambertMaterial {
           // falls and banks: a lighter, foamy face
           col = mix(col, vec3(0.92, 0.98, 1.0), (1.0 - smoothstep(0.3, 0.8, vWNormal.y)) * 0.45);
           // winter: ice from the banks out, a ragged edge, frosty and nearly opaque
+          float ice = 0.0;
           if (uIce > 0.0) {
             float edge = vShore + (wNoise(q * 0.9) - 0.5) * 0.25 + (wNoise(q * 3.1) - 0.5) * 0.08;
-            float ice = step(0.5, vWNormal.y) * smoothstep(0.62 - uIce * 0.55, 0.66 - uIce * 0.55, edge);
+            ice = step(0.5, vWNormal.y) * smoothstep(0.62 - uIce * 0.55, 0.66 - uIce * 0.55, edge);
             float frost = 0.9 + 0.1 * wNoise(q * 6.0);
             col = mix(col, uIceColor * frost, ice);
             diffuseColor.a = mix(diffuseColor.a, 0.96, ice);
           }
+          // at night the stars show in the open water: a point here and there, twinkling, wobbled by the swell
+          if (uStars > 0.0) {
+            vec2 sq = q * 0.8 + vec2(sin(t * 0.7 + q.y) , cos(t * 0.6 + q.x)) * 0.04;
+            vec2 cell = floor(sq);
+            vec2 at = cell + 0.2 + 0.6 * vec2(wHash(cell), wHash(cell + 17.0));
+            float big = wHash(cell + 5.0);
+            float d = length(sq - at);
+            float twinkle = 0.55 + 0.45 * sin(t * (1.5 + big * 3.0) + big * 40.0);
+            float star = step(0.55, big) * smoothstep(0.035 + big * 0.03, 0.0, d) * twinkle;
+            emissiveAccum = vec3(1.0, 0.95, 0.82) * star * uStars * step(0.5, vWNormal.y) * (1.0 - ice);
+          }
           diffuseColor.rgb *= col;
         }`,
       )
+      // stars glow by themselves (night light doesn't dim them)
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += emissiveAccum;')
   }
   mat.customProgramCacheKey = () => 'water-round'
   return stylize(mat)

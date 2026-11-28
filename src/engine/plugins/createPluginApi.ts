@@ -87,6 +87,7 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
         if (c.snow !== undefined) u.uSnow.value = Math.max(0, Math.min(1, c.snow))
         if (c.ice !== undefined) u.uIce.value = Math.max(0, Math.min(1, c.ice))
         if (c.litter !== undefined) u.uLitter.value = Math.max(0, Math.min(1, c.litter))
+        if (c.stars !== undefined) u.uStars.value = Math.max(0, Math.min(1, c.stars))
         if (c.litterColors) {
           const [a, b] = c.litterColors.map((h) => new THREE.Color(h))
           u.uLitterA.value = [a!.r, a!.g, a!.b]

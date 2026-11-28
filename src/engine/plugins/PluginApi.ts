@@ -124,8 +124,8 @@ export interface PluginApi {
     /** Size (voxels), origin and scale of a voxel model — to hold, lay down or attach it precisely. */
     modelInfo(id: string): Promise<{ size: [number, number, number]; pivot: [number, number, number]; scale: number } | null>
     /** What the season lays on the island (each 0…1): snow on what faces up, ice on the water from the
-     * banks, fallen leaves or petals in two colors (hex). */
-    setCover(c: { snow?: number; ice?: number; litter?: number; litterColors?: [string, string] }): void
+     * banks, fallen leaves or petals in two colors (hex); `stars` — how bright the night sky shows in the water. */
+    setCover(c: { snow?: number; ice?: number; litter?: number; litterColors?: [string, string]; stars?: number }): void
     /** How hard plants sway (1 = a light breeze). */
     setWind(strength: number): void
     /** Shake the camera a little (amplitude in blocks, fading out over `seconds`). Respects the player's setting. */
