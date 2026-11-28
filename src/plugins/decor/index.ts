@@ -111,6 +111,8 @@ const Config = z.object({
   /** Lamps in rooms: how bright the pool of light on the floor and the walls is, and how far it reaches (× glow size). */
   lampPool: z.number().min(0).max(1.5).default(0.5).meta({ label: 'lamp pool', step: 0.05 }),
   lampReach: z.number().min(0.5).max(3).default(1.4).meta({ label: 'lamp reach', step: 0.05 }),
+  /** The halo sits this far (blocks) towards the camera, so the shade it shines from glows instead of hiding it. */
+  haloForward: z.number().min(0).max(2).default(0.55).meta({ label: 'halo forward', step: 0.05 }),
   /** Wall pieces hang this high above the floor (blocks). */
   wallHeight: z.number().min(0).max(4).default(1.1).meta({ label: 'wall height', step: 0.05 }),
   /** Chance that a piece one gets (bought, made, given) comes with a rare pattern. */
@@ -419,7 +421,7 @@ export default definePlugin({
  */
 function setupGlow(
   api: PluginApi,
-  cfg: { glow: number; indoorGlow: number; lampPool: number; lampReach: number },
+  cfg: { glow: number; indoorGlow: number; lampPool: number; lampReach: number; haloForward: number },
   piece: (id: string) => PieceDef | undefined,
 ) {
   const T = api.render.three
@@ -544,13 +546,17 @@ function setupGlow(
   }
   let time = 0
   const decor = api.entities.world.with('decor', 'transform')
+  /** From the scene towards the camera (unit). */
+  const toCamera = new T.Vector3()
   api.systems.add({
     id: 'glow',
     phase: 'render',
     run: ({ dt }) => {
       time += dt
       const n = Math.max(night(), api.interiors.current ? cfg.indoorGlow : 0) * cfg.glow
-      const yaw = (api.render.camera.targetYaw * Math.PI) / 180
+      const cam = api.render.camera
+      toCamera.copy(cam.camera.position).sub(cam.target).normalize().multiplyScalar(cfg.haloForward)
+      const yaw = (cam.targetYaw * Math.PI) / 180
       const sy = Math.sin(yaw)
       const cy = Math.cos(yaw)
       for (const [e, l] of lit) {
@@ -577,7 +583,7 @@ function setupGlow(
         const flicker = glow.flicker ? 0.8 + Math.sin(time * 11 + t.x) * 0.1 + Math.sin(time * 17) * 0.1 : 1
         const here = api.interiors.roomAt(t.x, t.z)
         const shown = here === api.interiors.current
-        l.halo.position.set(t.x, t.y + glow.y, t.z)
+        l.halo.position.set(t.x, t.y + glow.y, t.z).add(toCamera)
         l.halo.material.opacity = Math.min(1, n * flicker)
         l.halo.visible = l.halo.material.opacity > 0.01 && shown
         // pools of light: only in rooms (outside the ground is uneven and the sky is wide)
