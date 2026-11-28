@@ -1,5 +1,5 @@
-// The museum hall, top view, one character per cell (16 × 16, the back wall at the top, the door at
-// the bottom). Exhibits fill their slots in reading order, in the order species are listed.
+// The museum hall, top view, one character per cell (the room is as big as the rows: here 24 × 22,
+// the back wall at the top, the door at the bottom). Exhibits fill their slots in reading order, in the order species are listed.
 //
 //   #  wall               w  wall with a window          =  always-low wall
 //   (walls on the side facing the camera are drawn low, like a dollhouse, and follow its turns)
@@ -13,22 +13,28 @@
     {
       id: 'museum:hall',
       rows: [
-        '####ww####ww####',
-        '#FFp..LCCLBBBBB#',
-        '#FaaaccRRccbbbB#',
-        '#FaaaccccccbbbB#',
-        '#FaaaccccccbbbB#',
-        '#FaaacOOOOcbbbB#',
-        '#FaaaccccccbbbB#',
-        '#FaaaccccccbbbB#',
-        '#FaaacOOOOcbbbB#',
-        '#FaaaccccccbbbB#',
-        '#FaaaccccccbbbB#',
-        '#FaaaccccccbbbB#',
-        '#FaaaccccccbbbB#',
-        '#FaaaccccccbbbB#',
-        '#.p...cSSc....p#',
-        '#######DD#######',
+        '######ww########ww######',
+        '#FpaaaaccLCCCCLccbbbbpB#',
+        '#FaaaaacccRRRRcccbbbbbB#',
+        '#FaaFaaccccccccccbbBbbB#',
+        '#FaaFaaccccccccccbbBbbB#',
+        '#FaaFaaccccccccccbbBbbB#',
+        '#FaaFaaccOOOOOOccbbBbbB#',
+        '#FaaFaaccccccccccbbBbbB#',
+        '#FaaFaaccccccccccbbBbbB#',
+        '#FaaFaaccccccccccbbBbbB#',
+        '#FaaFaaccOOOOOOccbbBbbB#',
+        '#FaaFaaccccccccccbbBbbB#',
+        '#FaaaaaccccccccccbbBbbB#',
+        '#FaaaaaccccccccccbbBbbB#',
+        '#FaaaaaccOOOOOOccbbBbbB#',
+        '#FaaaaaccccccccccbbBbbB#',
+        '#FaaaaaccccccccccbbBbbB#',
+        '#FaaaaaccccccccccbbBbbB#',
+        '#FaaaaaccccccccccbbbbbB#',
+        '#FaaaaaccccccccccbbbbbB#',
+        '#.p........SS........p.#',
+        '###########DD###########',
       ],
     },
   ],

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import JSON5 from 'json5'
 import { describe, expect, it } from 'vitest'
 import { floorBlock, parseHall } from '../src/plugins/museum/layout'
-import { Interiors } from '../src/engine/world/Interiors'
+import { Interiors, MAX_ROOM_SIZE } from '../src/engine/world/Interiors'
 
 describe('museum hall plan', () => {
   const file = JSON5.parse(readFileSync(new URL('../content/museum/museum.layouts.json5', import.meta.url), 'utf8')) as {
@@ -14,10 +14,11 @@ describe('museum hall plan', () => {
   }
   const count = (kind: string) => species.entries.filter((s) => s.kind === kind).length
 
-  it('has a slot for every species', () => {
+  it('has a slot for every species, and fits in a room', () => {
     const plan = parseHall(hall.rows)
-    expect(plan.width).toBe(16)
-    expect(plan.depth).toBe(16)
+    expect(plan.width).toBe(24)
+    expect(plan.depth).toBe(22)
+    expect(Math.max(plan.width, plan.depth)).toBeLessThanOrEqual(MAX_ROOM_SIZE)
     expect(plan.slots.fish.length).toBeGreaterThanOrEqual(count('fish'))
     expect(plan.slots.bug.length).toBeGreaterThanOrEqual(count('bug'))
     expect(plan.slots.fossil.length).toBeGreaterThanOrEqual(count('fossil'))
@@ -25,15 +26,15 @@ describe('museum hall plan', () => {
 
   it('finds the entrance, doors, desk and blocked cells', () => {
     const plan = parseHall(hall.rows)
-    expect(plan.spawn).toEqual({ x: 8, z: 14.5 })
+    expect(plan.spawn).toEqual({ x: 12, z: 20.5 })
     expect(plan.doors).toEqual([
-      { x: 7, z: 15 },
-      { x: 8, z: 15 },
+      { x: 11, z: 21 },
+      { x: 12, z: 21 },
     ])
-    expect(plan.desks.length).toBe(2)
-    expect(plan.curator).toEqual({ x: 8, z: 1.5 }) // behind the desk
+    expect(plan.desks.length).toBe(4)
+    expect(plan.curator).toEqual({ x: 12, z: 1.5 }) // behind the desk
     expect(plan.blocked.has('1,2')).toBe(true) // a fish tank
-    expect(plan.blocked.has('7,14')).toBe(false) // where you appear
+    expect(plan.blocked.has('11,20')).toBe(false) // where you appear
     expect(plan.slots.fish[0]).toEqual({ x: 1, z: 1 }) // reading order
   })
 

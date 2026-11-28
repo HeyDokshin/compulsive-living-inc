@@ -80,6 +80,7 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       camera: game.renderer.iso,
       stylize: (material, opts) => game.renderer.stylize(material, opts),
       voxelModel: (id, opts) => game.modelLibrary.createVoxel(id, opts),
+      instanced: (id, places, opts) => game.modelLibrary.createInstanced(id, places, opts),
       rigModel: (id, opts) => game.modelLibrary.createRig(id, opts),
       refreshView: (e) => game.renderer.entityRenderer.refresh(e),
       setModel: (e, model) => {

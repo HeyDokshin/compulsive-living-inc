@@ -35,4 +35,44 @@
     { name: 'wingL', model: 'collection:red_dragonfly_wing_l', pivot: [-1.0, 0, 6.5], at: [0.0, 2, 0.0] },
     { name: 'wingR', model: 'collection:red_dragonfly_wing_r', pivot: [-1.0, 0, -0.5], at: [0.0, 2, 0.0] },
   ] },
+  { id: 'collection:swallowtail', scale: 0.0625, parts: [
+    { name: 'body', model: 'collection:swallowtail_body', pivot: [4.0, 0, 1.5], at: [0.0, 0, 0.0] },
+    { name: 'wingL', model: 'collection:swallowtail_wing_l', pivot: [5.0, 0, 6.5], at: [0.0, 0, 0.0] },
+    { name: 'wingR', model: 'collection:swallowtail_wing_r', pivot: [5.0, 0, -0.5], at: [0.0, 0, 0.0] },
+  ] },
+  { id: 'collection:brimstone', scale: 0.0625, parts: [
+    { name: 'body', model: 'collection:brimstone_body', pivot: [4.0, 0, 1.5], at: [0.0, 0, 0.0] },
+    { name: 'wingL', model: 'collection:brimstone_wing_l', pivot: [5.0, 0, 6.5], at: [0.0, 0, 0.0] },
+    { name: 'wingR', model: 'collection:brimstone_wing_r', pivot: [5.0, 0, -0.5], at: [0.0, 0, 0.0] },
+  ] },
+  { id: 'collection:common_blue', scale: 0.0625, parts: [
+    { name: 'body', model: 'collection:common_blue_body', pivot: [4.0, 0, 1.5], at: [0.0, 0, 0.0] },
+    { name: 'wingL', model: 'collection:common_blue_wing_l', pivot: [5.0, 0, 6.5], at: [0.0, 0, 0.0] },
+    { name: 'wingR', model: 'collection:common_blue_wing_r', pivot: [5.0, 0, -0.5], at: [0.0, 0, 0.0] },
+  ] },
+  { id: 'collection:tortoiseshell', scale: 0.0625, parts: [
+    { name: 'body', model: 'collection:tortoiseshell_body', pivot: [4.0, 0, 1.5], at: [0.0, 0, 0.0] },
+    { name: 'wingL', model: 'collection:tortoiseshell_wing_l', pivot: [5.0, 0, 6.5], at: [0.0, 0, 0.0] },
+    { name: 'wingR', model: 'collection:tortoiseshell_wing_r', pivot: [5.0, 0, -0.5], at: [0.0, 0, 0.0] },
+  ] },
+  { id: 'collection:hawk_moth', scale: 0.0625, parts: [
+    { name: 'body', model: 'collection:hawk_moth_body', pivot: [4.0, 0, 1.5], at: [0.0, 0, 0.0] },
+    { name: 'wingL', model: 'collection:hawk_moth_wing_l', pivot: [5.0, 0, 6.5], at: [0.0, 0, 0.0] },
+    { name: 'wingR', model: 'collection:hawk_moth_wing_r', pivot: [5.0, 0, -0.5], at: [0.0, 0, 0.0] },
+  ] },
+  { id: 'collection:wasp', scale: 0.0625, parts: [
+    { name: 'body', model: 'collection:wasp_body', pivot: [4.5, 0, 2.5], at: [0.0, 0, 0.0] },
+    { name: 'wingL', model: 'collection:wasp_wing_l', pivot: [2.5, 0, 3.5], at: [0.0, 5, 0.0] },
+    { name: 'wingR', model: 'collection:wasp_wing_r', pivot: [2.5, 0, -1.5], at: [0.0, 5, 0.0] },
+  ] },
+  { id: 'collection:honeybee', scale: 0.0625, parts: [
+    { name: 'body', model: 'collection:honeybee_body', pivot: [4.5, 0, 2.5], at: [0.0, 0, 0.0] },
+    { name: 'wingL', model: 'collection:honeybee_wing_l', pivot: [2.5, 0, 3.5], at: [0.0, 5, 0.0] },
+    { name: 'wingR', model: 'collection:honeybee_wing_r', pivot: [2.5, 0, -1.5], at: [0.0, 5, 0.0] },
+  ] },
+  { id: 'collection:damselfly', scale: 0.0625, parts: [
+    { name: 'body', model: 'collection:damselfly_body', pivot: [7.0, 0, 1.5], at: [0.0, 0, 0.0] },
+    { name: 'wingL', model: 'collection:damselfly_wing_l', pivot: [-1.0, 0, 6.5], at: [0.0, 2, 0.0] },
+    { name: 'wingR', model: 'collection:damselfly_wing_r', pivot: [-1.0, 0, -0.5], at: [0.0, 2, 0.0] },
+  ] },
 ]

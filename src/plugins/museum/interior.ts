@@ -127,13 +127,23 @@ export interface Hall {
   slotAt(x: number, z: number): { kind: 'fish' | 'bug' | 'fossil'; species?: SpeciesDef } | null
 }
 
-export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id: string) => boolean; onDesk: (actor: Entity) => void }): Hall {
+export function setupHall(
+  api: PluginApi,
+  cfg: HallConfig,
+  opts: {
+    donated: (id: string) => boolean
+    onDesk: (actor: Entity) => void
+    /** The hall's size from its layout (cells, walls included): the room is defined that big. */
+    size: (w: number, d: number) => void
+  },
+): Hall {
   const T = api.render.three
   const layouts = api.createRegistry<LayoutDef>('museum:layouts', LayoutSchema as never)
   const catalog = () => api.services.get('collection:catalog')
-  const area = api.interiors.area(HALL_ID)
+  let area = api.interiors.area(HALL_ID)
   const layout = () => layouts.get(HALL_ID) ?? undefined
   let plan: HallPlan | null = null
+  let sized = ''
   const getPlan = () => {
     const l = layout()
     if (!l) return null
@@ -143,14 +153,23 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
       api.log.error(String(e))
       return null
     }
+    // the room is as big as its layout (before anyone goes in: the room's world is made that big)
+    if (sized !== `${plan.width}x${plan.depth}`) {
+      sized = `${plan.width}x${plan.depth}`
+      opts.size(plan.width, plan.depth)
+      area = api.interiors.area(HALL_ID)
+    }
     return plan
   }
+  api.events.on('content:loaded', () => void getPlan())
+  getPlan()
   // Editing the layout file rebuilds the hall live (dev hot reload).
   let live = false
   let rebuildRoom = false
   api.events.on('session:started', () => (live = true))
   layouts.onChange(() => {
     plan = null
+    getPlan()
     rebuildRoom = live && inside()
   })
   const inside = () => api.interiors.current === HALL_ID
@@ -270,14 +289,23 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
     void api.render.modelInfo(id).then((info) => {
       if (!info || gen !== built) return
       const longest = Math.max(info.size[0], info.size[1], info.size[2])
-      holder.add(api.render.voxelModel(id, { scale: info.scale * Math.min(1, fit / longest) }))
+      // behind glass and on stands: no shadow of their own (a draw call less each)
+      holder.add(api.render.voxelModel(id, { scale: info.scale * Math.min(1, fit / longest), shadow: false }))
     })
     return holder
   }
 
+  /** The props standing in rows (tanks, terrariums, placards, water): instanced, freed on rebuild. */
+  const rows: Obj[] = []
+  const clearRows = () => {
+    for (const o of rows) (o.userData.dispose as (() => void) | undefined)?.()
+    rows.length = 0
+  }
+  api.onDispose(clearRows)
   const rebuildExhibits = () => {
     dirty = false
     built++
+    clearRows()
     group.clear()
     exhibits = []
     const l = layout()
@@ -292,30 +320,50 @@ export function setupHall(api: PluginApi, cfg: HallConfig, opts: { donated: (id:
       o.rotation.y = rot
       group.add(o)
     }
+    // props in rows: one draw call per kind of prop, however many slots the hall has
+    const props = new Map<string, Array<{ x: number; y: number; z: number; rotY: number }>>()
+    const prop = (id: string, c: Cell, y: number, rotY: number) => {
+      let list = props.get(id)
+      if (!list) props.set(id, (list = []))
+      list.push({ x: wx(c), y, z: wz(c), rotY })
+    }
+    const waters: Cell[] = []
     for (const kind of ['fish', 'bug', 'fossil'] as const) {
       const list = slotSpecies(kind)
       p.slots[kind].forEach((c, i) => {
         const s = list[i]
         const rot = facing(c)
         if (!s || !opts.donated(s.id)) {
-          still(l.props.placard, c, top, rot)
+          prop(l.props.placard, c, top, rot)
           return
         }
         if (kind === 'fish') {
-          still(l.props.tank, c, top, rot)
-          const water = new T.Mesh(waterGeo, waterMat)
-          water.position.set(wx(c), top + 0.32, wz(c))
-          group.add(water)
+          prop(l.props.tank, c, top, rot)
+          waters.push(c)
           const obj = fitModel(s.model, cfg.fitFish, group, { x: wx(c), y: top + 0.18, z: wz(c) }, rot, built)
           exhibits.push({ obj, kind, x: wx(c), y: top + 0.18, z: wz(c), facing: rot, phase: i * 1.7 })
         } else if (kind === 'bug') {
-          still(l.props.terrarium, c, top, rot)
+          prop(l.props.terrarium, c, top, rot)
           const obj = fitModel(s.model, cfg.fitBug, group, { x: wx(c), y: top + 0.14, z: wz(c) }, rot, built)
           exhibits.push({ obj, kind, x: wx(c), y: top + 0.14, z: wz(c), facing: rot, phase: i * 2.3 })
         } else {
           fitModel(s.model, cfg.fitFossil, group, { x: wx(c), y: top, z: wz(c) }, rot + 0.5, built)
         }
       })
+    }
+    for (const [id, places] of props) {
+      const o = api.render.instanced(id, places)
+      rows.push(o)
+      group.add(o)
+    }
+    if (waters.length) {
+      const water = new T.InstancedMesh(waterGeo, waterMat, waters.length)
+      const m = new T.Matrix4()
+      waters.forEach((c, i) => water.setMatrixAt(i, m.makeTranslation(wx(c), top + 0.32, wz(c))))
+      water.computeBoundingSphere()
+      water.userData.dispose = () => water.dispose()
+      rows.push(water)
+      group.add(water)
     }
     for (const d of p.decor) still(d.kind === 'plant' ? l.props.plant : l.props.lamp, d, cfg.floorY + 1, 0)
     const bellAt = p.desks[0]

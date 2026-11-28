@@ -481,6 +481,238 @@ def egg():
 
 # ---------------------------------------------------------------------------------------------
 
+# --- more shapes (stage 16) ---------------------------------------------------------------------
+
+def squid():
+    g = Grid()
+    # a tube of a body along x, fins at the back, tentacles trailing forward
+    ellipsoid(g, 6, 3, 3, 5.5, 2.2, 2.2, lambda x, y, z: 's' if h01(x, y, z, 3) < 0.1 else 'b')
+    for z in (0, 1, 5, 6):
+        g.set(1, 3, z, 'w')
+        g.set(2, 3, z, 'w')
+    for k in range(6):
+        for i in range(5):
+            g.set(12 + i, 2 + (k % 2), 1 + k, 'w' if i % 2 else 'b')
+    g.set(10, 4, 1, 'e')
+    g.set(10, 4, 5, 'e')
+    return g
+
+
+def stag():
+    g = dome(9, 6, 3.4, lambda x, y, z: 'c' if (y >= 3 and h01(x, y, z, 7) < 0.2) else 'a')
+    ellipsoid(g, 9.5, 1.5, 3, 1.5, 1.4, 1.9, 'b')
+    # antler-like jaws
+    for z, side in ((1, -1), (5, 1)):
+        for i, (x, dz) in enumerate([(10, 0), (11, 0), (12, side), (13, side), (13, 0)]):
+            g.set(x, 2, z + dz, 'b')
+    return g
+
+
+def chafer(spots=False):
+    def col(x, y, z):
+        if x >= 6:
+            return 'b'
+        if spots and z in (0, 5) and x % 2 == 0:
+            return 'c'
+        return 'c' if h01(x, y, z, 11) < 0.12 else 'a'
+    g = dome(7, 6, 3.0, col)
+    g.set(7, 1, 2, 'k')
+    g.set(7, 1, 3, 'k')
+    return g
+
+
+def firebug():
+    def col(x, y, z):
+        if x >= 6:
+            return 'k'
+        if (x, z) in ((2, 1), (2, 4), (4, 2), (4, 3)) and y >= 1:
+            return 'k'
+        return 'a'
+    return dome(7, 5, 2.4, col)
+
+
+def mantis():
+    g = Grid()
+    for x in range(0, 9):
+        g.set(x, 2, 1, 'a' if x < 6 else 'b')
+    for y in range(2, 6):
+        g.set(9, y, 1, 'a')
+    ellipsoid(g, 9.5, 6.3, 1.5, 1.3, 1.0, 1.4, 'a')
+    g.set(10, 7, 0, 'e')
+    g.set(10, 7, 2, 'e')
+    # folded front legs
+    for (x, y) in [(10, 4), (11, 4), (11, 3), (10, 3)]:
+        g.set(x, y, 0, 'b')
+        g.set(x, y, 2, 'b')
+    for z in (-1, 3):
+        for (x, y) in [(3, 1), (2, 0), (6, 1), (7, 0)]:
+            g.set(x, y, z, 'b')
+    for x in range(1, 7):
+        g.set(x, 3, 0, 'g')
+        g.set(x, 3, 2, 'g')
+    return g
+
+
+def caterpillar():
+    g = Grid()
+    for i in range(6):
+        ellipsoid(g, 1.5 + i * 1.8, 1.6, 1.5, 1.2, 1.5, 1.4, 'a' if i % 2 else 'b')
+        g.set(1 + int(i * 1.8), 0, 1, 'k')
+    g.set(11, 2, 0, 'e')
+    g.set(11, 2, 2, 'e')
+    return g
+
+
+def spider():
+    g = Grid()
+    ellipsoid(g, 3, 2.5, 3.5, 2.8, 2.2, 2.6, lambda x, y, z: 'c' if (x == 3 or z == 3) and y >= 3 else 'a')
+    ellipsoid(g, 6.6, 2, 3.5, 1.4, 1.2, 1.4, 'b')
+    g.set(8, 2, 3, 'e')
+    g.set(8, 2, 4, 'e')
+    for i, x in enumerate((5, 6, 7, 8)):
+        for side in (-1, 1):
+            zc = 3.5 + side * 1.5
+            for k in range(1, 4):
+                g.set(x - 1 + (k if i >= 2 else -k + 1) // 2, max(0, 2 - k), zc + side * k, 'b')
+    return g
+
+
+def springtail():
+    g = Grid()
+    ellipsoid(g, 2.5, 1.2, 1, 2.5, 1.2, 1.1, 'a')
+    g.set(5, 1, 0, 'b')
+    g.set(5, 1, 1, 'b')
+    g.set(6, 2, 0, 'b')
+    g.set(6, 2, 1, 'b')
+    return g
+
+
+def nautilus():
+    g = Grid()
+    for x in range(12):
+        for y in range(12):
+            dx, dy = x + 0.5 - 6, y + 0.5 - 6
+            r = math.hypot(dx, dy)
+            if r > 6:
+                continue
+            a = math.atan2(dy, dx)
+            stripe = (a / (2 * math.pi) * 9 + r * 0.15) % 1 < 0.35 and r > 2.5
+            for z in range(4):
+                if z in (0, 3) and r > 5:
+                    continue
+                g.set(x, y, z, 'd' if stripe else 'a')
+    return g
+
+
+def coral():
+    g = Grid()
+    for x in range(1, 8):
+        for z in range(1, 6):
+            g.set(x, 0, z, 'd')
+    # branches
+    for (bx, bz, h, lean) in [(3, 3, 8, 0.3), (5, 2, 6, -0.4), (2, 4, 5, -0.3), (6, 4, 7, 0.5)]:
+        for y in range(1, h):
+            x = bx + lean * y / 2
+            g.set(x, y, bz, 'a')
+            if y == h - 1 or (y > 2 and y % 3 == 0):
+                g.set(x + 1, y, bz, 'c')
+                g.set(x, y, bz + 1, 'c')
+    return g
+
+
+def log():
+    g = Grid()
+    for x in range(12):
+        for y in range(7):
+            for z in range(7):
+                r = math.hypot(y + 0.5 - 3.5, z + 0.5 - 3.5)
+                if r <= 3.4:
+                    ring = x in (0, 11) and int(r * 1.6) % 2 == 0
+                    g.set(x, y, z, 'c' if ring else ('d' if r > 2.8 or h01(x, y, z, 12) < 0.15 else 'a'))
+    return g
+
+
+def crinoid():
+    g = Grid()
+    for x in range(1, 6):
+        for z in range(1, 6):
+            g.set(x, 0, z, 'd')
+    for y in range(1, 9):
+        g.set(3, y, 3, 'a' if y % 2 else 'd')
+    for k in range(6):
+        a = k * math.pi / 3
+        for i in range(1, 4):
+            g.set(3 + math.cos(a) * i, 9 + i // 2, 3 + math.sin(a) * i, 'a' if i < 3 else 'c')
+    return g
+
+
+def tusk():
+    g = Grid()
+    for i in range(20):
+        a = i / 19 * math.pi * 0.6
+        r = 10
+        x = r * math.sin(a)
+        y = r * (1 - math.cos(a))
+        thick = 3 if i < 8 else (2 if i < 15 else 1)
+        for t in range(thick):
+            for z in range(thick):
+                g.set(x, y + t, z, 'd' if i < 2 else ('c' if t == thick - 1 and i > 4 else 'a'))
+    return g
+
+
+def shell():
+    def col(x, y, z):
+        return 'd' if (x % 3 == 0 or z % 3 == 0) else 'a'
+    g = dome(10, 9, 3.6, col, legs=False)
+    return g
+
+
+def wing():
+    g = Grid()
+    # long finger bone and a thin membrane behind it
+    for x in range(16):
+        g.set(x, 1, 0, 'a')
+        g.set(x, 0, 0, 'a')
+    for x in range(14):
+        depth = int(6 * math.sin(math.pi * (x + 1) / 15))
+        for z in range(1, depth + 1):
+            g.set(x, 0, z, 'c' if (x + z) % 4 == 0 else 'd')
+    return g
+
+
+def footprint():
+    g = Grid()
+    for x in range(12):
+        for z in range(10):
+            g.set(x, 0, z, 'a')
+            g.set(x, 1, z, 'a')
+    # three toes and a heel pressed into the stone
+    for (cx, cz) in [(3, 5)]:
+        for x in range(2, 5):
+            for z in range(3, 8):
+                g.v.pop((x, 1, z), None)
+    for (dz, n) in [(-3, 5), (0, 6), (3, 5)]:
+        for i in range(n):
+            g.v.pop((5 + i, 1, 5 + dz * i // n), None)
+    return g
+
+
+def imprint():
+    g = Grid()
+    for x in range(12):
+        for z in range(9):
+            g.set(x, 0, z, 'a')
+            g.set(x, 1, z, 'a')
+    for x in range(2, 10):
+        g.set(x, 1, 4, 'f')
+    for wx in (5, 7):
+        for z in range(1, 8):
+            if z != 4:
+                g.set(wx, 1, z, 'f')
+    return g
+
+
+
 def model(mid, g, palette, scale=0.0625):
     return {'id': mid, 'scale': scale, 'palette': palette, 'layers': g.layers()}
 
@@ -506,6 +738,22 @@ add_fish('flounder', (12, 2, 9), '#b8a07a', '#f4efe4', '#a08a68', s='#7a6448', p
 add_fish('mackerel', (13, 5, 3), '#5fa0b8', '#f0f4f4', '#4a7a8c', s='#2f5a6a', pattern='stripes', d='#3f7a90')
 add_fish('pufferfish', (9, 8, 7), '#e8d48a', '#fbf5dc', '#d8b45a', s='#8a7040', spikes=True, tail_kind='round')
 models.append(model('collection:octopus', octopus(), {'b': '#e8786a', 'w': '#f6b4a4', 's': '#c9584a', 'e': FISH_EYE}))
+
+# stage 16: more fish
+add_fish('bitterling', (8, 5, 2), '#c8ccd8', '#f6f0f4', '#e88aa0', s='#a8b4ff', pattern='stripes')
+add_fish('loach', (16, 3, 2), '#a8885a', '#e8dcc0', '#8a6a44', s='#5a4430', pattern='spots', dorsal=False, tail_kind='round', whiskers=True)
+add_fish('tench', (13, 6, 4), '#6a8a4a', '#d8d8a0', '#4a6a34', pattern='plain', tail_kind='round')
+add_fish('bream', (14, 8, 2), '#b89a5a', '#efe4c0', '#8a7040', pattern='back', d='#8a7a4a')
+add_fish('trout', (13, 5, 3), '#8aa07a', '#f4ece0', '#7a8a6a', s='#d8584a', pattern='spots', d='#5a7a5a')
+add_fish('eel', (20, 3, 2), '#4a5a4a', '#c8c8a8', '#3a4a3a', pattern='back', dorsal=False, tail_kind='round', d='#2f3f2f')
+add_fish('koi', (14, 6, 4), '#fff8f0', '#fff8f0', '#ffb08a', s='#ff6a3a', pattern='spots', whiskers=True)
+add_fish('sturgeon', (21, 5, 4), '#8a96a0', '#e8ecee', '#6a7680', s='#f0f2f4', pattern='spots', whiskers=True, d='#5a6670')
+add_fish('herring', (11, 4, 2), '#7aa4c8', '#f2f6f8', '#5a84a8', pattern='back', d='#3a648a')
+add_fish('cod', (15, 6, 4), '#a8946a', '#f0e8d8', '#8a7854', s='#6a5a40', pattern='spots', whiskers=True)
+add_fish('tuna', (18, 7, 5), '#3a5a8a', '#e8eef4', '#ffd23a', pattern='back', d='#24406a')
+add_fish('ray', (13, 2, 11), '#a89a8a', '#f4f0ea', '#8a7c6c', s='#c8b8a0', pattern='spots', flat=True, tail_kind='round', dorsal=False)
+add_fish('clownfish', (8, 5, 3), '#ff8a2a', '#ffd0a0', '#ff8a2a', s='#ffffff', pattern='stripes')
+models.append(model('collection:squid', squid(), {'b': '#f0c8c0', 'w': '#fbe8e4', 's': '#c87a6a', 'e': FISH_EYE}))
 
 rigs = []
 WINGS = {'butterfly': set('abce'), 'glass': set('g')}
@@ -560,6 +808,25 @@ add_bug('pond_skater', strider(), {'a': '#4a4a52', 'b': '#2a2a30'})
 add_bug('ant', ant(), {'a': '#3a2a2a', 'b': '#2a1e1e', 'e': '#7a4a3a'})
 add_bug('snail', snail(), {'a': '#d8a46a', 'c': '#a8744a', 'b': '#c8c0b0', 'e': '#3a3434'})
 
+# stage 16: more bugs
+add_bug('swallowtail', butterfly(eyespot=True), {'a': '#ffe06a', 'b': '#2a2a2a', 'c': '#5a8ad8', 'e': '#e8604a', 'k': '#2a2a2a'}, wings=WINGS['butterfly'])
+add_bug('brimstone', butterfly(), {'a': '#f4f08a', 'b': '#d8d06a', 'c': '#e8a04a', 'k': '#5a5a3a'}, wings=WINGS['butterfly'])
+add_bug('common_blue', butterfly(), {'a': '#8ab4ff', 'b': '#f4f6ff', 'c': '#5a7ad8', 'k': '#3a3a4a'}, wings=WINGS['butterfly'])
+add_bug('tortoiseshell', butterfly(eyespot=True), {'a': '#f08a3a', 'b': '#2a2226', 'c': '#ffd84a', 'e': '#4a6ad8', 'k': '#3a2a2a'}, wings=WINGS['butterfly'])
+add_bug('hawk_moth', butterfly(moth=True), {'a': '#a89aa0', 'b': '#6a5a60', 'c': '#e89aac', 'k': '#5a4a50'}, wings=WINGS['butterfly'])
+add_bug('stag_beetle', stag(), {'a': '#4a2a20', 'b': '#7a3a2a', 'c': '#6a3a2e', 'k': '#2a1a14'})
+add_bug('cockchafer', chafer(spots=True), {'a': '#a8643a', 'b': '#3a2a24', 'c': '#f4efe6', 'k': '#2a1e1a'})
+add_bug('rose_chafer', chafer(), {'a': '#3ac46a', 'b': '#2a8a4a', 'c': '#a8f0c0', 'k': '#1e4a2a'})
+add_bug('firebug', firebug(), {'a': '#e8423a', 'k': '#1e1a1a'})
+add_bug('locust', hopper(), {'a': '#c8b45a', 'b': '#8a7a3a', 'e': '#3a2a1a'})
+add_bug('mantis', mantis(), {'a': '#8ad45a', 'b': '#6aa83a', 'e': '#2a3a1a', 'g': '#e8f6d8'})
+add_bug('wasp', bee(), {'a': '#ffe02a', 'k': '#1e1a1a', 'g': '#f4f8ff'}, wings=WINGS['glass'])
+add_bug('honeybee', bee(), {'a': '#e8a43a', 'k': '#4a3020', 'g': '#f4f8ff'}, wings=WINGS['glass'])
+add_bug('damselfly', dragonfly(), {'a': '#2a6ad8', 'b': '#1a3a8a', 'e': '#1a2a4a', 'g': '#c8d4ee'}, wings=WINGS['glass'])
+add_bug('caterpillar', caterpillar(), {'a': '#8ad45a', 'b': '#6ab43a', 'k': '#3a4a2a', 'e': '#1e2a14'})
+add_bug('garden_spider', spider(), {'a': '#b8864a', 'b': '#7a5a34', 'c': '#fff4e0', 'e': '#1e1a1a'})
+add_bug('springtail', springtail(), {'a': '#5a6a9a', 'b': '#3a4a7a'})
+
 BONE = {'a': '#ece2c8', 'd': '#c8b896', 'c': '#fff8e6', 'e': '#8a7a62'}
 STONE = {'a': '#b8b2a8', 'd': '#8f8a82', 'c': '#d8d2c8', 'e': '#5a5650'}
 models.append(model('collection:ammonite', ammonite(), {**STONE, 'a': '#c8a882', 'd': '#9a7a5a'}))
@@ -570,6 +837,18 @@ models.append(model('collection:amber', amber(), {'a': '#f0a83a', 'b': '#f8c86a'
 models.append(model('collection:triceratops_skull', skull(), BONE))
 models.append(model('collection:raptor_claw', claw(), BONE))
 models.append(model('collection:dino_egg', egg(), {'a': '#e6dcc4', 's': '#b8a888'}))
+
+# stage 16: more fossils
+models.append(model('collection:nautilus', nautilus(), {'a': '#f4ece0', 'd': '#b8865a'}))
+models.append(model('collection:coral', coral(), {'a': '#e8d8c8', 'c': '#f8eee4', 'd': '#a89c8c'}))
+models.append(model('collection:rex_tooth', tooth(), {'a': '#c8b896', 'd': '#6a5a48', 'c': '#e8dcc0'}))
+models.append(model('collection:dragonfly_imprint', imprint(), {'a': '#c4bcae', 'f': '#6a6a5a'}))
+models.append(model('collection:petrified_wood', log(), {'a': '#b8906a', 'd': '#8a6a4a', 'c': '#d8b890'}))
+models.append(model('collection:sea_lily', crinoid(), {'a': '#d8ccb4', 'd': '#a89c84', 'c': '#efe6d4'}))
+models.append(model('collection:mammoth_tusk', tusk(), {'a': '#efe4c8', 'd': '#a8946a', 'c': '#fff8e6'}))
+models.append(model('collection:turtle_shell', shell(), {'a': '#a8a080', 'd': '#7a7258'}))
+models.append(model('collection:pterosaur_wing', wing(), BONE))
+models.append(model('collection:dino_footprint', footprint(), STONE))
 
 
 def dump(ms):

@@ -50,6 +50,7 @@ export default definePlugin({
 | `biped.action = { name, t: 0 }` | анимация: `swing`, `pickup`, `wave`, `cheer`, `nod`, `sad`, `clap` |
 | `api.commands.register(...)` | команда консоли (`` ` `` / `ё`) |
 | `api.render.add(object3D)` | объект сцены three.js |
+| `api.render.voxelModel(id, { scale?, palette?, shadow? })` / `api.render.instanced(id, places, { palette? })` | модель как объект three.js (`shadow: false` — без своей тени); много неподвижных копий одной модели одним вызовом отрисовки на часть модели (`places`: `{ x, y, z, rotY?, scale? }`), освобождать — `obj.userData.dispose()` |
 | `api.world.getBlock / setBlock / isSolid / surfaceY` | воксельный мир; `setBlock` проходит через хук `world:beforeSetBlock` |
 | `api.world.regenerate(seed?)` / `regenerateSoon()` | пересоздать остров |
 | `api.registry('worldgen').register({ id, order, run(ctx) })` | шаг генерации мира |
@@ -242,7 +243,7 @@ api.save.register({
 - **Сервис `terrain:water`**: `kindAt(x, z)` → `'sea' | 'river' | 'pond' | null`.
 - **Модели** видов генерирует `python3 tools/models/collection.py` (для крылатых насекомых ещё и риги: тело + два крыла), здание музея и мебель зала — `tools/models/museum.py`. У вида можно задать `glow` (свечение ночью) и `flap` (`flutter` / `buzz`).
 - **Смотрительница** — реплики в `content/museum/museum.dialogue.json5` (темы `museum:greet`, `museum:thanks`…, подстановки `{name}`, `{description}`, `{count}`, `{total}`); скорость текста и высота «голоса» — в настройках плагина.
-- **Зал музея** — реестр `museum:layouts` (`content/museum/museum.layouts.json5`): план 16 × 16 символами (`F` аквариум, `B` террариум, `O` пьедестал, `R` стойка, `C` смотрительница, `S` вход, `D` дверь, `p`/`L` растение и лампа, `a`/`b`/`c` ковры). Экспонаты встают в слоты по порядку видов.
+- **Зал музея** — реестр `museum:layouts` (`content/museum/museum.layouts.json5`): план символами (зал такого размера, как план, — сейчас 24 × 22, до 48 × 48) (`F` аквариум, `B` террариум, `O` пьедестал, `R` стойка, `C` смотрительница, `S` вход, `D` дверь, `p`/`L` растение и лампа, `a`/`b`/`c` ковры). Экспонаты встают в слоты по порядку видов; аквариумы, террариумы, таблички и вода рисуются инстансами (по вызову на вид подставки), экспонаты — без собственных теней.
 - Команды: `now fish river` (кто клюёт сейчас), `catch collection:carp` / `catch fish` / `catch all`, `fish`, `bugs`, `museum` (`museum place` — найти место заново).
 
 ## Магазин, крафт, поделки
