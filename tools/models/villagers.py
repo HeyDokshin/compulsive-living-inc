@@ -128,6 +128,91 @@ def mouse():
     return g
 
 
+def hedgehog():
+    g = base(muzzle=False)
+    # spines over the back and the crown, a few sticking up
+    for (x, y, z), c in list(g.v.items()):
+        if z <= 2 or y >= 5:
+            g.v[(x, y, z)] = 'w'
+    for x in range(1, 7, 2):
+        for z in range(0, 5, 2):
+            g.set(x, 6, z, 'w')
+    g.box(3, 4, 1, 2, 7, 7, 'S').set(3, 2, 8, 'n').set(4, 2, 8, 'n')
+    return g
+
+
+def raccoon():
+    g = base()
+    for (x0, x1) in ((0, 1), (6, 7)):
+        g.box(x0, x1, 5, 6, 2, 3, 's').set(x0 + (1 if x0 == 0 else 0), 6, 3, 'i')
+    # the mask across the eyes
+    for x in (1, 3, 4, 6):
+        g.set(x, 3, 6, 'd')
+    for x in range(1, 7):
+        g.set(x, 4, 6, 'd')
+    g.set(3, 2, 7, 'n').set(4, 2, 7, 'n')
+    return g
+
+
+def penguin():
+    g = base(muzzle=False)
+    for x in range(1, 7):
+        for y in range(0, 5):
+            g.set(x, y, 6, 'S')
+    g.set(2, 3, 6, 'e').set(5, 3, 6, 'e').set(1, 2, 6, 'b').set(6, 2, 6, 'b')
+    g.box(3, 4, 2, 2, 7, 8, 'y')
+    return g
+
+
+def squirrel():
+    g = base()
+    for x in (1, 6):
+        g.box(x, x, 6, 7, 3, 3, 's').set(x, 6, 4, 'i').set(x, 8, 3, 'S')
+    g.set(3, 2, 7, 'n').set(4, 2, 7, 'n')
+    return g
+
+
+def deer():
+    g = base()
+    # ears to the sides, little antlers on top
+    g.box(0, 0, 4, 5, 2, 3, 'i').box(7, 7, 4, 5, 2, 3, 'i')
+    for (x, tip) in ((2, 1), (5, 6)):
+        g.box(x, x, 6, 8, 2, 2, 'n').set(tip, 8, 2, 'n')
+    g.set(3, 5, 6, 'S').set(4, 5, 5, 'S')
+    g.set(3, 2, 7, 'n').set(4, 2, 7, 'n')
+    return g
+
+
+def pig():
+    g = base(muzzle=False)
+    g.box(2, 5, 1, 3, 7, 7, 'i').set(3, 2, 8, 'n').set(4, 2, 8, 'n')
+    for x in (1, 6):
+        g.box(x, x, 6, 6, 3, 4, 'i').set(x, 7, 4, 'i')
+    return g
+
+
+def owl():
+    g = base(muzzle=False)
+    # tufts, a pale face disc and a little beak
+    for (x0, x1) in ((0, 1), (6, 7)):
+        g.box(x0, x1, 6, 6, 2, 3, 's').set(x0 + (0 if x0 == 0 else 1), 7, 2, 's')
+    for x in range(1, 7):
+        for y in range(1, 5):
+            g.set(x, y, 6, 'S')
+    g.set(2, 3, 6, 'e').set(5, 3, 6, 'e')
+    g.box(3, 4, 2, 2, 7, 7, 'y').set(3, 1, 7, 'y')
+    return g
+
+
+def koala():
+    g = base(muzzle=False)
+    # big fluffy round ears, a big dark nose
+    for (x0, x1) in ((0, 1), (6, 7)):
+        g.box(x0, x1, 4, 7, 2, 4, 'w').box(x0, x1, 5, 6, 5, 5, 'w')
+    g.box(3, 4, 1, 3, 7, 7, 'n')
+    return g
+
+
 HEAD_PAL = {'s': '#c99a70', 'S': '#fff4e6', 'e': '#2a2230', 'n': '#4a2e2a', 'b': '#ffadbb', 'i': '#ffc4d6', 'd': '#3a3434', 'y': '#ffb34a', 'w': '#fffaf0'}
 # Round rigs: fur per palette char (0…1) and the drawn face (center / size in voxels on the front at
 # z = 7; eyes, blush and painted mouths are erased to fur and drawn by the faces plugin instead).
@@ -139,6 +224,14 @@ FUR = {
     'cat': {'keys': {'s': 1, 'S': 0.7, 'i': 0.2}, 'length': 0.8, 'density': 6, 'droop': 0.3},
     'sheep': {'keys': {'w': 1, 's': 0.3}, 'length': 1.3, 'density': 4, 'droop': 0.1, 'thickness': 0.5},
     'mouse': {'keys': {'s': 0.8, 'S': 0.6, 'i': 0.2}, 'length': 0.6, 'density': 7, 'droop': 0.25},
+    'hedgehog': {'keys': {'w': 1, 's': 0.5, 'S': 0.4}, 'length': 1.2, 'density': 4, 'droop': 0.05, 'thickness': 0.3},
+    'raccoon': {'keys': {'s': 1, 'S': 0.7, 'd': 0.6, 'i': 0.2}, 'length': 1.0, 'density': 6, 'droop': 0.3},
+    'penguin': {'keys': {'s': 0.4, 'S': 0.3}, 'length': 0.4, 'density': 7, 'droop': 0.2},
+    'squirrel': {'keys': {'s': 1, 'S': 0.8, 'i': 0.2}, 'length': 0.9, 'density': 6, 'droop': 0.3},
+    'deer': {'keys': {'s': 0.8, 'S': 0.6, 'i': 0.3}, 'length': 0.6, 'density': 6, 'droop': 0.25},
+    'pig': {'keys': {'s': 0.3, 'i': 0.2}, 'length': 0.4, 'density': 7, 'droop': 0.2},
+    'owl': {'keys': {'s': 1, 'S': 0.15}, 'length': 0.8, 'density': 6, 'droop': 0.3},
+    'koala': {'keys': {'s': 1, 'w': 1, 'S': 0.6}, 'length': 1.1, 'density': 5, 'droop': 0.25},
 }
 FACE = {'center': [4, 3.2], 'size': [7.6, 5.6], 'front': 7, 'erase': {'e': 's', 'b': 's'}, 'style': {'eyeGap': 1.5, 'eyeY': 3.5, 'mouthY': 1.9}}
 FACES = {
@@ -146,9 +239,16 @@ FACES = {
              'style': {'eyeGap': 2.5, 'eyeY': 6.4, 'eyeSize': 0.95, 'mouthY': 1.5, 'mouthWide': 1.8}},
     'duck': {'style': {'mouth': 'none'}},
     'sheep': {'erase': {'e': 'w', 'b': 'w'}},
+    'penguin': {'erase': {'e': 'S', 'b': 'S'}},
+    'owl': {'erase': {'e': 'S', 'b': 'S'}, 'style': {'mouth': 'none', 'eyeSize': 0.95}},
+    'raccoon': {'erase': {'e': 'd', 'b': 's'}},
+    'hedgehog': {'erase': {'e': 's', 'b': 's'}},
 }
 models = []
-for name, fn in [('rabbit', rabbit), ('fox', fox), ('bear', bear), ('frog', frog), ('duck', duck), ('cat', cat), ('sheep', sheep), ('mouse', mouse)]:
+HEADS = [('rabbit', rabbit), ('fox', fox), ('bear', bear), ('frog', frog), ('duck', duck), ('cat', cat), ('sheep', sheep), ('mouse', mouse),
+         ('hedgehog', hedgehog), ('raccoon', raccoon), ('penguin', penguin), ('squirrel', squirrel), ('deer', deer), ('pig', pig), ('owl', owl),
+         ('koala', koala)]
+for name, fn in HEADS:
     face = {**FACE, **FACES.get(name, {})}
     face['style'] = {**FACE['style'], **FACES.get(name, {}).get('style', {})}
     m = {'id': f'villagers:head_{name}', 'scale': 1 / 12, 'palette': HEAD_PAL, 'layers': fn().layers(), 'face': face}

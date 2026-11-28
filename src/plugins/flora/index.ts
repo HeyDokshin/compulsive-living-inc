@@ -35,6 +35,7 @@ export default definePlugin({
   version: '0.1.0',
   description: 'Декоративная трава и цветы на газонах',
   dependsOn: ['terrain'],
+  optionalDependsOn: ['seasons'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -101,6 +102,8 @@ export default definePlugin({
     })
     api.events.on('world:generated', rebuild)
     api.events.on('interior:changed', ({ id }) => view.setVisible(!id))
+    // under the snow: flowers go first, grass thins out
+    api.events.on('seasons:cover', ({ snow }) => view.cover(snow))
     // Plants are generated with the island; saves keep them (so dug/removed ones stay gone).
     api.save.register<{ tufts: Plant[]; flowers: Plant[] }>({
       version: 1,
@@ -135,6 +138,9 @@ type Mesh = InstanceType<THREE['InstancedMesh']>
 
 class FloraView {
   private meshes: Mesh[] = []
+  /** Per mesh: how many plants it has, and how much of them snow can hide (0…1). */
+  private kinds: Array<{ mesh: Mesh; n: number; buried: number }> = []
+  private snow = 0
   private THREE: THREE
 
   constructor(
@@ -150,10 +156,21 @@ class FloraView {
     const T = this.THREE
     const material = () => this.api.render.stylize(new T.MeshLambertMaterial({ vertexColors: true }), { sway: this.cfg.sway })
 
-    this.add(this.tuftGeometry(), material(), tufts, () => undefined)
-    this.add(this.stemGeometry(), material(), flowers, () => undefined)
+    // in an even scatter (not the order they were planted in): snow hides them evenly, not by area
+    const mixed = (list: Plant[]) => [...list].sort((a, b) => scatter(a) - scatter(b))
+    const t = mixed(tufts)
+    const f = mixed(flowers)
+    this.add(this.tuftGeometry(), material(), t, () => undefined, 0.85)
+    this.add(this.stemGeometry(), material(), f, () => undefined, 1)
     const colors = this.cfg.flowerColors.map((c) => new T.Color(c))
-    this.add(this.blossomGeometry(), material(), flowers, (p) => colors[p.color] ?? colors[0])
+    this.add(this.blossomGeometry(), material(), f, (p) => colors[p.color] ?? colors[0], 1)
+    this.cover(this.snow)
+  }
+
+  /** Snow on the ground (0…1): that share of the plants is under it. */
+  cover(snow: number): void {
+    this.snow = snow
+    for (const k of this.kinds) k.mesh.count = Math.round(k.n * (1 - Math.min(1, snow * 1.2) * k.buried))
   }
 
   private add(
@@ -161,6 +178,7 @@ class FloraView {
     mat: InstanceType<THREE['Material']>,
     plants: Plant[],
     color: (p: Plant) => InstanceType<THREE['Color']> | undefined,
+    buried: number,
   ): void {
     if (!plants.length) {
       geo.dispose()
@@ -185,6 +203,7 @@ class FloraView {
     mesh.visible = !this.api.interiors.current // island decoration: hidden indoors
     this.api.render.add(mesh)
     this.meshes.push(mesh)
+    this.kinds.push({ mesh, n: plants.length, buried })
   }
 
   setVisible(v: boolean): void {
@@ -192,6 +211,7 @@ class FloraView {
   }
 
   private clear(): void {
+    this.kinds = []
     for (const m of this.meshes) {
       m.removeFromParent()
       m.geometry.dispose()
@@ -265,4 +285,10 @@ class FloraView {
       { size: [0.08, 0.08, 0.08], at: [0, y + 0.01, 0], color: '#ffe08a' },
     ])
   }
+}
+
+/** A steady pseudo-random number per plant (0…1), from where it grows. */
+function scatter(p: Plant): number {
+  const n = Math.sin(p.x * 12.9898 + p.z * 78.233) * 43758.5453
+  return n - Math.floor(n)
 }

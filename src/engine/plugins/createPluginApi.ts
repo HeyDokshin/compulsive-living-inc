@@ -5,6 +5,7 @@ import type { RegistryEntry } from '../registry/Registry'
 import type { SaverDef } from '../save/SaveService'
 import type { PatternFn } from '../render/textures'
 import { styleUniforms } from '../render/style'
+import { terrainUniforms } from '../render/terrainMaterial'
 import { AIR } from '../world/BlockPalette'
 import { cellContext } from '../interact/cellContext'
 import { DisposableStack } from '../util/disposables'
@@ -80,6 +81,19 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
       camera: game.renderer.iso,
       stylize: (material, opts) => game.renderer.stylize(material, opts),
       voxelModel: (id, opts) => game.modelLibrary.createVoxel(id, opts),
+      instanced: (id, places, opts) => game.modelLibrary.createInstanced(id, places, opts),
+      setCover: (c) => {
+        const u = terrainUniforms
+        if (c.snow !== undefined) u.uSnow.value = Math.max(0, Math.min(1, c.snow))
+        if (c.ice !== undefined) u.uIce.value = Math.max(0, Math.min(1, c.ice))
+        if (c.litter !== undefined) u.uLitter.value = Math.max(0, Math.min(1, c.litter))
+        if (c.stars !== undefined) u.uStars.value = Math.max(0, Math.min(1, c.stars))
+        if (c.litterColors) {
+          const [a, b] = c.litterColors.map((h) => new THREE.Color(h))
+          u.uLitterA.value = [a!.r, a!.g, a!.b]
+          u.uLitterB.value = [b!.r, b!.g, b!.b]
+        }
+      },
       rigModel: (id, opts) => game.modelLibrary.createRig(id, opts),
       refreshView: (e) => game.renderer.entityRenderer.refresh(e),
       setModel: (e, model) => {

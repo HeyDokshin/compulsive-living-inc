@@ -78,7 +78,7 @@ export class ModelLibrary {
   }
 
   /** A single voxel model, scaled to world units. Empty group first if it is still loading. */
-  createVoxel(id: string, opts: { scale?: number; palette?: Record<string, string>; pattern?: Pattern } = {}): Object3D {
+  createVoxel(id: string, opts: { scale?: number; palette?: Record<string, string>; pattern?: Pattern; shadow?: boolean } = {}): Object3D {
     const group = new Group()
     group.name = id
     this.withModel(id, (model, def) => {
@@ -86,6 +86,47 @@ export class ModelLibrary {
       if (!mesh) return
       const s = opts.scale ?? def.scale
       mesh.scale.setScalar(s)
+      if (opts.shadow === false) mesh.castShadow = false
+      group.add(mesh)
+    })
+    return group
+  }
+
+  /**
+   * Many copies of one voxel model standing still (props in a room, a row of pedestals): one instanced
+   * draw per piece of the model, however many there are. Places are in world units; `dispose()` on the
+   * returned object's userData frees the instance buffers (the model's geometry stays shared).
+   */
+  createInstanced(
+    id: string,
+    places: ReadonlyArray<{ x: number; y: number; z: number; rotY?: number; scale?: number }>,
+    opts: { palette?: Record<string, string> } = {},
+  ): Object3D {
+    const group = new Group()
+    group.name = id
+    const meshes: InstancedMesh[] = []
+    group.userData.dispose = () => {
+      for (const m of meshes) {
+        m.removeFromParent()
+        m.dispose()
+      }
+      meshes.length = 0
+    }
+    if (!places.length) return group
+    this.voxelGeometry(id, opts.palette, (geo, scale, _key, material) => {
+      const mesh = new InstancedMesh(geo, material, places.length)
+      const m = mesh.instanceMatrix.array
+      places.forEach((p, i) => {
+        const s = scale * (p.scale ?? 1)
+        const c = Math.cos(p.rotY ?? 0) * s
+        const k = Math.sin(p.rotY ?? 0) * s
+        m.set([c, 0, -k, 0, 0, s, 0, 0, k, 0, c, 0, p.x, p.y, p.z, 1], i * 16)
+      })
+      mesh.instanceMatrix.needsUpdate = true
+      mesh.computeBoundingSphere()
+      mesh.castShadow = !geo.userData.map
+      mesh.receiveShadow = true
+      meshes.push(mesh)
       group.add(mesh)
     })
     return group

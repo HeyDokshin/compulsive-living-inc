@@ -107,6 +107,9 @@ export function meshChunkRound(input: RoundInput): MeshOutput {
           if (solid[i]! < r.keep) solid[i] = r.keep
         }
   }
+  // how much land there is around (on water, `detail` carries it: ice grows from the banks)
+  const land = new Float32Array(solid)
+  boxBlur({ d: land, nx, ny, nz }, [0, 2], r.smoothAcross + 3, tmp)
   // how close real water is (to keep the surface near it only)
   const wet = new Float32Array(water)
   boxBlur({ d: wet, nx, ny, nz }, [0, 2], r.smoothAcross + 2, tmp)
@@ -185,7 +188,10 @@ export function meshChunkRound(input: RoundInput): MeshOutput {
       position[v * 3 + 2] = pz - pad
       if (liquid) {
         color[v * 3] = color[v * 3 + 1] = color[v * 3 + 2] = 1
-        detail[v] = -1
+        const lx = Math.min(nx - 1, Math.max(0, Math.round(fx)))
+        const ly = Math.min(ny - 1, Math.max(0, Math.round(fy)))
+        const lz = Math.min(nz - 1, Math.max(0, Math.round(fz)))
+        detail[v] = land[idx(lx, ly, lz)]!
         continue
       }
       const b = nearest(px, py, pz, solidAt)

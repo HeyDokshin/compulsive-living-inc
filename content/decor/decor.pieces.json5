@@ -180,5 +180,44 @@
     },
     { id: 'decor:wall_clock', name: 'Часы на стену', model: 'decor:wall_clock', price: 560, blocker: false, layer: 'wall', indoor: true, sound: { id: 'decor:tick', every: 1 }, variants: [{ id: 'default', name: '', palette: {} }] },
     { id: 'decor:wall_shelf', name: 'Полочка', model: 'decor:wall_shelf', price: 380, blocker: false, layer: 'wall', indoor: true, variants: [{ id: 'default', name: '', palette: {} }] },
+    {
+      id: 'decor:stool', name: 'Табурет', model: 'decor:stool', price: 300, blocker: true,
+      variants: [
+        { id: 'natural', name: 'натуральный', palette: { p: '#d9a56c' } },
+        { id: 'white', name: 'белый', palette: { p: '#f6f1e8' } },
+        { id: 'mint', name: 'мятный', palette: { p: '#a8dcc8' } },
+      ],
+    },
+    { id: 'decor:barrel', name: 'Бочка', description: 'В ней хорошо хранить яблоки.', model: 'decor:barrel', price: 480, blocker: true, variants: [{ id: 'default', name: '', palette: {} }] },
+    {
+      id: 'decor:planter', name: 'Ящик с цветами', model: 'decor:planter', price: 520, blocker: true,
+      variants: [
+        { id: 'clay', name: 'глиняный', palette: { p: '#c97a5a' } },
+        { id: 'white', name: 'белый', palette: { p: '#f6f1e8' } },
+        { id: 'blue', name: 'синий', palette: { p: '#6aa0d8' } },
+      ],
+    },
+    { id: 'decor:candle', name: 'Свеча', model: 'decor:candle', price: 180, blocker: false, layer: 'top', glow: { color: '#ffc878', size: 1.1, y: 0.45, flicker: true }, variants: [{ id: 'default', name: '', palette: {} }] },
+    { id: 'decor:stone_lantern', name: 'Каменный фонарь', description: 'Тихо светит в саду.', model: 'decor:stone_lantern', price: 1200, blocker: true, glow: { color: '#ffe0a0', size: 1.8, y: 0.75 }, variants: [{ id: 'default', name: '', palette: {} }] },
+    {
+      id: 'decor:wind_chime', name: 'Музыка ветра', description: 'Звенит, когда дует ветер.', model: 'decor:wind_chime', price: 650, blocker: true, sound: { id: 'decor:chime', every: 3.5, jitter: 2.5 },
+      variants: [
+        { id: 'mint', name: 'мятная', palette: { p: '#7fcfb0' } },
+        { id: 'pink', name: 'розовая', palette: { p: '#f6bccb' } },
+      ],
+    },
+    { id: 'decor:shell_lamp', name: 'Лампа-ракушка', model: 'decor:shell_lamp', price: 600, blocker: false, layer: 'top', glow: { color: '#ffd8c8', size: 1.3, y: 0.5 }, variants: [{ id: 'default', name: '', palette: {} }] },
+    { id: 'decor:fish_trophy', name: 'Рыба на доске', description: 'Вот такую поймал!', model: 'decor:fish_trophy', price: 800, blocker: false, layer: 'wall', indoor: true, variants: [{ id: 'default', name: '', palette: {} }] },
+    { id: 'decor:butterfly_frame', name: 'Бабочка в рамке', model: 'decor:butterfly_frame', price: 700, blocker: false, layer: 'wall', indoor: true, variants: [{ id: 'default', name: '', palette: {} }] },
+    { id: 'decor:fossil_stand', name: 'Окаменелость на подставке', model: 'decor:fossil_stand', price: 900, blocker: false, layer: 'top', variants: [{ id: 'default', name: '', palette: {} }] },
+    { id: 'decor:wreath', name: 'Зимний венок', description: 'Пахнет хвоей и праздником.', model: 'decor:wreath', price: 500, blocker: false, layer: 'wall', indoor: true, variants: [{ id: 'default', name: '', palette: {} }] },
+    {
+      id: 'decor:gift_box', name: 'Подарочная коробка', model: 'decor:gift_box', price: 260, blocker: false, layer: 'top',
+      variants: [
+        { id: 'mint', name: 'мятная', palette: { p: '#7fcfb0' } },
+        { id: 'pink', name: 'розовая', palette: { p: '#f6bccb' } },
+        { id: 'red', name: 'красная', palette: { p: '#e8645a' } },
+      ],
+    },
   ],
 }

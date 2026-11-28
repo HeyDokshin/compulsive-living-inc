@@ -50,6 +50,7 @@ export default definePlugin({
 | `biped.action = { name, t: 0 }` | анимация: `swing`, `pickup`, `wave`, `cheer`, `nod`, `sad`, `clap` |
 | `api.commands.register(...)` | команда консоли (`` ` `` / `ё`) |
 | `api.render.add(object3D)` | объект сцены three.js |
+| `api.render.voxelModel(id, { scale?, palette?, shadow? })` / `api.render.instanced(id, places, { palette? })` | модель как объект three.js (`shadow: false` — без своей тени); много неподвижных копий одной модели одним вызовом отрисовки на часть модели (`places`: `{ x, y, z, rotY?, scale? }`), освобождать — `obj.userData.dispose()` |
 | `api.world.getBlock / setBlock / isSolid / surfaceY` | воксельный мир; `setBlock` проходит через хук `world:beforeSetBlock` |
 | `api.world.regenerate(seed?)` / `regenerateSoon()` | пересоздать остров |
 | `api.registry('worldgen').register({ id, order, run(ctx) })` | шаг генерации мира |
@@ -77,6 +78,7 @@ export default definePlugin({
 | `api.mods` | моды игрока: `list`, `create`, `read`, `write` (сразу в игре), `exportZip` |
 | слот `menu` | кнопка в Esc-меню (`api.ui.slot('menu', …)`) |
 | `api.render.setWind(strength)` | как сильно качаются растения (1 — лёгкий ветерок) |
+| `api.render.setCover({ snow?, ice?, litter?, litterColors? })` | что лежит на острове по сезону (0…1): снег на всём, что смотрит вверх, лёд от берегов, листья или лепестки двух цветов |
 | `api.session` | имя острова и игрока (`name`, `player`), `rename(...)`; событие `session:created` — новый остров показан, пора создавать персонажа |
 | `api.save.hasData` | в сейве есть данные этого плагина (нет — новый остров или плагин появился позже: пора засеять) |
 | `api.render.refreshView(entity)` / `api.render.setZoom(z)` | пересобрать модель сущности после смены `model` / плавный зум |
@@ -242,7 +244,7 @@ api.save.register({
 - **Сервис `terrain:water`**: `kindAt(x, z)` → `'sea' | 'river' | 'pond' | null`.
 - **Модели** видов генерирует `python3 tools/models/collection.py` (для крылатых насекомых ещё и риги: тело + два крыла), здание музея и мебель зала — `tools/models/museum.py`. У вида можно задать `glow` (свечение ночью) и `flap` (`flutter` / `buzz`).
 - **Смотрительница** — реплики в `content/museum/museum.dialogue.json5` (темы `museum:greet`, `museum:thanks`…, подстановки `{name}`, `{description}`, `{count}`, `{total}`); скорость текста и высота «голоса» — в настройках плагина.
-- **Зал музея** — реестр `museum:layouts` (`content/museum/museum.layouts.json5`): план 16 × 16 символами (`F` аквариум, `B` террариум, `O` пьедестал, `R` стойка, `C` смотрительница, `S` вход, `D` дверь, `p`/`L` растение и лампа, `a`/`b`/`c` ковры). Экспонаты встают в слоты по порядку видов.
+- **Зал музея** — реестр `museum:layouts` (`content/museum/museum.layouts.json5`): план символами (зал такого размера, как план, — сейчас 24 × 22, до 48 × 48) (`F` аквариум, `B` террариум, `O` пьедестал, `R` стойка, `C` смотрительница, `S` вход, `D` дверь, `p`/`L` растение и лампа, `a`/`b`/`c` ковры). Экспонаты встают в слоты по порядку видов; аквариумы, террариумы, таблички и вода рисуются инстансами (по вызову на вид подставки), экспонаты — без собственных теней.
 - Команды: `now fish river` (кто клюёт сейчас), `catch collection:carp` / `catch fish` / `catch all`, `fish`, `bugs`, `museum` (`museum place` — найти место заново).
 
 ## Магазин, крафт, поделки
@@ -259,10 +261,12 @@ api.save.register({
 
 ## Жители
 
-- **Характеры** — `villagers:personalities`: `voice`, `speed`, `likes` / `dislikes` (теги), `schedule` ([с, до, занятие]: sleep · wander · plaza · garden · shore · visit).
-- **Жители** — `villagers:villagers`: имя, `she`, животное, голова (`villagers:head_<животное>`), характер, присказка, цвета рига и дома.
-- **Реплики** — `villagers:lines`: `{ topic, personality?, when?: { hours, weather, minHearts, maxHearts, seasons }, lines }`. Темы: hello, greet, chat, gift_love/like/neutral/dislike, gift_full, gift_back, photo, request_ask/waiting/none/thanks, leaving, stay, farewell, bye. Выбор — чистая функция `plugins/villagers/talk.ts`.
-- Команды: `villagers`, `villagers add [id]`, `villagers friend <id> <очки>`, `villagers leave <id>`.
+- **Характеры** — `villagers:personalities`: `voice`, `speed`, `likes` / `dislikes` (теги), `gives` (теги того, что кладут в письма), `schedule` ([с, до, занятие]: sleep · home · wander · plaza · garden · shore · visit).
+- **Жители** — `villagers:villagers`: имя, `she`, животное, голова (`villagers:head_<животное>`), характер, присказка, цвета рига и дома, `favourite` / `hated` (`{ of: id или #тег, label }` — свой самый любимый подарок и то, что житель терпеть не может; проговариваются в болтовне).
+- **Дружба** — очки → сердечки (0–5) → уровни (`levels` в конфиге: Незнакомец … Лучший друг). Подарок: свой любимый > любит характер > нравится (дорогое) > всё равно > не любит характер > свой нелюбимый (`giftPoints`). Наутро после любимого подарка или выполненной просьбы, при новом уровне дружбы и иногда просто так приходит письмо (через плагин `mail`), бывает с подарком из `gives`; на прощание при переезде — тоже письмо.
+- **Реплики** — `villagers:lines`: `{ topic, personality?, when?: { hours, weather, minHearts, maxHearts, seasons }, lines }`. Темы: hello, greet, chat, gift_favourite/love/like/neutral/dislike/hated, gift_full, gift_back, hint_favourite/hated, photo, request_ask/waiting/none/thanks, leaving, stay, farewell, bye; письма — letter_thanks, letter_help, letter_level, letter_chat, letter_farewell, letter_ps (без лиц-тегов). Выбор — чистая функция `plugins/villagers/talk.ts`.
+- Команды: `villagers`, `villagers add [id]`, `villagers friend <id> <очки>`, `villagers leave <id>`, `villagers visit [id]`, `villagers post` (утренняя почта сейчас).
+- **Почта** (`mail`) — письма в почтовом ящике у дома; сервис `mail:box`: `send({ from, fromId?, text, gift?: { item, count } })`, `letters`, `waiting()`. Письма хранятся с островом (`keep` прочитанных), ящик открывает их сразу, если есть новые. Команды: `mail`, `mail test`, `mail open`.
 
 ## Задания, достижения, праздники
 

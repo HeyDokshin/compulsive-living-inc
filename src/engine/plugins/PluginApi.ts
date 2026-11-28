@@ -109,12 +109,23 @@ export interface PluginApi {
      * (default 256). Shared: don't dispose it. Grey until rendered, then fills in by itself. */
     material(id: string, size?: number): THREE.Texture
     /** A voxel model from the `models` registry as a three.js object (appears when loaded). Not added to the scene. */
-    voxelModel(id: string, opts?: { scale?: number; palette?: Record<string, string> }): THREE.Object3D
+    voxelModel(id: string, opts?: { scale?: number; palette?: Record<string, string>; shadow?: boolean }): THREE.Object3D
+    /** Many copies of a voxel model standing still, in one draw call per model part (props in rows:
+     * tanks, pedestals, signs). Places in world units. Not added to the scene; call
+     * `obj.userData.dispose()` when you throw it away. */
+    instanced(
+      id: string,
+      places: ReadonlyArray<{ x: number; y: number; z: number; rotY?: number; scale?: number }>,
+      opts?: { palette?: Record<string, string> },
+    ): THREE.Object3D
     /** A rig from the `rigs` registry as a three.js object; its parts are child groups named after them
      * (`obj.getObjectByName('wingL')`) — rotate those to animate. Not added to the scene. */
     rigModel(id: string, opts?: { scale?: number; palette?: Record<string, string>; parts?: Record<string, string> }): THREE.Object3D
     /** Size (voxels), origin and scale of a voxel model — to hold, lay down or attach it precisely. */
     modelInfo(id: string): Promise<{ size: [number, number, number]; pivot: [number, number, number]; scale: number } | null>
+    /** What the season lays on the island (each 0…1): snow on what faces up, ice on the water from the
+     * banks, fallen leaves or petals in two colors (hex); `stars` — how bright the night sky shows in the water. */
+    setCover(c: { snow?: number; ice?: number; litter?: number; litterColors?: [string, string]; stars?: number }): void
     /** How hard plants sway (1 = a light breeze). */
     setWind(strength: number): void
     /** Shake the camera a little (amplitude in blocks, fading out over `seconds`). Respects the player's setting. */

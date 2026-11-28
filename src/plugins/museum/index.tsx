@@ -62,7 +62,9 @@ export default definePlugin({
 
   setup(api) {
     const cfg = api.config.define(Config)
-    const defineHall = () => api.interiors.define(HALL_ID, { name: 'Музей острова', icon: '🏛️', echo: cfg.echo })
+    // its size comes from the hall's layout (once the layout is read)
+    let hallSize: { w: number; d: number } | undefined
+    const defineHall = () => api.interiors.define(HALL_ID, { name: 'Музей острова', icon: '🏛️', echo: cfg.echo, ...(hallSize ? { size: hallSize } : {}) })
     defineHall()
     api.config.onChange(defineHall)
     const catalog = () => api.services.get('collection:catalog')
@@ -72,7 +74,14 @@ export default definePlugin({
     const version = signal(0)
 
     api.services.provide('museum:donations', { has: (id) => donated.has(id), version })
-    const hall = setupHall(api, cfg.hall, { donated: (id) => donated.has(id), onDesk: () => void api.ui.open('museum:desk') })
+    const hall = setupHall(api, cfg.hall, {
+      donated: (id) => donated.has(id),
+      onDesk: () => void api.ui.open('museum:desk'),
+      size: (w, d) => {
+        hallSize = { w, d }
+        defineHall()
+      },
+    })
     api.save.register<Record<string, number>>({
       version: 1,
       save: () => Object.fromEntries(donated),

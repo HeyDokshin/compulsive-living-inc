@@ -2,7 +2,8 @@
 // A line may start with a face tag — [joy] [happy] [sad] [worried] [angry] [surprised] [sleepy] [love] [shy]
 // [thinking] [wink] [neutral]: the speaker's face shows it (untagged lines are read by their words).
 // A line for the villager's own personality beats a general one; among those, the most specific
-// conditions win. Placeholders: {name} {phrase} {animal} {player} {other} {item} {request} {hearts};
+// conditions win. Placeholders: {name} {phrase} {animal} {player} {other} {item} {request} {hearts}
+// {fancy} (their favourite or pet hate) {level} (what the friendship is called, in letters);
 // {a} — the villager's own ending ("рад{a}" → рад / рада).
 //   when: { hours: [from, to), weather: rain | dry, minHearts, maxHearts, seasons: [...] }
 {
@@ -46,6 +47,27 @@
       '[thinking] А ты в курсе, что трилобиты жили задолго до динозавров, {phrase}?',
       'Я дочитал{a} третью книгу за неделю, {phrase}. Рекомендую!',
     ] },
+    { id: 'villagers:greet_shy', topic: 'greet', personality: 'villagers:shy', lines: ['[shy] Ой… привет, {player}. Я тебя не сразу заметил{a}, {phrase}.', '[shy] П-привет… Хорошая погода, да? {phrase}.'] },
+    { id: 'villagers:greet_shy_friend', topic: 'greet', personality: 'villagers:shy', when: { minHearts: 3 }, lines: ['[happy] {player}! Я так рад{a}, что это ты, {phrase}.'] },
+    { id: 'villagers:chat_shy', topic: 'chat', personality: 'villagers:shy', lines: [
+      '[shy] Я иногда пишу стихи… Но никому не показываю. Может быть, когда-нибудь тебе покажу, {phrase}.',
+      '[thinking] Когда много народу, мне хочется спрятаться в клубочек. А с тобой — не хочется, {phrase}.',
+    ] },
+    { id: 'villagers:greet_foodie', topic: 'greet', personality: 'villagers:foodie', lines: ['[joy] {player}! Ты не поверишь, что я сегодня ел{a} на завтрак, {phrase}!', 'Привет-привет! Чем это так вкусно пахнет? А, это у меня пирог в духовке, {phrase}!'] },
+    { id: 'villagers:chat_foodie', topic: 'chat', personality: 'villagers:foodie', lines: [
+      '[thinking] Если смешать персик и апельсин, получится… персисин? Надо попробовать, {phrase}.',
+      '[love] Самая вкусная рыба — та, что поймана своими руками. Ну, или твоими, {phrase}!',
+    ] },
+    { id: 'villagers:greet_adventurer', topic: 'greet', personality: 'villagers:adventurer', lines: ['Привет, {player}! Я сегодня отыскал{a} на берегу такое… Ладно, потом расскажу, {phrase}!', '[wink] Йо! Ну что, к приключениям, {phrase}?'] },
+    { id: 'villagers:chat_adventurer', topic: 'chat', personality: 'villagers:adventurer', lines: [
+      'Говорят, под этим островом спят древние кости. Я обязательно их найду, {phrase}!',
+      '[joy] Я обежал{a} весь берег за утро! Знаешь, где лучше всего видно закат? Секрет, {phrase}.',
+    ] },
+    { id: 'villagers:greet_artsy', topic: 'greet', personality: 'villagers:artsy', lines: ['[happy] Ах, {player}! Постой так, не двигайся… Отличный свет, {phrase}!', 'Привет! У тебя сегодня такие краски вокруг, {phrase}.'] },
+    { id: 'villagers:chat_artsy', topic: 'chat', personality: 'villagers:artsy', lines: [
+      '[love] Я рисую остров каждый день, и он каждый раз другой. Сегодня он мятный, {phrase}.',
+      '[thinking] Как думаешь, какого цвета звук прибоя? По-моему, бирюзового, {phrase}.',
+    ] },
     { id: 'villagers:chat_grumpy', topic: 'chat', personality: 'villagers:grumpy', lines: ['[angry] Все слишком шумные. Кроме тебя. Пока что, {phrase}.', '[happy] Окаменелости — вот это вещь. Не то что ваши цветочки, {phrase}.'] },
     { id: 'villagers:chat_sporty', topic: 'chat', personality: 'villagers:sporty', lines: ['Плавание! Бег! Рыбалка! В смысле… рыбалка — это тоже спорт, {phrase}!'] },
     { id: 'villagers:chat_dreamy', topic: 'chat', personality: 'villagers:dreamy', lines: ['[sleepy] Иногда я лежу у воды и считаю облака, {phrase}.', '[shy] Ракушки шепчут, если приложить к уху, {phrase}.'] },
@@ -60,6 +82,90 @@
     { id: 'villagers:gift_full', topic: 'gift_full', lines: ['Сегодня подарков уже достаточно! Оставь себе, {phrase}.'] },
     { id: 'villagers:gift_back', topic: 'gift_back', lines: ['Держи, это тебе в ответ, {phrase}! «{item}».', 'У меня для тебя тоже кое-что есть: «{item}», {phrase}!'] },
     { id: 'villagers:photo', topic: 'photo', lines: ['[shy] Ты мой лучший друг на острове. Вот, держи мою фотографию, {phrase}. На память!'] },
+    { id: 'villagers:gift_favourite', topic: 'gift_favourite', lines: [
+      '[love] «{item}»!!! Откуда ты знаешь, что это моё самое-самое любимое, {phrase}?!',
+      '[joy] Не может быть… «{item}»! Я сейчас расплачусь от счастья, {phrase}!',
+    ] },
+    { id: 'villagers:gift_hated', topic: 'gift_hated', lines: [
+      '[angry] «{item}»?! Только не это… Я же терпеть такое не могу, {phrase}!',
+      '[worried] Ой… «{item}». Ты, наверное, не знаешь… Убери, пожалуйста, {phrase}.',
+    ] },
+    { id: 'villagers:hint_favourite', topic: 'hint_favourite', lines: [
+      '[love] Скажу по секрету: больше всего на свете я люблю {fancy}, {phrase}.',
+      '[shy] Знаешь, о чём я мечтаю? Чтобы кто-нибудь подарил мне {fancy}… {phrase}.',
+    ] },
+    { id: 'villagers:hint_hated', topic: 'hint_hated', lines: [
+      '[worried] Только не дари мне {fancy}, ладно? Брр, {phrase}.',
+      '[angry] Есть одна вещь, которую я не выношу: {fancy}. Вот так, {phrase}.',
+    ] },
+
+    // --- letters (no face tags on paper; {level} — what your friendship is called now) -----------
+    { id: 'villagers:letter_thanks', topic: 'letter_thanks', lines: [
+      'Привет, {player}!\n\nВсё никак не могу забыть твой подарок — «{item}». Поставил{a} на самое видное место и любуюсь. Спасибо тебе, {phrase}!',
+      '{player}, здравствуй!\n\nПишу, чтобы ещё раз сказать спасибо за «{item}». Ты очень внимательный сосед. {phrase}!',
+    ] },
+    { id: 'villagers:letter_help', topic: 'letter_help', lines: [
+      'Дорогой сосед!\n\nТвоя вчерашняя помощь пришлась как нельзя кстати: {item} — как раз то, что было нужно. Если что-то понадобится, обращайся, {phrase}!',
+      'Привет!\n\nСпасибо за помощь. Без тебя я бы до сих пор искал{a} {item}. Ты настоящий друг, {phrase}.',
+    ] },
+    { id: 'villagers:letter_level_1', topic: 'letter_level', when: { maxHearts: 1 }, lines: [
+      'Привет, {player}!\n\nЯ всё думаю о нашем знакомстве. Здорово, что мы соседи! Заглядывай поболтать, {phrase}.',
+    ] },
+    { id: 'villagers:letter_level_2', topic: 'letter_level', when: { minHearts: 2, maxHearts: 2 }, lines: [
+      'Привет, {player}!\n\nМне кажется, мы стали настоящими приятелями. Заходи в гости, когда я дома, {phrase}!',
+    ] },
+    { id: 'villagers:letter_level_4', topic: 'letter_level', when: { minHearts: 3, maxHearts: 4 }, lines: [
+      'Дорогой {player}!\n\nЯ тут подумал{a}: с тобой на острове стало гораздо уютнее. Ты для меня теперь {level}. Вот так, {phrase}.',
+      '{player}!\n\nПросто хочу сказать, что очень рад{a} нашей дружбе. Ты {level}, честное слово, {phrase}!',
+    ] },
+    { id: 'villagers:letter_level_5', topic: 'letter_level', when: { minHearts: 5 }, lines: [
+      'Мой дорогой {player}!\n\nТы — мой лучший друг. Даже не знаю, как жил{a} до того, как мы познакомились. Спасибо за всё, {phrase}.',
+    ] },
+    { id: 'villagers:letter_chat', topic: 'letter_chat', lines: [
+      'Привет, {player}!\n\nНичего особенного, просто захотелось написать. Сегодня отличный день, правда? {phrase}!',
+      'Здравствуй!\n\nВчера весь вечер смотрел{a} на море и думал{a} о том, как хорошо, что у меня есть такие соседи. {phrase}.',
+    ] },
+    { id: 'villagers:letter_chat_sleepy', topic: 'letter_chat', personality: 'villagers:sleepy', lines: [
+      'При-ивет, {player}…\n\nМне приснилось, что весь остров — это большой пирог. Теперь всё утро хочется пирога… {phrase}.',
+    ] },
+    { id: 'villagers:letter_chat_sporty', topic: 'letter_chat', personality: 'villagers:sporty', lines: [
+      'Йо, {player}!\n\nСегодня пробежал{a} десять кругов вокруг острова! Завтра — двенадцать. Присоединяйся, {phrase}!',
+    ] },
+    { id: 'villagers:letter_chat_elegant', topic: 'letter_chat', personality: 'villagers:elegant', lines: [
+      'Дорогуша!\n\nЯ переставил{a} всю мебель дома, и теперь у меня настоящий салон. Приходи оценить, {phrase}.',
+    ] },
+    { id: 'villagers:letter_chat_dreamy', topic: 'letter_chat', personality: 'villagers:dreamy', lines: [
+      '{player}…\n\nЕсли долго смотреть на облака, они начинают рассказывать сказки. Вчера одно облако было похоже на тебя. {phrase}.',
+    ] },
+    { id: 'villagers:letter_chat_cheerful', topic: 'letter_chat', personality: 'villagers:cheerful', lines: [
+      'ПРИВЕТ, {player}!!!\n\nЯ сегодня поймал{a} стрекозу, и она СИДЕЛА У МЕНЯ НА НОСУ! Лучший день! {phrase}!',
+    ] },
+    { id: 'villagers:letter_chat_grumpy', topic: 'letter_chat', personality: 'villagers:grumpy', lines: [
+      '{player}.\n\nПишу не от скуки, ясно? Просто бумага лишняя была. Хм. Заходи, если что. {phrase}.',
+    ] },
+    { id: 'villagers:letter_chat_caring', topic: 'letter_chat', personality: 'villagers:caring', lines: [
+      'Милый {player}!\n\nНе забывай пить чай и ложиться вовремя. И надевай шарф, если ветрено! Обнимаю, {phrase}.',
+    ] },
+    { id: 'villagers:letter_chat_bookish', topic: 'letter_chat', personality: 'villagers:bookish', lines: [
+      'Уважаемый {player}!\n\nЯ дочитал{a} книгу об окаменелостях. Оказывается, янтарю бывает сорок миллионов лет! Удивительно, {phrase}.',
+    ] },
+    { id: 'villagers:letter_chat_shy', topic: 'letter_chat', personality: 'villagers:shy', lines: [
+      '{player}…\n\nПисать проще, чем говорить. Поэтому скажу здесь: спасибо, что ты такой хороший сосед. Ну вот, сказал{a}. {phrase}.',
+    ] },
+    { id: 'villagers:letter_chat_foodie', topic: 'letter_chat', personality: 'villagers:foodie', lines: [
+      'Привет, {player}!\n\nПридумал{a} новый рецепт: яблоко, мёд и щепотка корицы. Приходи пробовать, пока я всё не съел{a}! {phrase}.',
+    ] },
+    { id: 'villagers:letter_chat_adventurer', topic: 'letter_chat', personality: 'villagers:adventurer', lines: [
+      'Привет из-за дальних камней!\n\nВчера видел{a} на горизонте огни. Наверное, другой остров. Когда-нибудь доплывём, {phrase}!',
+    ] },
+    { id: 'villagers:letter_chat_artsy', topic: 'letter_chat', personality: 'villagers:artsy', lines: [
+      '{player}, привет!\n\nНарисовал{a} сегодня облако, похожее на чайник. Вышло так мило, что повешу его над кроватью. {phrase}!',
+    ] },
+    { id: 'villagers:letter_farewell', topic: 'letter_farewell', lines: [
+      'Дорогой {player}!\n\nЯ уже на новом острове. Здесь неплохо, но мне не хватает наших разговоров. Не забывай меня, {phrase}!',
+      'Привет с нового места!\n\nСпасибо за всё, что было. Я буду вспоминать наш остров с теплом. Твой сосед {name}.',
+    ] },
+    { id: 'villagers:letter_ps', topic: 'letter_ps', lines: ['Кладу в конверт «{item}» — это тебе.', 'И ещё: в конверте «{item}». Пусть порадует!'] },
 
     // --- requests -----------------------------------------------------------------------------
     { id: 'villagers:request_ask', topic: 'request_ask', lines: ['Слушай, а можешь принести мне {request}? Я в долгу не останусь, {phrase}!', 'Мне бы {request}… Поможешь, {phrase}?'] },

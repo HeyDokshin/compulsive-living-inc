@@ -37,6 +37,17 @@ export const terrainUniforms = {
   /** Patches across a block (smaller = larger patches), and how strongly their tint shows. */
   uVarietyScale: { value: 0.06 },
   uVarietyTint: { value: 1 },
+  /** Season cover (0…1): snow lying on what faces up, ice on the water from the banks; their colors (linear). */
+  uSnow: { value: 0 },
+  uSnowColor: { value: [0.92, 0.95, 1.0] as [number, number, number] },
+  uIce: { value: 0 },
+  uIceColor: { value: [0.78, 0.88, 0.95] as [number, number, number] },
+  /** Fallen leaves or petals scattered on what faces up (0…1), in two colors (linear). */
+  uLitter: { value: 0 },
+  uLitterA: { value: [0.85, 0.35, 0.1] as [number, number, number] },
+  uLitterB: { value: [0.95, 0.6, 0.15] as [number, number, number] },
+  /** Night (0…1): stars twinkle in the water. */
+  uStars: { value: 0 },
 }
 
 /**
@@ -52,6 +63,11 @@ uniform vec2 uVariants[MAX_SLOTS];
 uniform vec4 uVariantLooks[MAX_SLOTS];
 uniform float uVarietyScale;
 uniform float uVarietyTint;
+uniform float uSnow;
+uniform vec3 uSnowColor;
+uniform float uLitter;
+uniform vec3 uLitterA;
+uniform vec3 uLitterB;
 float vHash(vec2 p) { p = fract(p * vec2(0.1031, 0.1030)); p += dot(p, p.yx + 33.33); return fract((p.x + p.y) * p.x); }
 float vNoise(vec2 p) {
   vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -127,6 +143,22 @@ export function createTerrainMaterial(dissolve?: Dissolve): MeshLambertMaterial 
           if (uDetailStrength > 0.0) d = mix(d, detailTri(vs, p, w), m);
         }
         diffuseColor.rgb *= mix(vec3(1.0), max(d, 0.0) * 2.0, uDetailStrength);
+      }
+      if (uLitter > 0.0) {
+        // leaves (or petals) here and there, thicker in some places than others
+        float up = smoothstep(0.55, 0.85, normalize(vWNormal).y);
+        float spot = vNoise(vWPos.xz * 6.5 + 1.7);
+        float where = vPatch(vWPos.xz * 0.17 + 9.1);
+        float l = up * step(1.0 - uLitter * (0.1 + 0.26 * where), spot);
+        diffuseColor.rgb = mix(diffuseColor.rgb, mix(uLitterA, uLitterB, vNoise(vWPos.xz * 1.9)), l * 0.9);
+      }
+      if (uSnow > 0.0) {
+        // snow settles on what faces up, in drifts that join up as it gets deeper
+        float up = smoothstep(0.45, 0.8, normalize(vWNormal).y);
+        float drift = vPatch(vWPos.xz * 0.21 + 3.7) * 0.6 + vPatch(vWPos.xz * 0.73) * 0.4;
+        float s = up * smoothstep(1.0 - uSnow * 1.15, 1.0 - uSnow * 1.15 + 0.12, drift);
+        float sparkle = 0.94 + 0.06 * vNoise(vWPos.xz * 9.0);
+        diffuseColor.rgb = mix(diffuseColor.rgb, uSnowColor * sparkle, s);
       }`,
     )
   }
@@ -139,12 +171,16 @@ export function createWaterMaterial(opacity: number): MeshLambertMaterial {
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, terrainUniforms, { uTime: styleUniforms.uTime })
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNormal;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWPos = (modelMatrix * vec4(position, 1.0)).xyz;\nvWNormal = normal;')
+      .replace('#include <common>', '#include <common>\nattribute float detail;\nvarying float vShore;\nvarying vec3 vWPos;\nvarying vec3 vWNormal;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvShore = detail;\nvWPos = (modelMatrix * vec4(position, 1.0)).xyz;\nvWNormal = normal;')
     shader.fragmentShader = shader.fragmentShader
       .replace(
         '#include <common>',
         `#include <common>
+        uniform float uIce;
+        uniform vec3 uIceColor;
+        uniform float uStars;
+        varying float vShore;
         uniform vec3 uWaterDeep;
         uniform vec3 uWaterShallow;
         uniform float uTime;
@@ -159,6 +195,7 @@ export function createWaterMaterial(opacity: number): MeshLambertMaterial {
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
+        vec3 emissiveAccum = vec3(0.0);
         {
           vec2 q = vWPos.xz;
           float t = uTime;
@@ -170,9 +207,31 @@ export function createWaterMaterial(opacity: number): MeshLambertMaterial {
           col += vec3(1.0) * smoothstep(0.42, 0.6, g) * 0.35 * step(0.5, vWNormal.y);
           // falls and banks: a lighter, foamy face
           col = mix(col, vec3(0.92, 0.98, 1.0), (1.0 - smoothstep(0.3, 0.8, vWNormal.y)) * 0.45);
+          // winter: ice from the banks out, a ragged edge, frosty and nearly opaque
+          float ice = 0.0;
+          if (uIce > 0.0) {
+            float edge = vShore + (wNoise(q * 0.9) - 0.5) * 0.25 + (wNoise(q * 3.1) - 0.5) * 0.08;
+            ice = step(0.5, vWNormal.y) * smoothstep(0.62 - uIce * 0.55, 0.66 - uIce * 0.55, edge);
+            float frost = 0.9 + 0.1 * wNoise(q * 6.0);
+            col = mix(col, uIceColor * frost, ice);
+            diffuseColor.a = mix(diffuseColor.a, 0.96, ice);
+          }
+          // at night the stars show in the open water: a point here and there, twinkling, wobbled by the swell
+          if (uStars > 0.0) {
+            vec2 sq = q * 0.8 + vec2(sin(t * 0.7 + q.y) , cos(t * 0.6 + q.x)) * 0.04;
+            vec2 cell = floor(sq);
+            vec2 at = cell + 0.2 + 0.6 * vec2(wHash(cell), wHash(cell + 17.0));
+            float big = wHash(cell + 5.0);
+            float d = length(sq - at);
+            float twinkle = 0.55 + 0.45 * sin(t * (1.5 + big * 3.0) + big * 40.0);
+            float star = step(0.55, big) * smoothstep(0.035 + big * 0.03, 0.0, d) * twinkle;
+            emissiveAccum = vec3(1.0, 0.95, 0.82) * star * uStars * step(0.5, vWNormal.y) * (1.0 - ice);
+          }
           diffuseColor.rgb *= col;
         }`,
       )
+      // stars glow by themselves (night light doesn't dim them)
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += emissiveAccum;')
   }
   mat.customProgramCacheKey = () => 'water-round'
   return stylize(mat)
