@@ -31,6 +31,7 @@ type G = {
   renderer: { chunks: { pending: number }; frameStats(): { calls: number; triangles: number }; scene: { getObjectByName(n: string): unknown } }
   entities: { world: { with(...c: string[]): Iterable<{ transform: { x: number; y: number; z: number; rotY: number } }> } }
   engineConfig: { camera: { zoom: number } }
+  scheduler: { setEnabled(id: string, on: boolean): boolean }
 }
 declare const game: G
 
@@ -77,6 +78,9 @@ test('into the house and the museum and back, saved and loaded in a room', async
   await page.goto(pathToFileURL(resolve('dist/index.html')).href)
   await page.waitForFunction(() => typeof game !== 'undefined' && !!game.sessions, null, { timeout: 120_000 })
   await page.evaluate(() => game.title.create({ name: 'Проверка', player: 'Тест', seed: 7 }))
+  // the frame is measured with the neighbours standing at their homes (stopped as soon as the island
+  // is up): where they wander would make its cost a matter of luck (each in view adds its fur)
+  expect(await page.evaluate(() => game.scheduler.setEnabled('villagers:brains', false))).toBe(true)
   await settled(page, null)
   await run(page, 'time 11:00')
 
@@ -85,6 +89,7 @@ test('into the house and the museum and back, saved and loaded in a room', async
   expect(island.calls).toBeLessThan(BUDGET.island.calls)
   expect(island.triangles).toBeLessThan(BUDGET.island.triangles)
   await shot('island')
+  await page.evaluate(() => game.scheduler.setEnabled('villagers:brains', true))
 
   // --- the house ---------------------------------------------------------------------------------
   await run(page, 'house in')
