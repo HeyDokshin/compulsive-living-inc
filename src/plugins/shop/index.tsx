@@ -6,6 +6,7 @@
  */
 import { definePlugin, signal, z, type Entity, type RegistryEntry } from '@sdk'
 import { Counter } from './counter'
+import { setupShopRoom } from './room'
 import { pickDaily } from './stock'
 
 export interface ShelfDef extends RegistryEntry {
@@ -62,7 +63,7 @@ export default definePlugin({
   description: 'Лавка Тоши: товары дня, открытки с рецептами, саженцы, семена',
   dependsOn: ['items', 'economy'],
   // after the museum and the sell box: the stall takes the next free plot
-  optionalDependsOn: ['museum', 'decor', 'nature', 'garden', 'daily', 'tutorial', 'cutscene'],
+  optionalDependsOn: ['museum', 'decor', 'nature', 'garden', 'daily', 'tutorial', 'cutscene', 'rooms'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -252,17 +253,19 @@ export default definePlugin({
       keeper = null
     })
 
+    // inside the shop: goods on the shelves, Tosha behind the counter
+    const room = setupShopRoom(api, { shop, version, keeperScale: cfg.keeperScale, onCounter: () => void api.ui.open('shop:counter') })
     api.registry('interactions').register({
       id: 'shop:talk',
       entity: 'shopStall',
       priority: 50,
       anim: 'none',
       sound: 'ui:open',
-      label: 'Поговорить с Тошей',
-      run: () => void api.ui.open('shop:counter'),
+      label: 'Зайти в лавку',
+      run: (ctx) => room.enter(ctx.actor),
     })
-    // talking to Tosha is a close-up of the two of you
-    if (api.services.has('cutscene:talk')) api.services.get('cutscene:talk').conversation('shop:counter', () => keeper)
+    // talking to Tosha is a close-up of the two of you (at the stall or behind the counter inside)
+    if (api.services.has('cutscene:talk')) api.services.get('cutscene:talk').conversation('shop:counter', () => (room.inside() ? room.keeper() : keeper))
     api.ui.window({
       id: 'shop:counter',
       title: 'Лавка Тоши',
@@ -315,15 +318,21 @@ export default definePlugin({
 
     api.commands.register({
       name: 'shop',
-      description: 'Товары дня в лавке',
-      run: () =>
-        shop
+      description: 'Товары дня в лавке · shop in (зайти внутрь)',
+      usage: '[in]',
+      run: ([what]) => {
+        if (what === 'in') {
+          for (const pl of players) room.enter(pl)
+          return 'в лавке'
+        }
+        return shop
           .today()
           .map(
             (s) =>
               `${s.shelf.name}: ${s.goods.map((g) => `${items.get(g.id)?.name ?? g.id} ${g.price}🔔${Number.isFinite(g.left) ? ` (${g.left})` : ''}`).join(', ')}`,
           )
-          .join('\n'),
+          .join('\n')
+      },
     })
   },
 })

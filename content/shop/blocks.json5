@@ -1,0 +1,9 @@
+// Inside the shop: invisible blocks to walk on and into — the rooms kit draws walls, floor, shelves
+// and the counter over them. The floor counts as a house floor.
+{
+  entries: [
+    { id: 'shop:floor', name: 'Пол', color: '#c99566', invisible: true, sounds: { step: 'core:step_wood' }, tags: ['house:floors'] },
+    { id: 'shop:wall', name: 'Стена', color: '#ffe7c4', invisible: true },
+    { id: 'shop:fixture', name: 'Полка', color: '#d9a56c', invisible: true, sounds: { step: 'core:step_wood' } },
+  ],
+}
