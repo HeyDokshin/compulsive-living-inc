@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { moveToWall, payment, planRoom, windowsOf } from '../src/plugins/house/room'
+import { hatchOf, moveToWall, payment, planRoom, stairsOf, windowsOf } from '../src/plugins/house/room'
 import { fits, topmost, type Placed } from '../src/plugins/decor/layers'
 
 describe('house room', () => {
@@ -94,5 +94,33 @@ describe('a bigger room', () => {
     expect(moveToWall(a, b, 7, 4)).toEqual({ x: 7, z: 3 }) // back wall
     expect(moveToWall(a, b, 11, 9)).toEqual({ x: 12, z: 9 }) // right wall
     expect(moveToWall(a, b, 6, 6)).toBeNull() // not on a wall
+  })
+})
+
+describe('stairs to the attic', () => {
+  it('rise along the right-hand wall towards the back, inside the room, clear of the windows and the door', () => {
+    const p = planRoom(12, 12)
+    const { foot, steps } = stairsOf(p)
+    expect(steps).toHaveLength(3)
+    expect(steps[0]).toBe(foot)
+    for (const s of steps) expect(p.kindAt(s.x, s.z)).toBe('floor')
+    // each step higher and further back, against the wall on the right
+    for (let i = 1; i < steps.length; i++) {
+      expect(steps[i]!.h).toBeGreaterThan(steps[i - 1]!.h)
+      expect(steps[i]!.z).toBe(steps[i - 1]!.z - 1)
+    }
+    expect(p.kindAt(foot.x + 1, foot.z)).toBe('wall')
+    // you can walk up to the foot from the front
+    expect(p.kindAt(foot.x, foot.z + 1)).toBe('floor')
+    const windows = windowsOf(p)
+    for (const s of steps) for (const w of windows) expect(Math.abs(s.x - w.x) + Math.abs(s.z - w.z)).toBeGreaterThan(1)
+  })
+
+  it('come up through a hatch in the attic floor, by the back wall', () => {
+    const a = planRoom(10, 8)
+    const h = hatchOf(a)
+    expect(a.kindAt(h.x, h.z)).toBe('floor')
+    expect(a.kindAt(h.x, h.z - 1)).toBe('wall')
+    expect(a.kindAt(h.x - 1, h.z)).toBe('floor')
   })
 })

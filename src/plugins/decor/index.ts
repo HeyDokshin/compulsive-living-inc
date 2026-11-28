@@ -105,7 +105,7 @@ const Config = z.object({
   /** Ground blocks things can stand on (tags). */
   groundTags: z.array(z.string()).default(['#core:ground', '#house:floors']),
   /** Rooms where pieces may be placed (others, like the museum hall, are not yours to furnish). */
-  rooms: z.array(z.string()).default(['house:home']),
+  rooms: z.array(z.string()).default(['house:home', 'house:attic']),
   /** Lamps and fires glow at least this much inside rooms, day or night. */
   indoorGlow: z.number().min(0).max(1).default(0.55).meta({ label: 'indoor glow', step: 0.05 }),
   /** Lamps in rooms: how bright the pool of light on the floor and the walls is, and how far it reaches (× glow size). */

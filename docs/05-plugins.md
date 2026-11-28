@@ -252,7 +252,7 @@ api.save.register({
 - **Лавка** — реестр `shop:shelves`: полка берёт товары по тегу или списку, `count` в день, `stock` на день, `markup`. Реплики Тоши — `shop:dialogue`.
 - Модели: `python3 tools/models/decor.py` (поделки), `tools/models/shop.py` (лавка, Тоша, открытка, краска, наживка), `tools/models/economy.py` (ящик).
 - **Слои поделок**: `layer: floor | rug | top | wall`, у столов `surface` (высота столешницы), `indoor` — только дома. Правила — чистый модуль `plugins/decor/layers.ts`.
-- **Дом** — реестры `house:levels` (модель, размер комнаты, кредит) и `house:finishes` (обои и полы → блоки). Модели: `python3 tools/models/house.py`.
+- **Дом** — реестры `house:levels` (модель, размер комнаты, `attic` — мансарда наверху, кредит) и `house:finishes` (обои и полы → блоки). На уровне с мансардой у правой стены лестница: шаг на нижнюю ступень — наверх (`house:attic`, свои обои и пол, стены ниже — `atticWallHeight`), люк в полу мансарды — вниз; под лестницей и люком блок `house:stairs`, на него мебель не ставится. Команда `house up`. Модели: `python3 tools/models/house.py`.
 - **Дорожки** — реестр `landscaping:paths` (предмет → блок дорожки). Терраформинг — `plugins/landscaping/terraform.ts`.
 - **Сундук** — поделка `decor:chest` (плагин `storage`): у каждого свои ячейки (компонент `storage`). Хук `decor:canTake` не даёт унести непустой.
 - Команды: `shop`, `market`, `bells 5000`, `recipes [all]`, `decor [all]`.
