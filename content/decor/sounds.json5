@@ -11,4 +11,10 @@
     { wave: 'noise', delay: 0.04, duration: 0.015, gain: 0.1, filter: { type: 'highpass', freq: 3500 } },
     { wave: 'noise', duration: 0.18, gain: 0.05, filter: { type: 'lowpass', freq: 500 } },
   ] },
+  // wind chimes: two or three bright notes
+  { id: 'decor:chime', volume: 0.35, pitchJitter: 0.12, cooldown: 0.5, bus: 'ambient', layers: [
+    { wave: 'sine', freq: 1568, duration: 1.4, gain: 0.08 },
+    { wave: 'sine', freq: 2093, delay: 0.18, duration: 1.2, gain: 0.06 },
+    { wave: 'triangle', freq: 1319, delay: 0.42, duration: 1.0, gain: 0.04 },
+  ] },
 ]

@@ -302,6 +302,132 @@ sh.box(4, 5, 1, 4, 13, 14, 'l').box(4, 5, 5, 5, 13, 14, 'L')
 sh.box(9, 11, 1, 3, 13, 14, 'c')
 add('decor:wall_shelf', sh, {'p': '#d9a56c', 'q': '#b07a50', 'l': '#e08a5a', 'L': '#7cc45e', 'c': '#a6cbea'}, wall=True)
 
+# --- more pieces (stage 16) -----------------------------------------------------------------------
+# stool
+st = G()
+for x in (3, 10):
+    for z in (3, 10):
+        st.box(x, x + 1, 0, 6, z, z + 1, 'q')
+for x in range(2, 14):
+    for z in range(2, 14):
+        if math.hypot(x + 0.5 - 8, z + 0.5 - 8) <= 6:
+            st.set(x, 7, z, 'p').set(x, 8, z, 'p')
+add('decor:stool', st, {'p': '#d9a56c', 'q': '#a87a50'})
+
+# barrel with hoops
+br = G()
+for y in range(0, 16):
+    r = 6.2 - abs(y - 7.5) * 0.12
+    for x in range(16):
+        for z in range(16):
+            if math.hypot(x + 0.5 - 8, z + 0.5 - 8) <= r:
+                br.set(x, y, z, 'k' if y in (2, 3, 12, 13) else ('p' if (x + z) % 3 else 'P'))
+add('decor:barrel', br, {'p': '#b8844a', 'P': '#a8743c', 'k': '#5a5a64'}, fabric={'k': 'core:metal'})
+
+# planter box with flowers
+pl = G()
+pl.box(1, 14, 0, 4, 4, 11, 'p').box(2, 13, 5, 5, 5, 10, 'e')
+for (x, z, c) in [(3, 6, 'r'), (6, 8, 'y'), (9, 6, 'w'), (12, 8, 'r')]:
+    pl.set(x, 6, z, 'l').set(x, 7, z, 'l')
+    # a little flower head: a center and four petals
+    pl.set(x, 8, z, 'y' if c != 'y' else 'r')
+    for (dx, dz) in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        pl.set(x + dx, 8, z + dz, c)
+add('decor:planter', pl, {'p': '#c97a5a', 'e': '#7a5232', 'l': '#7cc45e', 'r': '#ff8fa8', 'y': '#ffe08a', 'w': '#fffaf0'})
+
+# candle on a dish (on tables)
+cd = G()
+for x in range(7):
+    for z in range(7):
+        if math.hypot(x + 0.5 - 3.5, z + 0.5 - 3.5) <= 3.4:
+            cd.set(x, 0, z, 'q')
+cd.box(2, 4, 1, 5, 2, 4, 'p').set(3, 6, 3, 'k').set(3, 7, 3, 'f')
+add('decor:candle', cd, {'p': '#fff4e0', 'q': '#c9a46a', 'k': '#3a2a2a', 'f': '#ffb84a'})
+
+# stone lantern
+sl = G()
+sl.box(4, 11, 0, 1, 4, 11, 's').box(6, 9, 2, 8, 6, 9, 's')
+sl.box(4, 11, 9, 9, 4, 11, 's').box(5, 10, 10, 13, 5, 10, lambda x, y, z: 'g' if 6 < x < 9 or 6 < z < 9 else 's')
+sl.box(3, 12, 14, 14, 3, 12, 'S').box(5, 10, 15, 15, 5, 10, 'S').box(7, 8, 16, 16, 7, 8, 'S')
+add('decor:stone_lantern', sl, {'s': '#b8b4ac', 'S': '#a8a49c', 'g': '#ffe9a8'}, fabric={'s': 'core:stone', 'S': 'core:stone'})
+
+# wind chime on a post
+wc = G()
+wc.box(7, 8, 0, 18, 7, 8, 'q').box(4, 11, 19, 19, 7, 8, 'q')
+for x in (4, 6, 9, 11):
+    wc.box(x, x, 12 + (x % 3), 18, 7, 7, 'm')
+wc.box(3, 12, 19, 20, 6, 9, 'p')
+add('decor:wind_chime', wc, {'q': '#a87a50', 'm': '#c8d4dc', 'p': '#7fcfb0'}, fabric={'m': 'core:metal'})
+
+# shell lamp (on tables)
+sh2 = G()
+for x in range(8):
+    for z in range(8):
+        if math.hypot(x + 0.5 - 4, z + 0.5 - 4) <= 3.6:
+            sh2.set(x, 0, z, 'q')
+sh2.box(3, 4, 1, 4, 3, 4, 'q')
+for y in range(5, 10):
+    r = 3.6 - (y - 5) * 0.5
+    for x in range(8):
+        for z in range(8):
+            d = math.hypot(x + 0.5 - 4, z + 0.5 - 4)
+            if d <= r:
+                sh2.set(x, y, z, 'p' if (int(math.degrees(math.atan2(z - 3.5, x - 3.5))) // 30) % 2 else 'P')
+add('decor:shell_lamp', sh2, {'p': '#ffe2d6', 'P': '#f6c8b8', 'q': '#e8d4b8'}, fabric={'p': 'core:ceramic', 'P': 'core:ceramic'})
+
+# a fish on a board (wall)
+ft = G()
+for x in range(1, 15):
+    for y in range(0, 8):
+        ft.set(x, y, 15, 'b')
+for x in range(3, 13):
+    h = 3 - abs(x - 7.5) * 0.35
+    for y in range(int(4 - h), int(4 + h) + 1):
+        ft.set(x, y, 14, 'f')
+ft.box(12, 13, 2, 6, 14, 14, 'f').set(4, 4, 13, 'e')
+add('decor:fish_trophy', ft, {'b': '#a87a50', 'f': '#6aa0c8', 'e': '#2a2230'}, wall=True)
+
+# a butterfly in a frame (wall)
+bf = G()
+for x in range(3, 13):
+    for y in range(0, 10):
+        edge = x in (3, 12) or y in (0, 9)
+        bf.set(x, y, 15, 'f' if edge else 'w')
+for (x, y) in [(6, 3), (6, 4), (6, 5), (6, 6), (5, 5), (5, 6), (5, 3), (9, 3), (9, 4), (9, 5), (9, 6), (10, 5), (10, 6), (10, 3)]:
+    bf.set(x, y, 14, 'a')
+bf.box(7, 8, 3, 6, 14, 14, 'k')
+add('decor:butterfly_frame', bf, {'f': '#5a3a2a', 'w': '#f4efe4', 'a': '#ffb84a', 'k': '#3a2a2a'}, wall=True)
+
+# a fossil on a little stand (on tables)
+fs = G()
+fs.box(1, 8, 0, 1, 1, 6, 'q').box(4, 5, 2, 3, 3, 4, 'q')
+for x in range(1, 9):
+    for y in range(4, 10):
+        dx, dy = x + 0.5 - 5, y + 0.5 - 7
+        r = math.hypot(dx, dy)
+        if r <= 3:
+            a = math.atan2(dy, dx)
+            fs.set(x, y, 3, 'd' if ((a / (2 * math.pi)) + r / 1.5) % 1 < 0.3 else 'a')
+            fs.set(x, y, 4, 'a')
+add('decor:fossil_stand', fs, {'q': '#5a3a2a', 'a': '#c8a882', 'd': '#9a7a5a'})
+
+# a winter wreath (wall)
+wr = G()
+for x in range(3, 13):
+    for y in range(0, 10):
+        d = math.hypot(x + 0.5 - 8, y + 0.5 - 5)
+        if 2.6 <= d <= 4.9:
+            wr.set(x, y, 15, 'r' if (x * 7 + y * 3) % 11 == 0 else ('g' if (x + y) % 2 else 'G'))
+wr.box(7, 8, 0, 1, 14, 14, 'b')
+add('decor:wreath', wr, {'g': '#4a8a5a', 'G': '#3a7a4a', 'r': '#e8423a', 'b': '#e8645a'}, wall=True)
+
+# a gift box (on tables)
+gb = G()
+gb.box(0, 7, 0, 5, 0, 7, lambda x, y, z: 'r' if x in (3, 4) or z in (3, 4) else 'p')
+gb.box(0, 7, 6, 6, 0, 7, lambda x, y, z: 'r' if x in (3, 4) or z in (3, 4) else 'p')
+gb.set(2, 7, 3, 'r').set(2, 7, 4, 'r').set(5, 7, 3, 'r').set(5, 7, 4, 'r').set(3, 8, 3, 'r').set(4, 8, 4, 'r')
+add('decor:gift_box', gb, {'p': '#7fcfb0', 'r': '#fff4e0'})
+
 with open(OUT, 'w') as fo:
     fo.write('// Generated by tools/models/decor.py\n[\n')
     for m in models:

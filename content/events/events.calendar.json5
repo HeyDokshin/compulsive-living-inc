@@ -34,6 +34,42 @@
       shop: [{ item: 'decor:rug_round_sun', price: 500 }, { item: 'decor:lamp_mint', price: 1000 }, { item: 'crafting:bait', price: 50 }],
     },
     {
+      id: 'events:snow_day', name: 'Снежный день', from: [2, 1], to: [2, 14], guest: 'events:pip', hours: [10, 18],
+      note: 'Снежный день! Пип привезла тёплые фонари и зимние венки.',
+      decor: [{ piece: 'decor:stone_lantern', variant: 'default', dx: -1, dz: 0 }, { piece: 'decor:stone_lantern', variant: 'default', dx: 1, dz: 0 }, { piece: 'decor:bonfire', variant: 'default', dx: 0, dz: 3 }],
+      shop: [{ item: 'decor:wreath_default', price: 600 }, { item: 'decor:candle_default', price: 220 }, { item: 'crafting:card_stone_lantern', price: 900 }, { item: 'decor:gift_box_red', price: 300 }],
+    },
+    {
+      id: 'events:thaw', name: 'Оттепель', from: [3, 8], to: [3, 14], guest: 'events:bruno', hours: [9, 18],
+      note: 'Оттепель! Бруно продаёт всё для сада: ящики для цветов и саженцы.',
+      decor: [{ piece: 'decor:planter', variant: 'clay', dx: -1, dz: 0 }, { piece: 'decor:planter', variant: 'white', dx: 1, dz: 0 }],
+      shop: [{ item: 'decor:planter_clay', price: 620 }, { item: 'nature:sapling_apple', price: 300 }, { item: 'crafting:card_planter', price: 450 }, { item: 'garden:seeds_tulip', price: 60 }],
+    },
+    {
+      id: 'events:fishing_day', name: 'День рыбака', from: [5, 10], to: [5, 16], guest: 'events:pip', hours: [5, 20],
+      note: 'День рыбака! Пип меняет наживку и рамки для трофеев.',
+      decor: [{ piece: 'decor:barrel', variant: 'default', dx: -1, dz: 0 }, { piece: 'decor:crate', variant: 'natural', dx: 1, dz: 0 }],
+      shop: [{ item: 'crafting:bait', price: 40 }, { item: 'crafting:card_fish_trophy', price: 500 }, { item: 'decor:barrel_default', price: 520 }, { item: 'decor:stool_natural', price: 320 }],
+    },
+    {
+      id: 'events:bug_day', name: 'День жуков', from: [6, 15], to: [6, 21], guest: 'events:bruno', hours: [8, 22],
+      note: 'День жуков! Бруно привёз сачки, рамки и свечи для ночной охоты.',
+      decor: [{ piece: 'decor:flower_pot', variant: 'clay', dx: -1, dz: 0 }, { piece: 'decor:lamp', variant: 'black', dx: 1, dz: 0 }],
+      shop: [{ item: 'crafting:card_butterfly_frame', price: 480 }, { item: 'decor:candle_default', price: 220 }, { item: 'decor:planter_blue', price: 620 }],
+    },
+    {
+      id: 'events:moon_night', name: 'Ночь луны', from: [9, 12], to: [9, 18], guest: 'events:pip', hours: [17, 24],
+      note: 'Ночь луны! Вечером на площади фонарики и музыка ветра.',
+      decor: [{ piece: 'decor:stone_lantern', variant: 'default', dx: -1, dz: 0 }, { piece: 'decor:wind_chime', variant: 'mint', dx: 1, dz: 0 }],
+      shop: [{ item: 'decor:wind_chime_mint', price: 700 }, { item: 'decor:shell_lamp_default', price: 650 }, { item: 'crafting:card_wind_chime', price: 560 }],
+    },
+    {
+      id: 'events:leaf_fest', name: 'Листопад', from: [10, 10], to: [10, 20], guest: 'events:bruno', hours: [9, 19],
+      note: 'Праздник листопада! Бруно продаёт бочки, табуреты и уютные мелочи.',
+      decor: [{ piece: 'decor:barrel', variant: 'default', dx: -1, dz: 0 }, { piece: 'decor:bonfire', variant: 'default', dx: 0, dz: 3 }],
+      shop: [{ item: 'decor:barrel_default', price: 520 }, { item: 'decor:stool_mint', price: 320 }, { item: 'crafting:card_teapot', price: 320 }, { item: 'decor:fossil_stand_default', price: 950 }],
+    },
+    {
       id: 'events:saturday', name: 'Субботний рынок', weekdays: [6], guest: 'events:bruno', hours: [9, 17],
       note: 'Суббота — на площади рынок Бруно.',
       decor: [{ piece: 'decor:crate', variant: 'natural', dx: -1, dz: 0 }],

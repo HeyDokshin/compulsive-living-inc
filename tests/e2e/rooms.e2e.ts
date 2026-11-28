@@ -32,6 +32,7 @@ type G = {
   entities: { world: { with(...c: string[]): Iterable<{ transform: { x: number; y: number; z: number; rotY: number } }> } }
   engineConfig: { camera: { zoom: number } }
   scheduler: { setEnabled(id: string, on: boolean): boolean }
+  registries: { get(name: string): { all(): Array<Record<string, unknown>>; has(id: string): boolean } }
 }
 declare const game: G
 
@@ -83,6 +84,20 @@ test('into the house and the museum and back, saved and loaded in a room', async
   expect(await page.evaluate(() => game.scheduler.setEnabled('villagers:brains', false))).toBe(true)
   await settled(page, null)
   await run(page, 'time 11:00')
+
+  // what content asks for exists once every plugin has added its items (rare shop goods, recipe parts)
+  const missing = await page.evaluate(() => {
+    const items = game.registries.get('items')
+    const out: string[] = []
+    for (const e of game.registries.get('events:calendar').all())
+      for (const s of (e.shop ?? []) as Array<{ item: string }>) if (!items.has(s.item)) out.push(`${String(e.id)}: ${s.item}`)
+    for (const r of game.registries.get('crafting:recipes').all()) {
+      for (const i of r.ingredients as Array<{ item?: string }>) if (i.item && !items.has(i.item)) out.push(`${String(r.id)}: ${i.item}`)
+      if (r.piece && !game.registries.get('decor:pieces').has(String(r.piece))) out.push(`${String(r.id)}: ${String(r.piece)}`)
+    }
+    return out
+  })
+  expect(missing).toEqual([])
 
   const island = await frame(page, `${browserName} island`)
   info.annotations.push({ type: 'island frame', description: JSON.stringify(island) })
