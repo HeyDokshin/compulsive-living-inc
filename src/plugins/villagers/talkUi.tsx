@@ -86,6 +86,7 @@ export function Talk(props: Props) {
     if (inv.remove(actor, id, 1) < 1) return
     if (asked) {
       r.request = null
+      r.helped = id // a thank-you letter tomorrow
       add(cfg.requestPoints)
       api.events.emit('villagers:helped', { id: v.id, item: id })
       const bells = reward()
@@ -95,11 +96,19 @@ export function Talk(props: Props) {
     }
     r.gifts = (r.giftDay === today ? r.gifts : 0) + 1
     r.giftDay = today
-    const taste = giftTaste((t) => items.isTagged(id, t), pers?.likes ?? [], pers?.dislikes ?? [], items.get(id)?.price ?? 0)
+    const taste = giftTaste(
+      id,
+      (t) => items.isTagged(id, t),
+      { likes: pers?.likes ?? [], dislikes: pers?.dislikes ?? [], favourite: v.favourite?.of, hated: v.hated?.of },
+      items.get(id)?.price ?? 0,
+    )
     add(cfg.giftPoints[taste])
+    if (taste === 'favourite' || taste === 'love') r.thanks = id // they'll write about it
     api.events.emit('villagers:gifted', { id: v.id, item: id, taste })
     if (api.services.has('emotes:show'))
-      api.services.get('emotes:show').show(npc, taste === 'love' ? 'emotes:love' : taste === 'dislike' ? 'emotes:question' : 'emotes:gift')
+      api.services
+        .get('emotes:show')
+        .show(npc, taste === 'love' || taste === 'favourite' ? 'emotes:love' : taste === 'dislike' || taste === 'hated' ? 'emotes:question' : 'emotes:gift')
     let reply = say(`gift_${taste}`, { item: name })
     // a best friend's photo, once
     if (hearts(r.points) >= 5 && !r.photo && api.services.has('decor:pieces')) {
@@ -108,7 +117,7 @@ export function Talk(props: Props) {
         r.photo = true
         reply = `${reply} ${say('photo')}`
       }
-    } else if (taste === 'love' && h >= 2 && Math.random() < 0.35 && api.services.has('decor:pieces')) {
+    } else if ((taste === 'love' || taste === 'favourite') && h >= 2 && Math.random() < 0.35 && api.services.has('decor:pieces')) {
       // something back: a piece of furniture
       const pieces = api.services
         .get('decor:pieces')
@@ -124,6 +133,12 @@ export function Talk(props: Props) {
     props.touch()
     setText(reply)
     setMode('talk')
+  }
+  // a chat; now and then they let slip what they adore or can't stand (once they know you a little)
+  const chat = () => {
+    const fancy = Math.random() < 0.5 ? v.favourite : v.hated
+    if (fancy && h >= 1 && Math.random() < cfg.hintChance) return setText(say(fancy === v.favourite ? 'hint_favourite' : 'hint_hated', { fancy: fancy.label }))
+    setText(say('chat'))
   }
   const ask = () => {
     if (r.request) return setText(say('request_waiting', { request: r.request.label }))
@@ -147,7 +162,7 @@ export function Talk(props: Props) {
   return (
     <div style={{ width: 'min(580px, 90vw)' }}>
       <ui.Dialogue
-        speaker={`${v.name} · ${'♥'.repeat(h)}${'♡'.repeat(5 - h)}`}
+        speaker={`${v.name} · ${'♥'.repeat(h)}${'♡'.repeat(5 - h)} · ${cfg.levels[h]}`}
         text={text}
         typeSpeed={pers?.speed ?? 0.028}
         onBlip={() => voiceBlip(api, pers?.voice ?? 320)}
@@ -183,7 +198,7 @@ export function Talk(props: Props) {
                   ],
                 ]
               : [
-                  mode === 'gift' ? ['Назад', () => setMode('talk')] : ['Поболтать', () => setText(say('chat'))],
+                  mode === 'gift' ? ['Назад', () => setMode('talk')] : ['Поболтать', chat],
                   mode === 'talk' && gifts.length > 0 && ['Подарить', () => setMode('gift')],
                   mode === 'talk' && [r.request ? `Принёс ${r.request.label}?` : 'Помочь чем-нибудь?', ask],
                   ['Пока!', () => api.ui.close()],

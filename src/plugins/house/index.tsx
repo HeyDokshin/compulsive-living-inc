@@ -106,7 +106,7 @@ export default definePlugin({
   description: 'Дом: интерьер, мебель, обои и полы, кредит и расширение',
   dependsOn: ['items', 'decor', 'economy', 'rooms'],
   // placed after the museum, the shop and the sell box: the house takes the next free plot
-  optionalDependsOn: ['museum', 'shop', 'nature', 'garden', 'tutorial', 'daily'],
+  optionalDependsOn: ['museum', 'shop', 'nature', 'garden', 'tutorial', 'daily', 'mail'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -486,8 +486,9 @@ export default definePlugin({
       priority: 50,
       anim: 'none',
       sound: 'ui:open',
-      label: 'Почтовый ящик',
-      run: () => void api.ui.open('house:mailbox'),
+      label: () => (api.services.has('mail:box') && api.services.get('mail:box').waiting() ? 'Почтовый ящик ✉️' : 'Почтовый ящик'),
+      // new letters first; the loan and the house from there
+      run: () => void api.ui.open(api.services.has('mail:box') && api.services.get('mail:box').waiting() ? 'mail:letters' : 'house:mailbox'),
     })
     const atDoor = (ctx: { x: number; z: number }) => {
       if (!inside()) return false
@@ -649,8 +650,15 @@ function Mailbox(props: {
     props.set({ debt: next.cost, readyDay: api.time.dayIndex + 1 })
     api.audio.play('ui:pop')
   }
+  const mail = api.services.has('mail:box') ? api.services.get('mail:box') : undefined
+  mail?.letters.value // re-render when letters come
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: 'min(460px, 86vw)' }}>
+      {mail && (
+        <ui.Button secondary onClick={() => api.ui.open('mail:letters')}>
+          ✉️ Письма{mail.waiting() ? ` · новых: ${mail.waiting()}` : ''}
+        </ui.Button>
+      )}
       <div>
         <div style={{ fontWeight: 800, fontSize: '16px' }}>{cur?.name ?? 'Дом'}</div>
         <div style={{ fontSize: '13px', color: 'var(--ui-text-soft)' }}>

@@ -60,13 +60,41 @@ export function fill(text: string, vars: Record<string, string | number>): strin
 export const MAX_POINTS = 100
 export const hearts = (points: number) => Math.max(0, Math.min(5, Math.floor(points / 20)))
 
-export type GiftTaste = 'love' | 'like' | 'neutral' | 'dislike'
+export type GiftTaste = 'favourite' | 'love' | 'like' | 'neutral' | 'dislike' | 'hated'
 
-/** How a villager takes a gift: a liked tag is loved, a disliked one is not, decor and other priced things are nice. */
-export function giftTaste(hasTag: (tag: string) => boolean, likes: readonly string[], dislikes: readonly string[], price: number): GiftTaste {
-  if (likes.some(hasTag)) return 'love'
-  if (dislikes.some(hasTag)) return 'dislike'
+/** A thing someone feels strongly about: an item id or a `#tag`. */
+export const isOf = (of: string, id: string, hasTag: (tag: string) => boolean) => (of.startsWith('#') ? hasTag(of) : of === id)
+
+/**
+ * How a villager takes a gift: their own favourite and the thing they can't stand first, then what
+ * their character loves or doesn't care for, and decor and other priced things are nice.
+ */
+export function giftTaste(
+  id: string,
+  hasTag: (tag: string) => boolean,
+  taste: { likes: readonly string[]; dislikes: readonly string[]; favourite?: string; hated?: string },
+  price: number,
+): GiftTaste {
+  if (taste.favourite && isOf(taste.favourite, id, hasTag)) return 'favourite'
+  if (taste.hated && isOf(taste.hated, id, hasTag)) return 'hated'
+  if (taste.likes.some(hasTag)) return 'love'
+  if (taste.dislikes.some(hasTag)) return 'dislike'
   return price >= 500 ? 'like' : 'neutral'
+}
+
+/**
+ * Letters a villager writes in the morning (who to, and about what), from yesterday: thanks for a
+ * gift they loved or for help, news of a friendship grown, or now and then just a chat.
+ */
+export type LetterTopic = 'letter_thanks' | 'letter_help' | 'letter_level' | 'letter_chat'
+export function lettersDue(r: { points: number; level?: number; thanks?: string; helped?: string; met: boolean }, chat: boolean): LetterTopic[] {
+  if (!r.met) return []
+  const out: LetterTopic[] = []
+  if (r.thanks) out.push('letter_thanks')
+  if (r.helped) out.push('letter_help')
+  if (hearts(r.points) > (r.level ?? 0)) out.push('letter_level')
+  if (!out.length && chat && hearts(r.points) >= 2) out.push('letter_chat')
+  return out
 }
 
 // --- routine ------------------------------------------------------------------------------------

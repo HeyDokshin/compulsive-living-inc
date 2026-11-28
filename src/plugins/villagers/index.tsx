@@ -8,7 +8,7 @@
 import { definePlugin, findPath, signal, voiceBlip, z, type Cell, type Entity, type RegistryEntry, type Signal } from '@sdk'
 import { Talk } from './talkUi'
 import { setupHomes } from './homes'
-import { activityAt, fill, hearts, MAX_POINTS, pickLine, type LineDef } from './talk'
+import { activityAt, fill, hearts, lettersDue, MAX_POINTS, pickLine, type LetterTopic, type LineDef } from './talk'
 
 export interface PersonalityDef extends RegistryEntry {
   name: string
@@ -16,7 +16,15 @@ export interface PersonalityDef extends RegistryEntry {
   speed: number
   likes: string[]
   dislikes: string[]
+  /** What they tuck into letters now and then (item tags). */
+  gives: string[]
   schedule: Array<[number, number, string]>
+}
+
+/** Something one villager feels strongly about: an item id or `#tag`, and how they call it. */
+export interface Fancy {
+  of: string
+  label: string
 }
 
 export interface VillagerDef extends RegistryEntry {
@@ -28,6 +36,9 @@ export interface VillagerDef extends RegistryEntry {
   phrase: string
   colors: Record<string, string>
   house: Record<string, string>
+  /** Their very favourite gift, and the one thing they can't stand (they let it slip in a chat). */
+  favourite?: Fancy
+  hated?: Fancy
 }
 
 export interface Resident {
@@ -46,6 +57,11 @@ export interface Resident {
   hailDay?: number
   /** Their room is furnished (set up on the first visit). */
   furnished?: boolean
+  /** Friendship level they last wrote about (hearts). */
+  level?: number
+  /** Yesterday's gift they loved / what they were helped with: tomorrow's letter. */
+  thanks?: string
+  helped?: string
 }
 
 export interface VillagerState {
@@ -71,6 +87,7 @@ declare module '@sdk' {
     'villagers:talked': { id: string }
     'villagers:gifted': { id: string; item: string; taste: string }
     'villagers:helped': { id: string; item: string }
+    'villagers:wrote': { id: string; topic: string }
   }
 }
 
@@ -86,8 +103,26 @@ const Config = z.object({
   pathNodes: z.number().int().min(100).max(20000).default(2500).meta({ label: 'path nodes', step: 100 }),
   talkPoints: z.number().int().min(0).max(20).default(2).meta({ label: 'talk points', step: 1 }),
   giftPoints: z
-    .object({ love: z.number().default(8), like: z.number().default(4), neutral: z.number().default(2), dislike: z.number().default(-2) })
+    .object({
+      favourite: z.number().default(14),
+      love: z.number().default(8),
+      like: z.number().default(4),
+      neutral: z.number().default(2),
+      dislike: z.number().default(-2),
+      hated: z.number().default(-6),
+    })
     .prefault({}),
+  /** What friendship is called at each number of hearts (0…5). */
+  levels: z.array(z.string()).length(6).default(['Незнакомец', 'Знакомый', 'Приятель', 'Друг', 'Близкий друг', 'Лучший друг']),
+  /** Letters: the morning chance that one friend (2+ hearts) just writes, and that a letter has something inside. */
+  letterChance: z.number().min(0).max(1).default(0.2).meta({ label: 'chat letter chance', step: 0.05 }),
+  letterGiftChance: z.number().min(0).max(1).default(0.5).meta({ label: 'letter gift chance', step: 0.05 }),
+  /** From this many hearts a letter about friendship always comes with a present. */
+  levelGiftFrom: z.number().int().min(0).max(5).default(3).meta({ label: 'level gift from', step: 1 }),
+  /** Never tucked into letters (rare versions turn up by luck when a gift is taken, not by choice). */
+  letterSkip: z.array(z.string()).default(['#decor:rare']),
+  /** Chance that a chat lets slip their favourite or the thing they can't stand. */
+  hintChance: z.number().min(0).max(1).default(0.25).meta({ label: 'hint chance', step: 0.05 }),
   giftsPerDay: z.number().int().min(1).max(10).default(2).meta({ label: 'gifts per day', step: 1 }),
   requestChance: z.number().min(0).max(1).default(0.6).meta({ label: 'request chance', step: 0.05 }),
   requestPoints: z.number().int().min(0).max(30).default(6).meta({ label: 'request points', step: 1 }),
@@ -140,7 +175,7 @@ export default definePlugin({
   description: 'Жители: характеры, распорядок, диалоги, дружба, подарки, просьбы, переезды',
   dependsOn: ['items', 'characters'],
   // homes go up after the big buildings; photos are decor pieces
-  optionalDependsOn: ['decor', 'museum', 'shop', 'house', 'economy', 'garden', 'terrain', 'weather', 'daily', 'tutorial', 'emotes', 'cutscene'],
+  optionalDependsOn: ['decor', 'museum', 'shop', 'house', 'economy', 'garden', 'terrain', 'weather', 'daily', 'tutorial', 'emotes', 'cutscene', 'mail'],
 
   setup(api) {
     const cfg = api.config.define(Config)
@@ -153,6 +188,7 @@ export default definePlugin({
         speed: z.number().default(0.028),
         likes: z.array(z.string()).default([]),
         dislikes: z.array(z.string()).default([]),
+        gives: z.array(z.string()).default(['#decor:pieces']),
         schedule: z.array(z.tuple([z.number(), z.number(), z.string()])).default([]),
       }) as never,
     )
@@ -168,6 +204,8 @@ export default definePlugin({
         phrase: z.string(),
         colors: z.record(z.string(), z.string()).default({}),
         house: z.record(z.string(), z.string()).default({}),
+        favourite: z.object({ of: z.string(), label: z.string() }).optional(),
+        hated: z.object({ of: z.string(), label: z.string() }).optional(),
       }) as never,
     )
     const lines = api.createRegistry<LineDef & RegistryEntry>(
@@ -194,7 +232,15 @@ export default definePlugin({
     const fresh = (): VillagerState => ({ residents: {}, nextArrival: -1, news: [] })
     const state: Signal<VillagerState> = signal(fresh())
     const touch = () => (state.value = { ...state.value })
-    api.save.register<VillagerState>({ version: 1, save: () => state.value, load: (d) => (state.value = { ...fresh(), ...d }) })
+    api.save.register<VillagerState>({
+      version: 1,
+      save: () => state.value,
+      load: (d) => {
+        // friendships from before letters: already known, no letter about them
+        for (const r of Object.values(d.residents ?? {})) r.level ??= hearts(r.points)
+        state.value = { ...fresh(), ...d }
+      },
+    })
     const resident = (id: string) => state.value.residents[id]
 
     // Photos: a decor piece per villager (given at 5 hearts).
@@ -332,8 +378,81 @@ export default definePlugin({
       api.events.emit('villagers:movedIn', { id: v.id })
       return true
     }
+    // --- letters ------------------------------------------------------------------------------------
+    const situation = (v: VillagerDef, r: Resident) => ({
+      personality: v.personality,
+      hour: api.time.hour,
+      raining: false,
+      hearts: hearts(r.points),
+      season: api.time.season,
+    })
+    /** Something from what they like to give (their character's `gives`), or nothing. */
+    const somethingFrom = (v: VillagerDef): string | undefined => {
+      const items = api.registry('items')
+      const tags = personalities.get(v.personality)?.gives ?? []
+      const pool = items
+        .all()
+        .filter((i) => (i.price ?? 0) > 0 && tags.some((t) => items.isTagged(i.id, t)) && !cfg.letterSkip.some((t) => items.isTagged(i.id, t)))
+      return pool[Math.floor(Math.random() * pool.length)]?.id
+    }
+    /** A letter from a neighbour: a line for the topic, signed, maybe with a present inside. */
+    const write = (v: VillagerDef, r: Resident, topic: LetterTopic | 'letter_farewell', gift: boolean, extra: Record<string, string | number> = {}) => {
+      if (!api.services.has('mail:box')) return
+      const line = pickLine(lines.all(), topic, situation(v, r), Math.random)
+      if (!line) return
+      const items = api.registry('items')
+      const text = fill(line, {
+        name: v.name,
+        phrase: v.phrase,
+        animal: v.animal,
+        player: api.session.player || cfg.playerName,
+        a: v.she ? 'а' : '',
+        hearts: hearts(r.points),
+        level: cfg.levels[hearts(r.points)]!.toLowerCase(),
+        ...extra,
+      })
+        // faces don't show on paper
+        .replace(/\[\w+\]\s*/g, '')
+      const present = gift ? somethingFrom(v) : undefined
+      // a postscript about what's in the envelope
+      const ps = present
+        ? fill(pickLine(lines.all(), 'letter_ps', { ...situation(v, r), hour: 12 }, Math.random) ?? '{item} — тебе.', {
+            item: items.get(present)?.name ?? present,
+            phrase: v.phrase,
+          })
+        : ''
+      api.services.get('mail:box').send({
+        from: v.name,
+        fromId: v.id,
+        text: ps ? `${text}\n\nP. S. ${ps}` : text,
+        ...(present ? { gift: { item: present, count: 1 } } : {}),
+      })
+      api.events.emit('villagers:wrote', { id: v.id, topic })
+    }
+    /** Morning post: thanks, news of a friendship, sometimes one friend just writes. */
+    const morningPost = () => {
+      const items = api.registry('items')
+      const chatter =
+        Math.random() < cfg.letterChance ? Object.keys(state.value.residents)[Math.floor(Math.random() * Object.keys(state.value.residents).length)] : undefined
+      for (const [id, r] of Object.entries(state.value.residents)) {
+        const v = defs.get(id)
+        if (!v || r.leaving >= 0) continue
+        for (const topic of lettersDue(r, id === chatter)) {
+          const item = topic === 'letter_thanks' ? r.thanks : topic === 'letter_help' ? r.helped : undefined
+          const gift = topic === 'letter_level' ? hearts(r.points) >= cfg.levelGiftFrom : Math.random() < cfg.letterGiftChance
+          write(v, r, topic, gift, item ? { item: items.get(item)?.name ?? item } : {})
+        }
+        r.level = Math.max(r.level ?? 0, hearts(r.points))
+        delete r.thanks
+        delete r.helped
+      }
+    }
+
     const moveOut = (id: string) => {
       const v = defs.get(id)
+      // a goodbye in the post for those who knew them
+      const gone = resident(id)
+      if (v && gone?.met && hearts(gone.points) >= 1) write(v, gone, 'letter_farewell', hearts(gone.points) >= cfg.levelGiftFrom)
       const npc = npcOf(id)
       const home = homeOf(id)
       if (npc) api.entities.despawn(npc)
@@ -378,6 +497,7 @@ export default definePlugin({
         if (r.leaving >= 0 && dayIndex >= r.leaving) moveOut(id)
         r.gifts = 0
       }
+      morningPost()
       const living = Object.entries(st.residents)
       if (living.length < cfg.maxResidents && st.nextArrival >= 0 && dayIndex >= st.nextArrival) {
         const v = newcomers()[Math.floor(Math.random() * newcomers().length)]
@@ -800,8 +920,9 @@ export default definePlugin({
 
     api.commands.register({
       name: 'villagers',
-      description: 'Жители: villagers · villagers add [id] · villagers friend <id> <очки> · villagers leave <id> · villagers visit [id] (в гости)',
-      usage: '[add [id] | friend id points | leave id | visit [id]]',
+      description:
+        'Жители: villagers · villagers add [id] · villagers friend <id> <очки> · villagers leave <id> · villagers visit [id] (в гости) · villagers post (утренняя почта сейчас)',
+      usage: '[add [id] | friend id points | leave id | visit [id] | post]',
       run: ([what, id, n]) => {
         if (what === 'add') {
           const v = id ? defs.get(id.includes(':') ? id : `villagers:${id}`) : newcomers()[0]
@@ -811,6 +932,12 @@ export default definePlugin({
         const full = id && (id.includes(':') ? id : `villagers:${id}`)
         if (what === 'friend' && full && resident(full)) {
           resident(full)!.points = Math.max(0, Math.min(MAX_POINTS, Number(n)))
+          touch()
+        }
+        if (what === 'post') {
+          // as if everyone had met you and the morning had come
+          for (const r of Object.values(state.value.residents)) r.met = true
+          morningPost()
           touch()
         }
         if (what === 'visit') {
@@ -835,7 +962,7 @@ export default definePlugin({
             const v = defs.get(rid)
             const npc = npcOf(rid)
             const b = npc ? brains.get(npc) : undefined
-            return `${(v?.name ?? rid).padEnd(10)} ${'♥'.repeat(hearts(r.points))}${'♡'.repeat(5 - hearts(r.points))} ${b?.asleep ? 'спит' : (b?.activity ?? '')}${r.request ? ` · просит ${r.request.label}` : ''}${r.leaving >= 0 ? ' · собирается уезжать' : ''}`
+            return `${(v?.name ?? rid).padEnd(10)} ${'♥'.repeat(hearts(r.points))}${'♡'.repeat(5 - hearts(r.points))} ${cfg.levels[hearts(r.points)]} · ${b?.asleep ? 'спит' : (b?.activity ?? '')}${r.request ? ` · просит ${r.request.label}` : ''}${r.leaving >= 0 ? ' · собирается уезжать' : ''}`
           })
           .join('\n')
       },
