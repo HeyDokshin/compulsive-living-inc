@@ -238,7 +238,8 @@ export function createPluginScope(game: Game, def: GamePlugin): PluginScope<Plug
     },
     interiors: {
       define: (id, look) => {
-        game.rooms.set(id, { ...look })
+        game.rooms.set(id, { name: look.name, icon: look.icon })
+        if (look.size) game.interiors.setSize(id, look.size.w, look.size.d)
         track(() => game.rooms.delete(id))
       },
       area: (id) => game.interiors.area(id),

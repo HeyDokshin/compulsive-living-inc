@@ -52,8 +52,13 @@ export interface DecorPieces {
   of(itemId: string): { piece: PieceDef; variant: Variant; pattern?: PatternDef } | null
   /** Ground height if a piece can stand on this cell (free, solid ground), else null. */
   freeCell(x: number, z: number): number | null
-  /** Put a piece on the island (no item needed — for starting furniture); `patternId` makes it a rare one. */
-  place(pieceId: string, variantId: string, x: number, z: number, rotY?: number, patternId?: string): Entity | null
+  /**
+   * Put a piece in a cell (no item needed: starting furniture, a neighbour's room) by its own
+   * rules: on the floor, a rug under things, a teapot on a table, a picture on the wall in front
+   * (`floorY`: the floor it hangs above). No room restrictions; `patternId` makes it a rare one.
+   * Null if it doesn't fit there.
+   */
+  place(pieceId: string, variantId: string, x: number, z: number, rotY?: number, patternId?: string, floorY?: number): Entity | null
   /** Put a placed piece back into the actor's pockets (false: pockets full or not allowed). */
   take(actor: Entity, piece: Entity): boolean
 }
@@ -252,9 +257,9 @@ export default definePlugin({
       return y
     }
     /** Where a piece would go in a cell (base height), or null. `actorY` = the floor the actor stands on. */
-    const spotFor = (piece: PieceDef, x: number, z: number, actorY: number): number | null => {
+    const spotFor = (piece: PieceDef, x: number, z: number, actorY: number, anywhere = false): number | null => {
       const room = api.interiors.current
-      if (room ? !cfg.rooms.includes(room) : piece.indoor) return null
+      if (!anywhere && (room ? !cfg.rooms.includes(room) : piece.indoor)) return null
       const here = placedAt(x, z)
       const rule = fits(piece.layer, here)
       if (!rule.ok) return null
@@ -311,10 +316,10 @@ export default definePlugin({
       itemId: variantItemId,
       of: (itemId) => byItem.get(itemId) ?? null,
       freeCell,
-      place: (pieceId, variantId, x, z, rotY = 0, patternId) => {
+      place: (pieceId, variantId, x, z, rotY = 0, patternId, floorY) => {
         const piece = pieces.get(pieceId)
         const variant = piece?.variants.find((v) => v.id === variantId) ?? piece?.variants[0]
-        const y = freeCell(x, z)
+        const y = piece ? spotFor(piece, x, z, floorY ?? api.world.surfaceY(x, z), true) : null
         const pattern = patternId ? patterns.get(patternId) : undefined
         return piece && variant && y !== null ? spawnPiece(piece, variant, x, y, z, rotY, pattern) : null
       },

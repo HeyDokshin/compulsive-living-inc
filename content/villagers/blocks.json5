@@ -1,0 +1,8 @@
+// Neighbours' rooms: invisible blocks to walk on and into — the rooms kit draws the walls and floors
+// (content/villagers/villagers.homes.json5). The floor counts as a house floor: furniture stands on it.
+{
+  entries: [
+    { id: 'villagers:floor', name: 'Пол', color: '#d9a46c', invisible: true, sounds: { step: 'core:step_wood' }, tags: ['house:floors'] },
+    { id: 'villagers:wall', name: 'Стена', color: '#f4e6cc', invisible: true },
+  ],
+}

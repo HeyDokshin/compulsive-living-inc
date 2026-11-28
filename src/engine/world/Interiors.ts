@@ -38,15 +38,23 @@ export interface SavedInteriorsV1 {
 
 export const CHUNK = 16
 
-/** A room world: this many chunks across, the room in its middle with a margin around it. */
+/** A room world: the room with a margin around it, in whole chunks (2 for a room up to 16 × 16). */
 export const ROOM_CHUNKS = 2
 export const ROOM_MARGIN = 8
-/** The biggest room (cells, walls included). */
+/** The usual room (cells, walls included), and the biggest one a room world can hold. */
 export const ROOM_SIZE = ROOM_CHUNKS * CHUNK - 2 * ROOM_MARGIN
+export const MAX_ROOM_CHUNKS = 4
+export const MAX_ROOM_SIZE = MAX_ROOM_CHUNKS * CHUNK - 2 * ROOM_MARGIN
 /** Rooms lie far off the island (past any island size), side by side: nothing in a room ever shares a
- * cell with something outside. Small enough numbers to stay exact on the GPU. */
+ * cell with something outside. Small enough numbers to stay exact on the GPU. Each room has this
+ * many cells along x (saves keep furniture at these coordinates: it never changes). */
 export const ROOMS_FROM = 2048
-export const ROOM_STRIDE = ROOM_CHUNKS * CHUNK * 2
+export const ROOM_STRIDE = MAX_ROOM_CHUNKS * CHUNK
+
+/** Chunks across a room world for a room of w × d cells (walls included). */
+export function roomChunks(w: number, d: number): number {
+  return Math.min(MAX_ROOM_CHUNKS, Math.max(ROOM_CHUNKS, Math.ceil((Math.max(w, d) + 2 * ROOM_MARGIN) / CHUNK)))
+}
 
 /** World coordinates of the first cell of room number n's world. */
 export function originOf(n: number): { x: number; z: number } {
@@ -56,6 +64,19 @@ export function originOf(n: number): { x: number; z: number } {
 export class Interiors {
   private inside: { id: string; back: Place } | null = null
   private numbers = new Map<string, number>()
+  /** Rooms bigger than the usual 16 × 16 (as their owners define them). */
+  private sizes = new Map<string, { w: number; d: number }>()
+
+  /** A room's size (cells, walls included; at most MAX_ROOM_SIZE). */
+  setSize(id: string, w: number, d: number): void {
+    this.sizes.set(id, { w: Math.min(MAX_ROOM_SIZE, Math.max(3, Math.round(w))), d: Math.min(MAX_ROOM_SIZE, Math.max(3, Math.round(d))) })
+  }
+
+  /** Chunks across the room's world. */
+  chunks(id: string): number {
+    const s = this.sizes.get(id)
+    return s ? roomChunks(s.w, s.d) : ROOM_CHUNKS
+  }
 
   /** A room's number (given on first use, then kept in the save): where its world lies. */
   numberOf(id: string): number {
@@ -75,7 +96,8 @@ export class Interiors {
   /** The room area in its world (world coordinates): where the owner builds it. */
   area(id: string): InteriorBox {
     const o = this.origin(id)
-    return { x: o.x + ROOM_MARGIN, z: o.z + ROOM_MARGIN, w: ROOM_SIZE, d: ROOM_SIZE }
+    const s = this.sizes.get(id)
+    return { x: o.x + ROOM_MARGIN, z: o.z + ROOM_MARGIN, w: Math.max(ROOM_SIZE, s?.w ?? 0), d: Math.max(ROOM_SIZE, s?.d ?? 0) }
   }
 
   /** The room a point belongs to (rooms are far off the island), or null on the island. */
@@ -83,7 +105,8 @@ export class Interiors {
     if (x < ROOMS_FROM && z < ROOMS_FROM) return null
     for (const [id, n] of this.numbers) {
       const o = originOf(n)
-      if (x >= o.x && x < o.x + ROOM_CHUNKS * CHUNK && z >= o.z && z < o.z + ROOM_CHUNKS * CHUNK) return id
+      const size = this.chunks(id) * CHUNK
+      if (x >= o.x && x < o.x + size && z >= o.z && z < o.z + size) return id
     }
     return null
   }
@@ -136,6 +159,7 @@ export class Interiors {
   reset(): void {
     this.inside = null
     this.numbers.clear()
+    // sizes stay: they come from the room definitions, not from the island
   }
 }
 

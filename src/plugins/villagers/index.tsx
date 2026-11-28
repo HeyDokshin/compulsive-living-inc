@@ -7,6 +7,7 @@
  */
 import { definePlugin, findPath, signal, voiceBlip, z, type Cell, type Entity, type RegistryEntry, type Signal } from '@sdk'
 import { Talk } from './talkUi'
+import { setupHomes } from './homes'
 import { activityAt, fill, hearts, MAX_POINTS, pickLine, type LineDef } from './talk'
 
 export interface PersonalityDef extends RegistryEntry {
@@ -43,6 +44,8 @@ export interface Resident {
   leaving: number
   /** Day they last came up to say hello. */
   hailDay?: number
+  /** Their room is furnished (set up on the first visit). */
+  furnished?: boolean
 }
 
 export interface VillagerState {
@@ -123,6 +126,8 @@ interface Brain {
   water?: { x: number; z: number }
   face?: { x: number; z: number }
   asleep: boolean
+  /** In their house, awake: visitors welcome. */
+  home?: boolean
   /** On the way to say hello to the player. */
   hail?: boolean
   emoteIn: number
@@ -286,6 +291,22 @@ export default definePlugin({
         inventory: { slots: [{ id: cfg.tool, count: 1 }], equipped: 0 },
       })
     }
+    // their homes inside: a visit while they are in
+    const visits = setupHomes(api, {
+      defs,
+      body: npcOf,
+      sendBack: (id) => {
+        const npc = npcOf(id)
+        const home = homeOf(id)
+        if (npc?.transform && home?.transform) Object.assign(npc.transform, { x: home.transform.x, y: home.transform.y, z: home.transform.z })
+      },
+      furnished: (id) => !!resident(id)?.furnished,
+      setFurnished: (id) => {
+        const r = resident(id)
+        if (r) r.furnished = true
+        touch()
+      },
+    })
     const moveIn = (v: VillagerDef, quiet = false) => {
       const home = placeHome(v)
       if (!home) return false
@@ -317,6 +338,7 @@ export default definePlugin({
       const home = homeOf(id)
       if (npc) api.entities.despawn(npc)
       if (home) api.entities.despawn(home)
+      visits.clear(id)
       delete state.value.residents[id]
       if (v) state.value.news = [...state.value.news, `${v.name} переехал${v.she ? 'а' : ''} на другой остров. Будем скучать!`]
       touch()
@@ -411,10 +433,12 @@ export default definePlugin({
       b.face = undefined
       const d = door(home)
       switch (b.activity) {
+        case 'home':
         case 'sleep': {
           if (Math.floor(t.x) === d.x && Math.floor(t.z) === d.z) {
-            // inside the house: hidden by its walls
-            b.asleep = true
+            // inside the house: hidden by its walls (asleep, or in and glad of a visit)
+            if (b.activity === 'sleep') b.asleep = true
+            else b.home = true
             t.x = home.transform!.x
             t.z = home.transform!.z
             return
@@ -562,14 +586,19 @@ export default definePlugin({
             b.activity = activity
             b.path = []
             b.wait = 0
-            if (b.asleep && activity !== 'sleep') {
-              // wake up: step out of the door
+            if (b.asleep || b.home) {
+              // wake up, or time to go out: step out of the door
               const d = door(home)
               t.x = d.x + 0.5
               t.z = d.z + 0.5
               t.y = api.world.surfaceY(d.x, d.z)
               b.asleep = false
+              b.home = false
             }
+          }
+          if (b.home) {
+            npc.biped!.speed = 0
+            continue
           }
           if (b.asleep) {
             npc.biped!.speed = 0
@@ -707,8 +736,13 @@ export default definePlugin({
         const id = ctx.target!.villagerHome!.id
         const v = defs.get(id)
         const npc = npcOf(id)
-        const asleep = npc ? brains.get(npc)?.asleep : false
-        api.ui.toast(asleep ? `Тишина… ${v?.name ?? 'Кто-то'} спит. Zzz` : `${v?.name ?? 'Хозяин'} сейчас гуляет где-то на острове.`)
+        const b = npc ? brains.get(npc) : undefined
+        if (b?.home) {
+          api.audio.play('ui:open')
+          visits.enter(ctx.actor, id)
+          return
+        }
+        api.ui.toast(b?.asleep ? `Тишина… ${v?.name ?? 'Кто-то'} спит. Zzz` : `${v?.name ?? 'Хозяин'} сейчас гуляет где-то на острове.`)
       },
     })
     api.events.on('ui:closed', ({ id }) => {
@@ -762,8 +796,8 @@ export default definePlugin({
 
     api.commands.register({
       name: 'villagers',
-      description: 'Жители: villagers · villagers add [id] · villagers friend <id> <очки> · villagers leave <id>',
-      usage: '[add [id] | friend id points | leave id]',
+      description: 'Жители: villagers · villagers add [id] · villagers friend <id> <очки> · villagers leave <id> · villagers visit [id] (в гости)',
+      usage: '[add [id] | friend id points | leave id | visit [id]]',
       run: ([what, id, n]) => {
         if (what === 'add') {
           const v = id ? defs.get(id.includes(':') ? id : `villagers:${id}`) : newcomers()[0]
@@ -774,6 +808,19 @@ export default definePlugin({
         if (what === 'friend' && full && resident(full)) {
           resident(full)!.points = Math.max(0, Math.min(MAX_POINTS, Number(n)))
           touch()
+        }
+        if (what === 'visit') {
+          // straight into a neighbour's home, as if they had just let you in
+          const vid = full || Object.keys(state.value.residents)[0]
+          const npc = vid ? npcOf(vid) : undefined
+          const home = vid ? homeOf(vid) : undefined
+          const pl = player()
+          if (!vid || !npc || !home || !pl) throw new Error('никто не живёт')
+          const b = brains.get(npc)
+          if (b) Object.assign(b, { home: true, asleep: false, path: [] })
+          Object.assign(npc.transform, { x: home.transform.x, z: home.transform.z })
+          visits.enter(pl, vid)
+          return `в гостях: ${defs.get(vid)?.name}`
         }
         if (what === 'leave' && full && resident(full)) {
           resident(full)!.leaving = api.time.dayIndex + 1
