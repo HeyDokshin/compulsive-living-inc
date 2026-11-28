@@ -76,6 +76,8 @@ export class Renderer {
   ) {
     this.renderer = new WebGLRenderer({ antialias: true, stencil: true })
     this.renderer.shadowMap.type = PCFShadowMap
+    // counted per frame (every pass: shadows, scene, effects), not per render call
+    this.renderer.info.autoReset = false
     // asking the driver about errors waits for every shader: only while developing
     this.renderer.debug.checkShaderErrors = import.meta.env?.DEV === true
     container.appendChild(this.renderer.domElement)
@@ -262,7 +264,17 @@ export class Renderer {
     c.margin = this.cfg.render.cullMargin
   }
 
+  /** What the last frame cost: draw calls and triangles over all its passes. */
+  frameStats(): { calls: number; triangles: number } {
+    return { calls: this.lastFrame.calls, triangles: this.lastFrame.triangles }
+  }
+  private lastFrame = { calls: 0, triangles: 0 }
+
   render(ctx: TickContext): void {
+    const info = this.renderer.info.render
+    this.lastFrame.calls = info.calls
+    this.lastFrame.triangles = info.triangles
+    this.renderer.info.reset()
     this.updateCull()
     this.entityRenderer.render(ctx)
     this.active.cull()

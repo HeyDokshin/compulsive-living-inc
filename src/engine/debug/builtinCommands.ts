@@ -228,6 +228,14 @@ export function builtinCommands(game: Game): Cmd[] {
       },
     },
     {
+      name: 'frame',
+      description: 'Цена кадра: вызовы отрисовки и треугольники (все проходы)',
+      run: () => {
+        const f = game.renderer.frameStats()
+        return `draw calls ${f.calls}, triangles ${f.triangles}`
+      },
+    },
+    {
       name: 'chunks',
       description: 'Статистика чанков (меши, треугольники, в очереди)',
       run: () => {
