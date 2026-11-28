@@ -54,7 +54,7 @@ export function AsyncIcon({ src, size = 48, alt = '' }: { src: Promise<string> |
       alive = false
     }
   }, [src])
-  return url ? <img src={url} width={size} height={size} alt={alt} style={{ imageRendering: 'pixelated' }} /> : <span style={{ width: size, height: size }} />
+  return url ? <img src={url} width={size} height={size} alt={alt} /> : <span style={{ width: size, height: size }} />
 }
 
 export function ItemSlot(props: {

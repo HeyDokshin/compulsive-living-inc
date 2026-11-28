@@ -10,7 +10,7 @@ import { expect, test, type Page } from '@playwright/test'
 /**
  * What a frame may cost (all passes, 1100 × 700, default zoom, once models have loaded — during the
  * load a frame briefly costs more) — about 1.5 × what it cost when set (0.19, the same in Chromium
- * and WebKit: island 134 calls / 534 k triangles, house 71 / 74 k). Raise on purpose, with a reason.
+ * and WebKit: island 134 calls / 534 k triangles, house 71 / 74 k; 0.20 with soft-edged things: island 152 / 586 k). Raise on purpose, with a reason.
  */
 const BUDGET = { island: { calls: 210, triangles: 800_000 }, room: { calls: 120, triangles: 150_000 } }
 

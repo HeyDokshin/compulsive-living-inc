@@ -88,7 +88,7 @@ ${patternCss('rgba(176, 124, 72, .09)', 'rgba(255, 255, 255, .2)')}
 .cl-slotbox:hover { transform: scale(1.05); }
 .cl-slotbox.selected { border-color: var(--ui-accent); background: #eef9f3; }
 .cl-slotbox.equipped::after { content: '✦'; position: absolute; top: 2px; left: 6px; color: var(--ui-gold); font-size: 13px; }
-.cl-slotbox img { width: 48px; height: 48px; image-rendering: pixelated; pointer-events: none; }
+.cl-slotbox img { width: 48px; height: 48px; pointer-events: none; }
 .cl-count { position: absolute; right: 4px; bottom: 2px; font-size: 12px; font-weight: 800; background: #fff;
   border-radius: 999px; padding: 0 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
 
@@ -98,7 +98,7 @@ ${patternCss('rgba(176, 124, 72, .09)', 'rgba(255, 255, 255, .2)')}
   filter: drop-shadow(0 6px 12px rgba(110, 80, 70, .18)); animation: cl-pop .28s cubic-bezier(.3, 1.4, .5, 1); display: flex; gap: 8px; align-items: center;
   transition: transform .25s ease; }
 .cl-toast.leaving { animation: cl-pop-out .22s ease-in forwards; }
-.cl-toast img { width: 28px; height: 28px; image-rendering: pixelated; }
+.cl-toast img { width: 28px; height: 28px; }
 @keyframes cl-pop { from { transform: scale(.85); opacity: 0 } to { transform: scale(1); opacity: 1 } }
 @keyframes cl-fade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes cl-fade-out { to { opacity: 0 } }

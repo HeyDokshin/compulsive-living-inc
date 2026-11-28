@@ -28,6 +28,7 @@ import { AtlasDetail } from './render/AtlasDetail'
 import { FabricTextures } from './render/fabric'
 import { TerrainDetail } from './render/terrainDetail'
 import { MaterialTextures } from './render/materialTextures'
+import { IconRenderer } from './render/IconRenderer'
 import { WorldService } from './world/WorldService'
 import type { WorldGenStep } from './world/WorldGen'
 import { ModelDefSchema, RigDefSchema, type ModelDef, type RigDef } from './models/defs'
@@ -177,6 +178,9 @@ export class Game {
     this.camera = new CameraController(this.renderer.iso, this.engineConfig.camera, this.input, this.entities, this.world)
     this.interactions = new Interactions(this.interactionDefs, this.items, this.blocks, this.hooks, this.events)
     this.icons = new IconService(this.items, this.blocks, this.modelLibrary, this.renderer.atlas)
+    // icons drawn from the things as the game shows them
+    const iconRenderer = new IconRenderer(this.renderer.renderer, this.modelLibrary)
+    this.icons.render = (id, palette, style) => iconRenderer.draw(id, palette, style)
     this.audio = new Audio(this.sounds, this.engineConfig.audio)
     this.particles = new Particles(this.renderer.scene, this.particleDefs)
     this.mods = new ModManager({

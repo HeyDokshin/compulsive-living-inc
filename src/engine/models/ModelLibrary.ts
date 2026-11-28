@@ -124,7 +124,8 @@ export class ModelLibrary {
       const modelId = opts.parts?.[part.name] ?? part.model
       this.withModel(modelId, (model, def) => {
         if (round) {
-          for (const o of this.roundPart(modelId, model, part.pivot, opts.palette, def, round)) g.add(o)
+          // a part's own model can be rounder or crisper than the rig (a soft body under a round head)
+          for (const o of this.roundPart(modelId, model, part.pivot, opts.palette, def, def.round ?? round)) g.add(o)
           return
         }
         const mesh = this.mesh(modelId, model, part.pivot, opts.palette, def)
