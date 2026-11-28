@@ -78,6 +78,7 @@ export default definePlugin({
 | `api.mods` | моды игрока: `list`, `create`, `read`, `write` (сразу в игре), `exportZip` |
 | слот `menu` | кнопка в Esc-меню (`api.ui.slot('menu', …)`) |
 | `api.render.setWind(strength)` | как сильно качаются растения (1 — лёгкий ветерок) |
+| `api.render.setCover({ snow?, ice?, litter?, litterColors? })` | что лежит на острове по сезону (0…1): снег на всём, что смотрит вверх, лёд от берегов, листья или лепестки двух цветов |
 | `api.session` | имя острова и игрока (`name`, `player`), `rename(...)`; событие `session:created` — новый остров показан, пора создавать персонажа |
 | `api.save.hasData` | в сейве есть данные этого плагина (нет — новый остров или плагин появился позже: пора засеять) |
 | `api.render.refreshView(entity)` / `api.render.setZoom(z)` | пересобрать модель сущности после смены `model` / плавный зум |
