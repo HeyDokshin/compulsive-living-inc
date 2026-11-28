@@ -81,3 +81,85 @@ export function surfaceFor(hex: string): string {
   if (h >= 70 && h <= 170) return 'core:leaves'
   return 'core:painted'
 }
+
+/** A flat thing (a rug, a picture, a wall clock) as one picture: its face seen straight on. */
+export interface FlatPicture {
+  /** 'y': lies flat (seen from above); 'z': hangs facing +z (seen from the front). */
+  axis: 'y' | 'z'
+  w: number
+  h: number
+  /** RGBA, row 0 at the top (the back edge of a rug, the top of a picture); see-through where empty. */
+  rgba: Uint8ClampedArray
+  /** The color index covering most of it (for its material). */
+  main: number
+}
+
+/** Is the model a flat thing — one voxel thin, at least `min` across both other ways? */
+export function flatAxis(model: VoxelModel, min = 6): 'y' | 'z' | null {
+  const [sx, sy, sz] = model.size
+  if (sy === 1 && sx >= min && sz >= min) return 'y'
+  if (sz === 1 && sx >= min && sy >= min) return 'z'
+  return null
+}
+
+/**
+ * The picture of a flat thing in its own colors. Empty texels take the color of their filled
+ * neighbours (alpha stays 0), so a smoothly scaled picture has no dark fringe round its outline.
+ */
+export function flatPicture(model: VoxelModel, axis: 'y' | 'z', colors: readonly string[]): FlatPicture {
+  const [sx, sy, sz] = model.size
+  const w = sx
+  const h = axis === 'y' ? sz : sy
+  const rgb = colors.map((c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16) || 0))
+  const rgba = new Uint8ClampedArray(w * h * 4)
+  const count = new Map<number, number>()
+  for (let row = 0; row < h; row++)
+    for (let x = 0; x < w; x++) {
+      // rugs: the top voxel of the column; pictures: the frontmost
+      let ci = 0
+      if (axis === 'y') for (let y = sy - 1; y >= 0 && !ci; y--) ci = voxelIndexColor(model, x, y, row)
+      else for (let z = sz - 1; z >= 0 && !ci; z--) ci = voxelIndexColor(model, x, sy - 1 - row, z)
+      if (!ci) continue
+      const o = (row * w + x) * 4
+      const c = rgb[ci]!
+      rgba[o] = c[0]!
+      rgba[o + 1] = c[1]!
+      rgba[o + 2] = c[2]!
+      rgba[o + 3] = 255
+      count.set(ci, (count.get(ci) ?? 0) + 1)
+    }
+  // bleed colors into the empty texels around (two rings)
+  for (let pass = 0; pass < 2; pass++) {
+    const src = rgba.slice()
+    for (let row = 0; row < h; row++)
+      for (let x = 0; x < w; x++) {
+        const o = (row * w + x) * 4
+        if (src[o + 3]! || (src[o]! | src[o + 1]! | src[o + 2]!) !== 0) continue
+        let n = 0
+        const sum = [0, 0, 0]
+        for (const [dx, dy] of [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+        ] as const) {
+          const xx = x + dx
+          const yy = row + dy
+          if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue
+          const q = (yy * w + xx) * 4
+          if (!src[q + 3]! && (src[q]! | src[q + 1]! | src[q + 2]!) === 0) continue
+          sum[0]! += src[q]!
+          sum[1]! += src[q + 1]!
+          sum[2]! += src[q + 2]!
+          n++
+        }
+        if (n) for (let k = 0; k < 3; k++) rgba[o + k] = Math.round(sum[k]! / n)
+      }
+  }
+  const main = [...count].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 1
+  return { axis, w, h, rgba, main }
+}
+
+function voxelIndexColor(m: VoxelModel, x: number, y: number, z: number): number {
+  return m.voxels[x + z * m.size[0] + y * m.size[0] * m.size[2]] ?? 0
+}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildBevelGeometry, shadeParts, splitBoxes } from '../src/engine/models/bevelMesh'
+import { flatAxis, flatPicture } from '../src/engine/models/thingMesh'
 import { parseLayers } from '../src/engine/models/voxelModel'
 
 // a little bench: two legs (q) under a seat of light and dark planks (p, P)
@@ -57,5 +58,25 @@ describe('bevelled boxes', () => {
     const g = buildBevelGeometry([{ min: [0, 0, 0], max: [1, 0.3, 1], color: 1 }], [0, 0, 0], 2)
     const ys = new Set(g.position.filter((_, i) => i % 3 === 1).map((v) => +v.toFixed(3)))
     expect([...ys].sort()).toEqual([0, 0.1, 0.2, 0.3])
+  })
+})
+
+describe('flat things', () => {
+  const rug = parseLayers([['.aa.', 'abba', 'abba', '.aa.']], { a: '#ff0000', b: '#0000ff' })
+  it('knows a rug lies flat and a picture hangs', () => {
+    expect(flatAxis(rug, 4)).toBe('y')
+    expect(flatAxis(parseLayers([['aaaa'], ['aaaa'], ['aaaa'], ['aaaa']], { a: '#ffffff' }), 4)).toBe('z')
+    expect(flatAxis(bench)).toBeNull()
+  })
+  it('paints its picture from above, see-through where empty but with the color next to it', () => {
+    const pic = flatPicture(rug, 'y', rug.colors)
+    expect([pic.w, pic.h]).toEqual([4, 4])
+    const at = (x: number, y: number) => [...pic.rgba.slice((y * 4 + x) * 4, (y * 4 + x) * 4 + 4)]
+    expect(at(1, 1)).toEqual([0, 0, 255, 255])
+    expect(at(1, 0)).toEqual([255, 0, 0, 255])
+    const corner = at(0, 0)
+    expect(corner[3]).toBe(0) // empty…
+    expect(corner[0]).toBe(255) // …but red, like its neighbours: no dark fringe when scaled
+    expect(pic.main).toBe(1) // red covers most
   })
 })
