@@ -30,6 +30,8 @@ export interface PieceDef extends RegistryEntry {
   /** Only inside rooms (wall pieces). */
   indoor: boolean
   glow?: { color: string; size: number; y: number; flicker: boolean }
+  /** A sound it makes over and over (a clock ticks, a fire crackles): every `every` s, ± `jitter`. */
+  sound?: { id: string; every: number; jitter: number }
   variants: Variant[]
 }
 
@@ -52,8 +54,13 @@ export interface DecorPieces {
   of(itemId: string): { piece: PieceDef; variant: Variant; pattern?: PatternDef } | null
   /** Ground height if a piece can stand on this cell (free, solid ground), else null. */
   freeCell(x: number, z: number): number | null
-  /** Put a piece on the island (no item needed — for starting furniture); `patternId` makes it a rare one. */
-  place(pieceId: string, variantId: string, x: number, z: number, rotY?: number, patternId?: string): Entity | null
+  /**
+   * Put a piece in a cell (no item needed: starting furniture, a neighbour's room) by its own
+   * rules: on the floor, a rug under things, a teapot on a table, a picture on the wall in front
+   * (`floorY`: the floor it hangs above). No room restrictions; `patternId` makes it a rare one.
+   * Null if it doesn't fit there.
+   */
+  place(pieceId: string, variantId: string, x: number, z: number, rotY?: number, patternId?: string, floorY?: number): Entity | null
   /** Put a placed piece back into the actor's pockets (false: pockets full or not allowed). */
   take(actor: Entity, piece: Entity): boolean
 }
@@ -88,6 +95,7 @@ const PieceSchema = z.looseObject({
   surface: z.number().min(0).max(2).default(0),
   indoor: z.boolean().default(false),
   glow: z.object({ color: z.string(), size: z.number().default(2), y: z.number().default(1), flicker: z.boolean().default(false) }).optional(),
+  sound: z.object({ id: z.string(), every: z.number().min(0.1).default(1), jitter: z.number().min(0).default(0) }).optional(),
   variants: z.array(z.object({ id: z.string(), name: z.string().default(''), palette: z.record(z.string(), z.string()).default({}) })).min(1),
 })
 
@@ -97,9 +105,14 @@ const Config = z.object({
   /** Ground blocks things can stand on (tags). */
   groundTags: z.array(z.string()).default(['#core:ground', '#house:floors']),
   /** Rooms where pieces may be placed (others, like the museum hall, are not yours to furnish). */
-  rooms: z.array(z.string()).default(['house:home']),
+  rooms: z.array(z.string()).default(['house:home', 'house:attic']),
   /** Lamps and fires glow at least this much inside rooms, day or night. */
   indoorGlow: z.number().min(0).max(1).default(0.55).meta({ label: 'indoor glow', step: 0.05 }),
+  /** Lamps in rooms: how bright the pool of light on the floor and the walls is, and how far it reaches (× glow size). */
+  lampPool: z.number().min(0).max(1.5).default(0.5).meta({ label: 'lamp pool', step: 0.05 }),
+  lampReach: z.number().min(0.5).max(3).default(1.4).meta({ label: 'lamp reach', step: 0.05 }),
+  /** The halo sits this far (blocks) towards the camera, so the shade it shines from glows instead of hiding it. */
+  haloForward: z.number().min(0).max(2).default(0.55).meta({ label: 'halo forward', step: 0.05 }),
   /** Wall pieces hang this high above the floor (blocks). */
   wallHeight: z.number().min(0).max(4).default(1.1).meta({ label: 'wall height', step: 0.05 }),
   /** Chance that a piece one gets (bought, made, given) comes with a rare pattern. */
@@ -252,9 +265,9 @@ export default definePlugin({
       return y
     }
     /** Where a piece would go in a cell (base height), or null. `actorY` = the floor the actor stands on. */
-    const spotFor = (piece: PieceDef, x: number, z: number, actorY: number): number | null => {
+    const spotFor = (piece: PieceDef, x: number, z: number, actorY: number, anywhere = false): number | null => {
       const room = api.interiors.current
-      if (room ? !cfg.rooms.includes(room) : piece.indoor) return null
+      if (!anywhere && (room ? !cfg.rooms.includes(room) : piece.indoor)) return null
       const here = placedAt(x, z)
       const rule = fits(piece.layer, here)
       if (!rule.ok) return null
@@ -311,10 +324,10 @@ export default definePlugin({
       itemId: variantItemId,
       of: (itemId) => byItem.get(itemId) ?? null,
       freeCell,
-      place: (pieceId, variantId, x, z, rotY = 0, patternId) => {
+      place: (pieceId, variantId, x, z, rotY = 0, patternId, floorY) => {
         const piece = pieces.get(pieceId)
         const variant = piece?.variants.find((v) => v.id === variantId) ?? piece?.variants[0]
-        const y = freeCell(x, z)
+        const y = piece ? spotFor(piece, x, z, floorY ?? api.world.surfaceY(x, z), true) : null
         const pattern = patternId ? patterns.get(patternId) : undefined
         return piece && variant && y !== null ? spawnPiece(piece, variant, x, y, z, rotY, pattern) : null
       },
@@ -382,6 +395,7 @@ export default definePlugin({
 
     // --- glow after dark -----------------------------------------------------------------------
     setupGlow(api, cfg, (id) => pieces.get(id) ?? undefined)
+    setupSounds(api, (id) => pieces.get(id) ?? undefined)
 
     api.commands.register({
       name: 'decor',
@@ -401,8 +415,15 @@ export default definePlugin({
   },
 })
 
-/** Soft halos over glowing pieces at night (sprites, pooled per entity). */
-function setupGlow(api: PluginApi, cfg: { glow: number; indoorGlow: number }, piece: (id: string) => PieceDef | undefined) {
+/**
+ * Soft halos over glowing pieces at night (sprites, pooled per entity); inside rooms a lamp also casts
+ * a pool of warm light on the floor around it and on the walls near it, fading with distance.
+ */
+function setupGlow(
+  api: PluginApi,
+  cfg: { glow: number; indoorGlow: number; lampPool: number; lampReach: number; haloForward: number },
+  piece: (id: string) => PieceDef | undefined,
+) {
   const T = api.render.three
   const group = api.render.add(new T.Group())
   const c = document.createElement('canvas')
@@ -415,46 +436,206 @@ function setupGlow(api: PluginApi, cfg: { glow: number; indoorGlow: number }, pi
   g.fillStyle = grad
   g.fillRect(0, 0, 64, 64)
   const tex = new T.CanvasTexture(c)
-  const halos = new Map<Entity, InstanceType<typeof T.Sprite>>()
+  // the pools: a softer, wider falloff than the halo
+  const pc = document.createElement('canvas')
+  pc.width = pc.height = 64
+  const pg = pc.getContext('2d')!
+  const pgrad = pg.createRadialGradient(32, 32, 0, 32, 32, 32)
+  pgrad.addColorStop(0, 'rgba(255,255,255,1)')
+  pgrad.addColorStop(0.45, 'rgba(255,255,255,0.45)')
+  pgrad.addColorStop(1, 'rgba(255,255,255,0)')
+  pg.fillStyle = pgrad
+  pg.fillRect(0, 0, 64, 64)
+  const poolTex = new T.CanvasTexture(pc)
+  const quad = new T.PlaneGeometry(1, 1)
+  type Mesh = InstanceType<typeof T.Mesh<typeof quad, InstanceType<typeof T.MeshBasicMaterial>>>
+  /** Floor first, then the walls in the four directions (+x, -x, +z, -z). */
+  const DIRS = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ] as const
+  interface Lit {
+    halo: InstanceType<typeof T.Sprite>
+    pools: Mesh[]
+    /** Strength of each pool by distance (0: none). */
+    reach: number[]
+    /** Where the pools were laid out for. */
+    at: [number, number, number]
+  }
+  const lit = new Map<Entity, Lit>()
+  // the walls around may have changed (a room built, the house grown): lay the pools out again
+  let stale = false
+  api.events.on('world:blockChanged', () => void (stale = true))
+  api.events.on('interior:changed', () => void (stale = true))
+  const drop = (l: Lit) => {
+    l.halo.removeFromParent()
+    l.halo.material.dispose()
+    for (const m of l.pools) {
+      m.removeFromParent()
+      m.material.dispose()
+    }
+  }
   api.onDispose(() => {
     tex.dispose()
-    for (const s of halos.values()) s.material.dispose()
+    poolTex.dispose()
+    quad.dispose()
+    for (const l of lit.values()) drop(l)
   })
+  const makePool = (color: string) => {
+    const mat = api.render.stylize(
+      new T.MeshBasicMaterial({
+        map: poolTex,
+        color,
+        transparent: true,
+        depthWrite: false,
+        blending: T.AdditiveBlending,
+        opacity: 0,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -2,
+      }),
+    )
+    const m = new T.Mesh(quad, mat) as Mesh
+    m.renderOrder = 3
+    m.visible = false
+    group.add(m)
+    return m
+  }
+  /** Lay the pools out around a lamp: on the floor below it, on the walls within reach. */
+  const layOut = (l: Lit, x: number, y: number, z: number, size: number, height: number) => {
+    l.at[0] = x
+    l.at[1] = y
+    l.at[2] = z
+    const w = api.world
+    const r = (size * cfg.lampReach) / 2
+    const cx = Math.floor(x)
+    const cz = Math.floor(z)
+    // the floor: the first solid block down from the lamp
+    let by = Math.floor(y) - 1
+    for (let i = 0; i < 6 && by > 0 && w.getBlock(cx, by, cz) === w.AIR; i++) by--
+    const floor = by + 1
+    const f = l.pools[0]!
+    f.rotation.set(-Math.PI / 2, 0, 0)
+    f.position.set(x, floor + 0.01, z)
+    f.scale.set(r * 2, r * 2, 1)
+    l.reach[0] = 1
+    // the walls: the first solid block a step above the floor (furniture-high fixtures don't count)
+    const ly = y + height
+    for (let d = 0; d < 4; d++) {
+      const [dx, dz] = DIRS[d]!
+      l.reach[d + 1] = 0
+      for (let k = 1; k <= Math.ceil(r); k++) {
+        const bx = cx + dx * k
+        const bz = cz + dz * k
+        if (w.getBlock(bx, floor + 1, bz) === w.AIR) continue
+        // the wall's face: the near side of the block
+        const face = dx ? bx + (dx < 0 ? 1 : 0) : bz + (dz < 0 ? 1 : 0)
+        const dist = Math.abs(face - (dx ? x : z))
+        if (dist >= r) break
+        const m = l.pools[d + 1]!
+        const span = 2 * Math.sqrt(r * r - dist * dist)
+        m.rotation.set(0, dx ? -dx * (Math.PI / 2) : dz > 0 ? Math.PI : 0, 0)
+        m.position.set(dx ? face - dx * 0.02 : x, Math.max(floor + span / 2, ly), dz ? face - dz * 0.02 : z)
+        m.scale.set(span, span, 1)
+        l.reach[d + 1] = 1 - dist / r
+        break
+      }
+    }
+  }
   const night = () => {
     const h = api.time.hour
     return Math.min(1, Math.max(0, (Math.abs(h - 12.5) - 5.5) / 1.5))
   }
   let time = 0
   const decor = api.entities.world.with('decor', 'transform')
+  /** From the scene towards the camera (unit). */
+  const toCamera = new T.Vector3()
   api.systems.add({
     id: 'glow',
     phase: 'render',
     run: ({ dt }) => {
       time += dt
       const n = Math.max(night(), api.interiors.current ? cfg.indoorGlow : 0) * cfg.glow
-      for (const [e, s] of halos) {
+      const cam = api.render.camera
+      toCamera.copy(cam.camera.position).sub(cam.target).normalize().multiplyScalar(cfg.haloForward)
+      const yaw = (cam.targetYaw * Math.PI) / 180
+      const sy = Math.sin(yaw)
+      const cy = Math.cos(yaw)
+      if (stale) {
+        stale = false
+        for (const l of lit.values()) l.at[0] = NaN
+      }
+      for (const [e, l] of lit) {
         if (!api.entities.world.has(e) || !e.decor) {
-          s.removeFromParent()
-          s.material.dispose()
-          halos.delete(e)
+          drop(l)
+          lit.delete(e)
         }
       }
       for (const e of decor) {
         const glow = piece(e.decor.piece)?.glow
         if (!glow) continue
-        let s = halos.get(e)
-        if (!s) {
-          s = new T.Sprite(
+        let l = lit.get(e)
+        if (!l) {
+          const halo = new T.Sprite(
             new T.SpriteMaterial({ map: tex, color: glow.color, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: 0 }),
           )
-          s.scale.setScalar(glow.size)
-          group.add(s)
-          halos.set(e, s)
+          halo.scale.setScalar(glow.size)
+          group.add(halo)
+          l = { halo, pools: [], reach: [0, 0, 0, 0, 0], at: [NaN, NaN, NaN] }
+          for (let i = 0; i < 5; i++) l.pools.push(makePool(glow.color))
+          lit.set(e, l)
         }
-        const flicker = glow.flicker ? 0.8 + Math.sin(time * 11 + e.transform.x) * 0.1 + Math.sin(time * 17) * 0.1 : 1
-        s.position.set(e.transform.x, e.transform.y + glow.y, e.transform.z)
-        s.material.opacity = Math.min(1, n * flicker)
-        s.visible = s.material.opacity > 0.01 && api.interiors.roomAt(e.transform.x, e.transform.z) === api.interiors.current
+        const t = e.transform
+        const flicker = glow.flicker ? 0.8 + Math.sin(time * 11 + t.x) * 0.1 + Math.sin(time * 17) * 0.1 : 1
+        const here = api.interiors.roomAt(t.x, t.z)
+        const shown = here === api.interiors.current
+        l.halo.position.set(t.x, t.y + glow.y, t.z).add(toCamera)
+        l.halo.material.opacity = Math.min(1, n * flicker)
+        l.halo.visible = l.halo.material.opacity > 0.01 && shown
+        // pools of light: only in rooms (outside the ground is uneven and the sky is wide)
+        const pools = shown && here !== null && cfg.lampPool > 0 && l.halo.visible
+        if (pools && (l.at[0] !== t.x || l.at[1] !== t.y || l.at[2] !== t.z)) layOut(l, t.x, t.y, t.z, glow.size, glow.y)
+        for (let i = 0; i < 5; i++) {
+          const m = l.pools[i]!
+          const reach = l.reach[i]!
+          // a wall between the room and the camera is cut low: no light on it
+          const near = i > 0 && DIRS[i - 1]![0] * sy + DIRS[i - 1]![1] * cy > 0.01
+          m.visible = pools && reach > 0 && !near
+          if (m.visible) m.material.opacity = Math.min(1, n * flicker * cfg.lampPool * (i ? 0.75 * reach : 1))
+        }
+      }
+    },
+  })
+}
+
+/** Pieces that make a sound over and over (a clock, a fire), heard where the player is. */
+function setupSounds(api: PluginApi, piece: (id: string) => PieceDef | undefined) {
+  const due = new Map<Entity, number>()
+  const decor = api.entities.world.with('decor', 'transform')
+  const at = { x: 0, z: 0 }
+  api.systems.add({
+    id: 'decorSounds',
+    phase: 'render',
+    run: ({ dt }) => {
+      if (!api.audio.ready || api.interiors.changing) return
+      for (const e of due.keys()) if (!api.entities.world.has(e)) due.delete(e)
+      const room = api.interiors.current
+      for (const e of decor) {
+        const s = piece(e.decor.piece)?.sound
+        if (!s) continue
+        let t = (due.get(e) ?? Math.random() * s.every) - dt
+        if (t <= 0) {
+          t += s.every + (Math.random() * 2 - 1) * s.jitter
+          // only in the place the player is in (a room, or the island)
+          if (api.interiors.roomAt(e.transform.x, e.transform.z) === room) {
+            at.x = e.transform.x
+            at.z = e.transform.z
+            api.audio.play(s.id, { at })
+          }
+        }
+        due.set(e, Math.max(0.05, t))
       }
     },
   })

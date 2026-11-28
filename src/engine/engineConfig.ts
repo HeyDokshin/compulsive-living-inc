@@ -30,6 +30,8 @@ export const EngineConfigSchema = z.object({
       veilIn: z.number().min(0).max(2).default(0.35).meta({ label: 'veil in (s)', step: 0.05 }),
       veilOut: z.number().min(0).max(2).default(0.5).meta({ label: 'veil out (s)', step: 0.05 }),
       maxWait: z.number().min(0.2).max(10).default(3).meta({ label: 'max wait (s)', step: 0.1 }),
+      /** How much a room echoes when its definition doesn't say (0 none … 1 a stone hall). */
+      echo: z.number().min(0).max(1).default(0.15).meta({ step: 0.01 }),
     })
     .prefault({}),
   camera: z
@@ -234,6 +236,9 @@ export const EngineConfigSchema = z.object({
       ambient: z.number().min(0).max(1).default(0.6).meta({ step: 0.01 }),
       music: z.number().min(0).max(1).default(0.5).meta({ step: 0.01 }),
       hearingRange: z.number().min(4).max(100).default(26).meta({ label: 'hearing range (blocks)', step: 1 }),
+      /** Echo inside rooms: the delay between reflections (s) and how long they ring on. */
+      echoDelay: z.number().min(0.02).max(0.5).default(0.09).meta({ label: 'echo delay (s)', step: 0.005 }),
+      echoTail: z.number().min(0).max(0.9).default(0.55).meta({ label: 'echo tail', step: 0.01 }),
     })
     .prefault({}),
   title: z

@@ -78,6 +78,9 @@ const Config = z.object({
   rainDrops: z.number().int().min(0).max(4000).default(900).meta({ label: 'rain drops', step: 50 }),
   snowFlakes: z.number().int().min(0).max(4000).default(700).meta({ label: 'snow flakes', step: 50 }),
   rainVolume: z.number().min(0).max(1).default(0.28).meta({ label: 'rain volume', step: 0.01 }),
+  /** Rain heard from inside a room: on the roof, duller (Hz the hiss is cut at) and this loud. */
+  rainIndoors: z.number().min(0).max(1).default(0.45).meta({ label: 'rain indoors', step: 0.01 }),
+  rainMuffle: z.number().min(100).max(3000).default(520).meta({ label: 'rain muffle (Hz)', step: 10 }),
   windVolume: z.number().min(0).max(1).default(0.2).meta({ label: 'wind volume', step: 0.01 }),
   mist: z.number().min(0).max(1).default(0.16).meta({ label: 'mist opacity', step: 0.01 }),
   /** Brightness of lightning (0 = none). */
@@ -414,6 +417,9 @@ export default definePlugin({
   },
 })
 
+/** The hiss of rain outdoors (Hz, the band its noise is filtered to). */
+const RAIN_HISS = 1700
+
 const KEYS = ['sun', 'ambient', 'tint', 'rain', 'snow', 'mist', 'wind'] as const satisfies ReadonlyArray<keyof Look>
 
 function WeatherPill({ shown }: { shown: ReturnType<typeof signal<{ def: WeatherDef; night: boolean; temp: number | null } | undefined>> }) {
@@ -469,8 +475,10 @@ class Precipitation {
     if (this.api.audio.ready && (this.soundIn -= dt) <= 0) {
       this.soundIn = 0.2
       const heard = out ? 1 : 0.3
-      this.rainSound ??= this.api.audio.loop({ wave: 'noise', filter: { type: 'bandpass', freq: 1700, q: 0.45 } })
-      this.rainSound?.setGain(this.cfg.rainVolume * Math.min(1.6, look.rain) * heard, 1.2)
+      this.rainSound ??= this.api.audio.loop({ wave: 'noise', filter: { type: 'bandpass', freq: RAIN_HISS, q: 0.45 } })
+      // inside, the rain drums on the roof: duller, a little quieter
+      this.rainSound?.setGain(this.cfg.rainVolume * Math.min(1.6, look.rain) * (out ? 1 : this.cfg.rainIndoors), 1.2)
+      this.rainSound?.setFilter(out ? RAIN_HISS : this.cfg.rainMuffle, 1.2)
       this.windSound ??= this.api.audio.loop({ wave: 'noise', filter: { type: 'bandpass', freq: 420, q: 1.1 } })
       this.windSound?.setGain(this.cfg.windVolume * Math.max(0, look.wind - 0.35) * heard * (0.7 + 0.3 * Math.sin(this.time * 0.9)), 1)
       this.windSound?.setFilter(340 + 260 * gust, 1)

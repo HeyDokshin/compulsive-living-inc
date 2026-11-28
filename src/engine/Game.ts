@@ -53,7 +53,7 @@ import { createLogger } from './util/log'
 import { TimeService, type SavedTime } from './time/TimeService'
 import { Clock } from './time/Clock'
 import { Blockers } from './world/Blockers'
-import { fromCorner, Interiors, legacyCorners, ROOM_CHUNKS, type Place, type SavedInteriorsV1 } from './world/Interiors'
+import { fromCorner, Interiors, legacyCorners, type Place, type SavedInteriorsV1 } from './world/Interiors'
 import { VoxelWorld } from './world/VoxelWorld'
 import { isPlainObject, type PlainObject } from './util/objects'
 
@@ -252,7 +252,7 @@ export class Game {
   }
 
   /** Names and icons of rooms (for the loading veil). */
-  readonly rooms = new Map<string, { name: string; icon: string }>()
+  readonly rooms = new Map<string, { name: string; icon: string; echo?: number }>()
   private moving = false
 
   /** Is the player on the way into or out of a room (the veil is up)? */
@@ -300,12 +300,14 @@ export class Game {
   openSpace(id: string | null): void {
     if (id) {
       const v = new VoxelWorld(this.world.island.palette)
-      v.reset(ROOM_CHUNKS, ROOM_CHUNKS, this.world.island.height)
+      const n = this.interiors.chunks(id)
+      v.reset(n, n, this.world.island.height)
       const o = this.interiors.origin(id)
       v.setOrigin(o.x, o.z)
       this.world.use(v)
     } else this.world.use(null)
     this.renderer.useSpace(id ? this.world.voxels : null)
+    this.audio.setEcho(id ? (this.rooms.get(id)?.echo ?? this.engineConfig.interior.echo) : 0)
   }
 
   /**

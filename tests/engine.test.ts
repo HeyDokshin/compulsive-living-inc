@@ -4,7 +4,7 @@ import { EventBus } from '../src/engine/events/EventBus'
 import { Hooks } from '../src/engine/events/Hooks'
 import { Registry } from '../src/engine/registry/Registry'
 import { Blockers } from '../src/engine/world/Blockers'
-import { fromCorner, Interiors, legacyCorners, originOf, ROOMS_FROM } from '../src/engine/world/Interiors'
+import { fromCorner, Interiors, legacyCorners, originOf, ROOM_STRIDE, roomChunks, ROOMS_FROM } from '../src/engine/world/Interiors'
 import { VoxelWorld } from '../src/engine/world/VoxelWorld'
 import { WorldService } from '../src/engine/world/WorldService'
 import type { BlockDef, GameEvents, GameHooks, PrefabDef } from '../src/engine/types'
@@ -72,6 +72,22 @@ describe('Interiors', () => {
     i.load({ current: null, rooms: { 'a:museum': 0 } }) // a save that put another room there
     expect(i.area('a:museum').x).toBe(house.x)
     expect(i.area('a:house').x).not.toBe(house.x)
+  })
+
+  it('sizes a room world to its room, never past its place and never moving old rooms', () => {
+    const i = new Interiors()
+    const small = i.area('a:small')
+    i.setSize('a:hall', 30, 22)
+    const hall = i.area('a:hall')
+    expect([hall.w, hall.d]).toEqual([30, 22])
+    expect(i.chunks('a:hall')).toBe(3)
+    expect(i.chunks('a:small')).toBe(2)
+    expect(hall.x - small.x).toBe(ROOM_STRIDE) // the usual stride: saved furniture stays where it was
+    expect(hall.x + hall.w).toBeLessThanOrEqual(originOf(1).x + ROOM_STRIDE)
+    expect(i.roomAt(hall.x + 28, hall.z + 20)).toBe('a:hall')
+    i.setSize('a:huge', 200, 200)
+    expect(i.area('a:huge').w).toBe(48)
+    expect(roomChunks(48, 10)).toBe(4)
   })
 
   it('keeps the way back to the island when going from room to room', () => {

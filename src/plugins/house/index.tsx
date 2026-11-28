@@ -6,9 +6,12 @@
  * Levels and finishes are data: content/house/house.levels.json5, house.finishes.json5.
  */
 import { definePlugin, signal, ui, z, type Entity, type PluginApi, type ReadonlySignal, type RegistryEntry, type Services } from '@sdk'
-import { moveToWall, payment, planRoom, windowsOf, type RoomPlan } from './room'
+import { hatchOf, moveToWall, payment, planRoom, stairsOf, windowsOf, type RoomPlan } from './room'
 
 export const HOME = 'house:home'
+/** The attic of the biggest house, up the stairs. */
+export const ATTIC = 'house:attic'
+type Room = typeof HOME | typeof ATTIC
 
 type Shell = ReturnType<Services['rooms:kit']['build']>
 type Surface = Parameters<Services['rooms:kit']['build']>[0]['look']['wall']
@@ -18,6 +21,8 @@ export interface LevelDef extends RegistryEntry {
   name: string
   model: string
   room: { w: number; d: number }
+  /** An attic up the stairs (cells, walls included). */
+  attic?: { w: number; d: number }
   cost: number
 }
 
@@ -39,6 +44,9 @@ interface HouseState {
   readyDay: number
   wall: string
   floor: string
+  /** The attic's own wallpaper and floor. */
+  atticWall: string
+  atticFloor: string
   lights: boolean
   /** Curtains drawn. */
   curtains: boolean
@@ -69,6 +77,13 @@ const Config = z.object({
   /** Starting finishes. */
   wall: z.string().default('house:wall_cream'),
   floor: z.string().default('house:floor_planks'),
+  /** The attic: lower walls, its own starting finishes, the stairs up to it and the hatch it opens on. */
+  atticWallHeight: z.number().int().min(2).max(8).default(3).meta({ label: 'attic wall height', step: 1 }),
+  atticWall: z.string().default('house:wall_logs'),
+  atticFloor: z.string().default('house:floor_planks'),
+  stairs: z.object({ material: z.string(), color: z.string() }).default({ material: 'core:wood', color: '#d9a56c' }),
+  stairsTop: z.object({ material: z.string(), color: z.string() }).default({ material: 'core:planks', color: '#f3dcc0' }),
+  hatch: z.object({ material: z.string(), color: z.string() }).default({ material: 'core:wood', color: '#6b4a32' }),
   /** Trims, the door and the mat (rooms kit surfaces). */
   trim: z.object({ material: z.string(), color: z.string() }).default({ material: 'house:painted_wood', color: '#fbf6ee' }),
   door: z.object({ material: z.string(), color: z.string() }).default({ material: 'core:wood', color: '#e9c9a3' }),
@@ -103,6 +118,7 @@ export default definePlugin({
         name: z.string(),
         model: z.string(),
         room: z.object({ w: z.number().int(), d: z.number().int() }),
+        attic: z.object({ w: z.number().int(), d: z.number().int() }).optional(),
         cost: z.number().int().min(0),
       }) as never,
     )
@@ -119,9 +135,12 @@ export default definePlugin({
       }) as never,
     )
     api.interiors.define(HOME, { name: 'Мой дом', icon: '🏠' })
+    api.interiors.define(ATTIC, { name: 'Мансарда', icon: '🪜' })
     api.components.define('home', z.object({}))
     api.components.define('mailbox', z.object({}))
     const area = api.interiors.area(HOME)
+    const atticArea = api.interiors.area(ATTIC)
+    const areaOf = (room: Room) => (room === HOME ? area : atticArea)
     const inventory = () => api.services.get('items:inventory')
     const decor = () => api.services.get('decor:pieces')
 
@@ -131,6 +150,8 @@ export default definePlugin({
       readyDay: -1,
       wall: cfg.wall,
       floor: cfg.floor,
+      atticWall: cfg.atticWall,
+      atticFloor: cfg.atticFloor,
       lights: true,
       curtains: false,
       furnished: false,
@@ -150,10 +171,13 @@ export default definePlugin({
     api.services.provide('house:info', { level: () => state.value.level, debt: () => state.value.debt })
 
     const levelDef = (n = state.value.level) => levels.all().find((l) => l.level === n)
-    const plan = (): RoomPlan => {
+    const plan = (room: Room = HOME): RoomPlan => {
       const l = levelDef()
+      if (room === ATTIC) return planRoom(l?.attic?.w ?? 8, l?.attic?.d ?? 8, atticArea.w, atticArea.d)
       return planRoom(l?.room.w ?? 8, l?.room.d ?? 8, area.w, area.d)
     }
+    /** The stairs up (area cells of the main room), if the house has an attic. */
+    const stairs = () => (levelDef()?.attic ? stairsOf(plan()) : null)
 
     // Finishes are items too.
     const registerItems = () => {
@@ -175,34 +199,54 @@ export default definePlugin({
     registerItems()
     const blockOf = (finish: string, fallback: string) => finishes.get(finish)?.block ?? fallback
 
-    // --- the room -------------------------------------------------------------------------------
+    // --- the rooms: the main one and the attic up the stairs ----------------------------------------
     const inside = () => api.interiors.current === HOME
+    /** The room of the house the player is in, or null. */
+    const here = (): Room | null => {
+      const c = api.interiors.current
+      return c === HOME || c === ATTIC ? c : null
+    }
+    const wallOf = (room: Room) => (room === HOME ? state.value.wall : state.value.atticWall)
+    const floorOf = (room: Room) => (room === HOME ? state.value.floor : state.value.atticFloor)
+    const heightOf = (room: Room) => (room === HOME ? cfg.wallHeight : cfg.atticWallHeight)
     // Invisible blocks to walk on and into; the rooms kit draws the walls and the floor over them.
-    const columnId = (p: RoomPlan, lx: number, lz: number, y: number): string => {
+    // Under the stairs and the hatch the floor is not one furniture can stand on.
+    const columnId = (room: Room, p: RoomPlan, lx: number, lz: number, y: number, stairCell: (lx: number, lz: number) => 'foot' | 'step' | null): string => {
       const F = cfg.floorY
       const kind = p.kindAt(lx, lz)
       if (kind === 'outside' || y < F) return api.world.AIR
-      if (y === F) return blockOf(state.value.floor, 'core:planks')
-      if (kind !== 'wall' || y - F > cfg.wallHeight) return api.world.AIR
-      return blockOf(state.value.wall, 'core:planks')
+      const st = stairCell(lx, lz)
+      if (y === F) return st ? 'house:stairs' : blockOf(floorOf(room), 'core:planks')
+      if (st === 'step' && y === F + 1) return 'house:stairs'
+      if (kind !== 'wall' || y - F > heightOf(room)) return api.world.AIR
+      return blockOf(wallOf(room), 'core:planks')
     }
     const surface = (finish: string, kind: 'wall' | 'floor'): FinishDef | undefined => {
       const f = finishes.get(finish)
       return f?.kind === kind ? f : finishes.all().find((x) => x.kind === kind)
     }
-    const showShell = () => {
+    let hatch: ReturnType<typeof hatchModel> | null = null
+    const dropShell = () => {
       shell?.dispose()
       shell = null
-      if (!inside()) return
-      const p = plan()
-      const wall = surface(state.value.wall, 'wall')
-      const floor = surface(state.value.floor, 'floor')
-      const cell = (c: { x: number; z: number }) => ({ x: area.x + c.x, z: area.z + c.z })
+      hatch?.dispose()
+      hatch = null
+    }
+    const showShell = () => {
+      dropShell()
+      const room = here()
+      if (!room) return
+      const p = plan(room)
+      const a = areaOf(room)
+      const wall = surface(wallOf(room), 'wall')
+      const floor = surface(floorOf(room), 'floor')
+      const cell = (c: { x: number; z: number }) => ({ x: a.x + c.x, z: a.z + c.z })
+      const up = room === HOME ? stairs() : null
       shell = api.services.get('rooms:kit').build({
-        box: { x0: area.x + p.x0, z0: area.z + p.z0, w: p.w, d: p.d },
+        box: { x0: a.x + p.x0, z0: a.z + p.z0, w: p.w, d: p.d },
         floorY: cfg.floorY + 1,
-        height: cfg.wallHeight,
-        doors: [cell(p.door)],
+        height: heightOf(room),
+        doors: room === HOME ? [cell(p.door)] : [],
         windows: windowsOf(p).map(cell),
         look: {
           wall: wall?.look ?? { material: 'house:paper_dots', color: '#f7ecd6' },
@@ -213,20 +257,41 @@ export default definePlugin({
           curtain: cfg.curtain,
           mat: cfg.mat,
         },
+        // each step its own height
+        builtIns: up ? up.steps.map((st) => ({ cells: [cell(st)], body: cfg.stairs, top: cfg.stairsTop, height: st.h })) : [],
       })
       shell.setLights(state.value.lights)
       shell.setCurtains(state.value.curtains)
+      if (room === ATTIC) {
+        const h = cell(hatchOf(p))
+        hatch = hatchModel(api, h.x, cfg.floorY + 1, h.z, cfg)
+      }
     }
+    /** Where walking takes you out of the room you are in (world cells), set when it is built. */
+    let ways: { room: Room; door: { x: number; z: number } | null; up: { x: number; z: number } | null; down: { x: number; z: number } | null } | null = null
     const build = () => {
       // The room's own world starts empty each time you come in: only the room is built.
-      const p = plan()
+      const room = here()
+      if (!room) return
+      const p = plan(room)
+      const a = areaOf(room)
+      const up = room === HOME ? stairs() : null
+      const down = room === ATTIC ? hatchOf(p) : null
+      const world = (c: { x: number; z: number } | null | undefined) => (c ? { x: a.x + c.x, z: a.z + c.z } : null)
+      ways = { room, door: room === HOME ? world(p.door) : null, up: world(up?.foot), down: world(down) }
+      const stairCell = (lx: number, lz: number): 'foot' | 'step' | null => {
+        if (down) return lx === down.x && lz === down.z ? 'foot' : null
+        if (!up) return null
+        for (const st of up.steps) if (st.x === lx && st.z === lz) return st === up.foot ? 'foot' : 'step'
+        return null
+      }
       const w = api.world
-      for (let lz = 0; lz < area.d; lz++)
-        for (let lx = 0; lx < area.w; lx++) {
-          const X = area.x + lx
-          const Z = area.z + lz
+      for (let lz = 0; lz < a.d; lz++)
+        for (let lx = 0; lx < a.w; lx++) {
+          const X = a.x + lx
+          const Z = a.z + lz
           for (let y = 0; y < w.height; y++) {
-            const id = columnId(p, lx, lz, y)
+            const id = columnId(room, p, lx, lz, y, stairCell)
             if (w.getBlock(X, y, Z) !== id) w.setBlock(X, y, Z, id)
           }
         }
@@ -241,12 +306,15 @@ export default definePlugin({
       for (const s of cfg.starter) decor().place(s.piece, s.variant, cx + s.dx, cz + s.dz, 0)
     }
     api.events.on('interior:changed', ({ id }) => {
-      if (id !== HOME) return void showShell() // gone out: the shell goes too
+      if (id !== HOME && id !== ATTIC) {
+        ways = null
+        return void dropShell() // gone out: the shell goes too
+      }
       build()
-      furnish()
+      if (id === HOME) furnish()
     })
-    api.events.on('session:started', () => (inside() ? build() : showShell()))
-    api.onDispose(() => shell?.dispose())
+    api.events.on('session:started', () => (here() ? build() : dropShell()))
+    api.onDispose(dropShell)
     const entrance = () => {
       const p = plan()
       return { x: area.x + p.spawn.x, y: cfg.floorY + 1, z: area.z + p.spawn.z, rotY: Math.PI }
@@ -260,23 +328,42 @@ export default definePlugin({
       api.interiors.exit(actor) // out of the door, facing away from it
       api.audio.play('ui:close')
     }
-    // Walking onto the door goes out.
+    /** Up the stairs: beside the hatch, facing into the attic. */
+    const upstairs = () => {
+      const h = hatchOf(plan(ATTIC))
+      return { x: atticArea.x + h.x - 0.5, y: cfg.floorY + 1, z: atticArea.z + h.z + 0.5, rotY: -Math.PI / 2 }
+    }
+    /** Down the stairs: in front of the lowest step, facing away from them. */
+    const downstairs = () => {
+      const f = stairs()?.foot
+      // no stairs any more (the house was made smaller): in by the door
+      return f ? { x: area.x + f.x + 0.5, y: cfg.floorY + 1, z: area.z + f.z + 1.5, rotY: 0 } : entrance()
+    }
+    const climb = (actor: Entity, to: Room) => {
+      if (api.interiors.changing) return
+      api.interiors.enter(to, actor, to === ATTIC ? upstairs() : downstairs())
+      api.audio.play('core:step_wood')
+    }
+    // Walking onto the door goes out; onto the lowest step, up; onto the hatch, down.
     api.systems.add({
       id: 'door',
       phase: 'update',
       run: () => {
-        if (!inside()) return
+        if (!ways || ways.room !== here()) return
         const pl = player()
         if (!pl) return
-        const p = plan()
-        if (Math.floor(pl.transform.x) - area.x === p.door.x && Math.floor(pl.transform.z) - area.z === p.door.z) goOut(pl)
+        const x = Math.floor(pl.transform.x)
+        const z = Math.floor(pl.transform.z)
+        if (onCell(ways.door, x, z)) goOut(pl)
+        else if (onCell(ways.up, x, z)) climb(pl, ATTIC)
+        else if (onCell(ways.down, x, z)) climb(pl, HOME)
       },
     })
     // Lights: dim the room when they're off (after the engine's indoor light).
     api.hooks.tap(
       'light:adjust',
       (st) => {
-        if (inside() && !state.value.lights) {
+        if (here() && !state.value.lights) {
           st.ambient *= cfg.dark
           st.sunIntensity *= cfg.dark
         }
@@ -377,8 +464,9 @@ export default definePlugin({
         api.world.updateBlocker(e)
       }
       refreshHouse()
-      if (inside()) build()
-      if (next) api.ui.toast(`Готово: ${next.name}! Комната стала больше.`, { ms: 4000 })
+      if (here()) build()
+      if (next)
+        api.ui.toast(next.attic ? `Готово: ${next.name}! Наверх — по лестнице у правой стены.` : `Готово: ${next.name}! Комната стала больше.`, { ms: 4000 })
     })
 
     // --- interactions -----------------------------------------------------------------------------
@@ -431,7 +519,10 @@ export default definePlugin({
       anim: 'none',
       sound: 'ui:click',
       label: () => (state.value.curtains ? 'Открыть шторы' : 'Задёрнуть шторы'),
-      when: (ctx) => inside() && windowsOf(plan()).some((c) => c.x === ctx.x - area.x && c.z === ctx.z - area.z),
+      when: (ctx) => {
+        const room = here()
+        return !!room && windowsOf(plan(room)).some((c) => c.x === ctx.x - areaOf(room).x && c.z === ctx.z - areaOf(room).z)
+      },
       run: () => void set({ curtains: !state.value.curtains }),
     })
     interactions.register({
@@ -440,17 +531,19 @@ export default definePlugin({
       priority: 25,
       label: (ctx) => (finishes.get(ctx.held ?? '')?.kind === 'floor' ? 'Постелить пол' : 'Поклеить обои'),
       sound: 'core:dig',
-      when: (ctx) => inside() && !!finishes.get(ctx.held ?? ''),
+      when: (ctx) => !!here() && !!finishes.get(ctx.held ?? ''),
       run: (ctx) => {
         const f = finishes.get(ctx.held!)
-        if (!f) return false
-        const old = f.kind === 'wall' ? state.value.wall : state.value.floor
+        const room = here()
+        if (!f || !room) return false
+        const old = f.kind === 'wall' ? wallOf(room) : floorOf(room)
         if (old === f.id) {
           api.ui.toast('Уже так и есть.')
           return false
         }
         inventory().remove(ctx.actor, f.id, 1)
-        set(f.kind === 'wall' ? { wall: f.id } : { floor: f.id })
+        if (room === ATTIC) set(f.kind === 'wall' ? { atticWall: f.id } : { atticFloor: f.id })
+        else set(f.kind === 'wall' ? { wall: f.id } : { floor: f.id })
         inventory().add(ctx.actor, old, 1, { quiet: true }) // the old one comes back
         build()
       },
@@ -509,16 +602,17 @@ export default definePlugin({
 
     api.commands.register({
       name: 'house',
-      description: 'Дом: house · house in / out · house level 2 · house paid',
-      usage: '[in | out | level N | paid]',
+      description: 'Дом: house · house in / up / out · house level 2 · house paid',
+      usage: '[in | up | out | level N | paid]',
       run: ([what, n]) => {
         const pl = player()
         if (what === 'in' && pl) api.interiors.enter(HOME, pl, entrance())
+        if (what === 'up' && pl && levelDef()?.attic) climb(pl, ATTIC)
         if (what === 'out' && pl) api.interiors.exit(pl)
         if (what === 'level' && levelDef(Number(n))) {
           set({ level: Number(n), readyDay: -1 })
           refreshHouse()
-          if (inside()) build()
+          if (here()) build()
         }
         if (what === 'paid') set({ debt: 0 })
         const s = state.value
@@ -598,3 +692,37 @@ function Mailbox(props: {
     </div>
   )
 }
+
+/**
+ * The hatch in the attic floor: a dark opening in a frame, and the top of the stairs' rails rising
+ * out of it at the back.
+ */
+function hatchModel(api: PluginApi, x: number, y: number, z: number, cfg: Config) {
+  const T = api.render.three
+  const g = new T.Group()
+  const frame = api.render.stylize(new T.MeshLambertMaterial({ color: cfg.stairs.color }))
+  const dark = api.render.stylize(new T.MeshLambertMaterial({ color: cfg.hatch.color }))
+  const geos = [new T.BoxGeometry(1, 0.04, 1), new T.BoxGeometry(0.82, 0.02, 0.82), new T.BoxGeometry(0.07, 0.75, 0.07), new T.BoxGeometry(0.74, 0.06, 0.06)]
+  const add = (geo: number, mat: InstanceType<typeof T.Material>, px: number, py: number, pz: number) => {
+    const m = new T.Mesh(geos[geo], mat)
+    m.position.set(px, py, pz)
+    g.add(m)
+  }
+  add(0, frame, 0, 0.02, 0)
+  add(1, dark, 0, 0.045, 0)
+  add(2, frame, -0.37, 0.4, -0.3)
+  add(2, frame, 0.37, 0.4, -0.3)
+  add(3, frame, 0, 0.72, -0.3)
+  g.position.set(x + 0.5, y, z + 0.5)
+  api.render.add(g)
+  return {
+    dispose() {
+      g.removeFromParent()
+      for (const geo of geos) geo.dispose()
+      frame.dispose()
+      dark.dispose()
+    },
+  }
+}
+
+const onCell = (c: { x: number; z: number } | null, x: number, z: number) => !!c && c.x === x && c.z === z

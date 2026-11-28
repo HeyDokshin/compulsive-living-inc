@@ -15,5 +15,7 @@
     { id: 'house:floor_tiles', name: 'Пол', color: '#eef0f2', invisible: true, textures: { all: 'house:floor_tiles' }, sounds: { step: 'core:step_tile' }, tags: ['house:floors'] },
     { id: 'house:floor_carpet', name: 'Ковролин', color: '#f6c8a8', invisible: true, textures: { all: 'house:floor_carpet' }, sounds: { step: 'core:step_carpet' }, tags: ['house:floors'] },
     { id: 'house:floor_grass', name: 'Лужайка', color: '#9bd67a', invisible: true, textures: { all: 'house:floor_grass' }, sounds: { step: 'core:step_grass' }, tags: ['house:floors'] },
+    // under the stairs and the attic hatch: solid, but not a floor to put furniture on
+    { id: 'house:stairs', name: 'Лестница', color: '#d9a56c', invisible: true, textures: { all: 'house:floor_planks' }, sounds: { step: 'core:step_wood' } },
   ],
 }

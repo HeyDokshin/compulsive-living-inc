@@ -68,3 +68,18 @@ export function windowsOf(p: RoomPlan): Array<{ x: number; z: number }> {
 export function payment(want: number, debt: number, bells: number): number {
   return Math.max(0, Math.min(Math.round(want), debt, bells))
 }
+
+/**
+ * The stairs up to the attic: steps along the right-hand wall, rising towards the back (area cells
+ * and top heights above the floor). Step onto the low `foot` and you go up; the others are solid.
+ */
+export function stairsOf(p: RoomPlan, count = 3): { foot: { x: number; z: number }; steps: Array<{ x: number; z: number; h: number }> } {
+  const x = p.x0 + p.w - 2
+  const steps = Array.from({ length: count }, (_, i) => ({ x, z: p.z0 + count - i, h: (i + 0.5) / count }))
+  return { foot: steps[0]!, steps }
+}
+
+/** The hatch in the attic floor the stairs come up through: in the back right corner. */
+export function hatchOf(p: RoomPlan): { x: number; z: number } {
+  return { x: p.x0 + p.w - 2, z: p.z0 + 1 }
+}

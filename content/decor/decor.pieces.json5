@@ -51,6 +51,7 @@
     {
       id: 'decor:bonfire', name: 'Костёр', description: 'Тёплый и уютный. Особенно ночью.', model: 'decor:bonfire', price: 600, blocker: true,
       glow: { color: '#ffb86a', size: 2.8, y: 0.5, flicker: true },
+      sound: { id: 'decor:crackle', every: 0.6, jitter: 0.45 },
       variants: [{ id: 'default', name: '', palette: {} }],
     },
     {
@@ -177,7 +178,7 @@
         { id: 'gold', name: 'в золотой раме', palette: { f: '#f2c14e' } },
       ],
     },
-    { id: 'decor:wall_clock', name: 'Часы на стену', model: 'decor:wall_clock', price: 560, blocker: false, layer: 'wall', indoor: true, variants: [{ id: 'default', name: '', palette: {} }] },
+    { id: 'decor:wall_clock', name: 'Часы на стену', model: 'decor:wall_clock', price: 560, blocker: false, layer: 'wall', indoor: true, sound: { id: 'decor:tick', every: 1 }, variants: [{ id: 'default', name: '', palette: {} }] },
     { id: 'decor:wall_shelf', name: 'Полочка', model: 'decor:wall_shelf', price: 380, blocker: false, layer: 'wall', indoor: true, variants: [{ id: 'default', name: '', palette: {} }] },
   ],
 }
